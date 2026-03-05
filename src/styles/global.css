@@ -1,0 +1,214 @@
+/* Force of Nature Press — global styles */
+
+:root {
+  --cream: #f0e6d0;
+  --cream-light: #faf5ea;
+  --cream-dark: #e4d3b8;
+  --brown: #2d1f0e;
+  --brown-mid: #6b4a2a;
+  --orange: #c87830;
+  --orange-dark: #a05e18;
+  --teal: #3d7a6e;
+  --teal-dark: #2a5a50;
+  --olive: #5c6b38;
+  --border: #d4b896;
+  --shadow: rgba(45, 31, 14, 0.12);
+
+  /* legacy compat for blog layout */
+  --accent: #c87830;
+  --accent-dark: #a05e18;
+  --black: 45, 31, 14;
+  --gray: 107, 74, 42;
+  --gray-light: 228, 211, 184;
+  --gray-dark: 45, 31, 14;
+  --box-shadow: 0 2px 6px var(--shadow), 0 8px 24px var(--shadow);
+}
+
+@font-face {
+  font-family: 'Atkinson';
+  src: url('/fonts/atkinson-regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson';
+  src: url('/fonts/atkinson-bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito', 'Atkinson', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--brown);
+  font-size: 18px;
+  line-height: 1.7;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+main {
+  min-height: calc(100vh - 72px - 120px);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Nunito', 'Atkinson', sans-serif;
+  font-weight: 800;
+  margin: 0 0 0.5em 0;
+  color: var(--brown);
+  line-height: 1.2;
+}
+
+h1 { font-size: 2.6em; }
+h2 { font-size: 2em; }
+h3 { font-size: 1.6em; }
+h4 { font-size: 1.3em; }
+h5 { font-size: 1.1em; }
+
+p { margin: 0 0 1em 0; }
+.prose p { margin-bottom: 1.6em; }
+
+strong, b { font-weight: 700; }
+
+a {
+  color: var(--teal);
+  text-decoration: underline;
+}
+a:hover { color: var(--teal-dark); }
+
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+code {
+  padding: 2px 6px;
+  background: var(--cream-dark);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+pre {
+  padding: 1.5em;
+  border-radius: 8px;
+  background: var(--brown);
+  color: var(--cream-light);
+  overflow-x: auto;
+}
+pre > code {
+  all: unset;
+}
+
+blockquote {
+  border-left: 4px solid var(--orange);
+  padding: 0 0 0 1.2em;
+  margin: 0 0 1em 0;
+  font-size: 1.1em;
+  color: var(--brown-mid);
+}
+
+hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 2em 0;
+}
+
+table { width: 100%; }
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.65em 1.4em;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 1em;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--orange);
+  color: var(--cream-light);
+}
+.btn-primary:hover {
+  background: var(--orange-dark);
+  color: var(--cream-light);
+}
+.btn-secondary {
+  background: var(--teal);
+  color: var(--cream-light);
+}
+.btn-secondary:hover {
+  background: var(--teal-dark);
+  color: var(--cream-light);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--brown);
+  border: 2px solid var(--border);
+}
+.btn-outline:hover {
+  background: var(--cream-dark);
+  color: var(--brown);
+}
+
+/* Page container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.section-title h2 {
+  margin-bottom: 0.3em;
+}
+.section-title p {
+  color: var(--brown-mid);
+  margin: 0;
+}
+
+/* Divider with star */
+.star-divider {
+  text-align: center;
+  color: var(--orange);
+  font-size: 1.4em;
+  margin: 1em 0;
+}
+
+@media (max-width: 720px) {
+  body { font-size: 16px; }
+  h1 { font-size: 2em; }
+  h2 { font-size: 1.6em; }
+}
+
+/* Accessibility */
+.sr-only {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

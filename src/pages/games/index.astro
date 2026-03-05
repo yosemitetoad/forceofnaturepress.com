@@ -1,0 +1,209 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="Games — Force of Nature Press" description="Play Dress Up Beetle! and other interactive projects by Force of Nature Press." fullWidth>
+
+  <div class="games-header">
+    <div class="container">
+      <h1>Games</h1>
+      <p>Interactive projects and browser games — click to play right here in your browser.</p>
+    </div>
+  </div>
+
+  <div class="container games-body">
+    <div class="games-grid">
+
+      <!-- Dress Up Beetle -->
+      <div class="game-card">
+        <div class="game-preview">
+          <img src="/beetleshopiconsquare.png" alt="Dress Up Beetle! preview" class="game-thumb" />
+        </div>
+        <div class="game-info">
+          <h2>Dress Up Beetle!</h2>
+          <p class="game-meta">Browser game · By Force of Nature Press</p>
+          <p>
+            Deck out your stag beetle in hats, outfits, and accessories! Drag items from the panel,
+            rotate and scale them, then take a screenshot of your creation. A cozy little dress-up game
+            featuring original Force of Nature Press artwork.
+          </p>
+          <button class="btn btn-primary game-play-btn" data-game="/games/dress-up-beetle.html">
+            Play Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Placeholder for future games -->
+      <div class="game-card game-card--coming-soon">
+        <div class="game-preview game-preview--placeholder">
+          <span class="coming-soon-icon">?</span>
+        </div>
+        <div class="game-info">
+          <h2>More Coming Soon</h2>
+          <p class="game-meta">In development</p>
+          <p>
+            More nature-themed interactive projects are in the works. Follow
+            <a href="https://www.instagram.com/forceofnature.press" target="_blank" rel="noopener noreferrer">@forceofnature.press</a>
+            on Instagram for updates!
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Game Overlay / Modal -->
+  <div class="game-overlay" id="gameOverlay" aria-hidden="true">
+    <div class="overlay-bar">
+      <span class="overlay-title" id="overlayTitle">Dress Up Beetle!</span>
+      <button class="overlay-close" id="overlayClose" aria-label="Close game">✕ Close</button>
+    </div>
+    <iframe id="gameFrame" src="" title="Game" allow="fullscreen"></iframe>
+  </div>
+
+</Base>
+
+<script>
+  const overlay = document.getElementById('gameOverlay')!;
+  const frame = document.getElementById('gameFrame') as HTMLIFrameElement;
+  const closeBtn = document.getElementById('overlayClose')!;
+
+  document.querySelectorAll<HTMLButtonElement>('.game-play-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const src = btn.dataset.game ?? '';
+      frame.src = src;
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  function closeOverlay() {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    frame.src = '';
+    document.body.style.overflow = '';
+  }
+
+  closeBtn.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeOverlay();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeOverlay();
+  });
+</script>
+
+<style>
+  .games-header {
+    background: var(--cream-light);
+    border-bottom: 2px solid var(--border);
+    padding: 2.5rem 0 1.5rem;
+  }
+  .games-header h1 { margin-bottom: 0.3em; }
+  .games-header p { color: var(--brown-mid); margin: 0; }
+
+  .games-body { padding-top: 2.5rem; padding-bottom: 5rem; }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 2rem;
+  }
+
+  .game-card {
+    display: flex;
+    gap: 1.5rem;
+    background: var(--cream-light);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .game-preview {
+    flex-shrink: 0;
+    width: 140px;
+    height: 140px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    background: var(--cream-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .game-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+  }
+  .game-preview--placeholder {
+    background: var(--cream-dark);
+  }
+  .coming-soon-icon {
+    font-size: 3rem;
+    color: var(--border);
+    font-weight: 900;
+  }
+
+  .game-info { flex: 1; }
+  .game-info h2 { font-size: 1.5rem; margin-bottom: 0.2em; }
+  .game-meta { color: var(--brown-mid); font-size: 0.85rem; margin-bottom: 0.8rem; font-style: italic; }
+  .game-info p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem; }
+
+  .game-card--coming-soon { opacity: 0.7; }
+
+  /* OVERLAY */
+  .game-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--brown);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+  }
+  .game-overlay.open { display: flex; }
+
+  .overlay-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1.2rem;
+    background: var(--brown);
+    border-bottom: 2px solid rgba(228, 211, 184, 0.2);
+    flex-shrink: 0;
+  }
+  .overlay-title {
+    color: var(--cream-light);
+    font-weight: 800;
+    font-size: 1rem;
+  }
+  .overlay-close {
+    background: rgba(228, 211, 184, 0.15);
+    border: 1px solid rgba(228, 211, 184, 0.3);
+    color: var(--cream-light);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.4em 0.9em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .overlay-close:hover { background: rgba(228, 211, 184, 0.25); }
+
+  #gameFrame {
+    flex: 1;
+    border: none;
+    width: 100%;
+    background: var(--cream);
+  }
+
+  @media (max-width: 600px) {
+    .games-grid { grid-template-columns: 1fr; }
+    .game-card { flex-direction: column; }
+    .game-preview { width: 100%; height: 180px; }
+  }
+</style>

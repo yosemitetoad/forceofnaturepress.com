@@ -1,0 +1,165 @@
+---
+import Base from '../layouts/Base.astro';
+import { SHOP_ITEMS, getEtsyUrl } from '../data/shop';
+
+// Portfolio shows stickers and prints as artwork
+const artworks = SHOP_ITEMS.filter(i =>
+  i.category === 'stickers' || i.category === 'prints'
+);
+---
+
+<Base
+  title="Portfolio — Force of Nature Press"
+  description="Original nature illustration portfolio by Riley Briggs — sticker designs, linocut prints, and art prints."
+  fullWidth
+>
+
+  <div class="portfolio-header">
+    <div class="container">
+      <h1>Portfolio</h1>
+      <p>Original nature illustrations — sticker designs, linocut prints, and art prints. Click any piece to view it in the shop.</p>
+    </div>
+  </div>
+
+  <div class="container portfolio-body">
+
+    <div class="filter-bar">
+      <button class="filter-btn active" data-cat="all">All Work</button>
+      <button class="filter-btn" data-cat="stickers">Sticker Designs</button>
+      <button class="filter-btn" data-cat="prints">Prints</button>
+    </div>
+
+    <div class="portfolio-grid" id="portfolioGrid">
+      {artworks.map(item => (
+        <a
+          href={getEtsyUrl(item)}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="artwork-card"
+          data-category={item.category}
+          aria-label={`${item.title} — opens on Etsy`}
+        >
+          <div class="artwork-img-wrap">
+            <img src={item.image} alt={item.title} loading="lazy" width="500" height="500" />
+            <div class="artwork-overlay">
+              <span>View on Etsy →</span>
+            </div>
+          </div>
+          <p class="artwork-title">{item.title}</p>
+        </a>
+      ))}
+    </div>
+
+  </div>
+
+</Base>
+
+<script>
+  const btns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+  const cards = document.querySelectorAll<HTMLElement>('.artwork-card');
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat;
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      cards.forEach(card => {
+        const show = cat === 'all' || card.dataset.category === cat;
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+
+<style>
+  .portfolio-header {
+    background: var(--cream-light);
+    border-bottom: 2px solid var(--border);
+    padding: 2.5rem 0 1.5rem;
+  }
+  .portfolio-header h1 { margin-bottom: 0.3em; }
+  .portfolio-header p { color: var(--brown-mid); margin: 0; }
+
+  .portfolio-body { padding-top: 2rem; padding-bottom: 4rem; }
+
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  .filter-btn {
+    padding: 0.45em 1.2em;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    background: var(--cream-light);
+    color: var(--brown);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--orange); }
+  .filter-btn.active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: var(--cream-light);
+  }
+
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.2rem;
+  }
+
+  .artwork-card {
+    display: block;
+    text-decoration: none;
+    color: var(--brown);
+  }
+  .artwork-img-wrap {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--cream-dark);
+  }
+  .artwork-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+    transition: transform 0.25s;
+    display: block;
+  }
+  .artwork-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(45, 31, 14, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: var(--cream-light);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .artwork-card:hover .artwork-img-wrap img { transform: scale(1.06); }
+  .artwork-card:hover .artwork-overlay { opacity: 1; }
+  .artwork-card:hover .artwork-img-wrap { border-color: var(--orange); }
+
+  .artwork-title {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--brown-mid);
+    line-height: 1.3;
+  }
+
+  @media (max-width: 600px) {
+    .portfolio-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+  }
+</style>

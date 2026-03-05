@@ -1,0 +1,114 @@
+---
+import Base from '../layouts/Base.astro';
+import { ETSY_SHOP_URL, INSTAGRAM_URL, EMAIL } from '../consts';
+---
+
+<Base title="About — Force of Nature Press" description="Riley Briggs is the artist behind Force of Nature Press, creating nature-themed art, stickers, and linocut prints from the Pacific Northwest.">
+
+  <div class="about-page">
+    <div class="about-hero">
+      <img src="/beetleshopsticker.png" alt="Force of Nature Press logo sticker" class="about-logo" />
+    </div>
+
+    <div class="about-content">
+      <h1>Hi, I'm Riley Briggs!</h1>
+      <p class="about-lead">
+        I'm the artist behind Force of Nature Press — a one-person art shop based in the Pacific Northwest
+        dedicated to celebrating the strange, beautiful, and often-overlooked creatures of the natural world.
+      </p>
+
+      <h2>What I Make</h2>
+      <p>
+        My work spans waterproof vinyl stickers, resin keychains and earrings, hand-pressed 1.25" buttons
+        and magnets, and original hand-carved linocut prints and art prints. Every design starts as an
+        original illustration, and the physical pieces are made by hand — from the printed shrink plastic
+        in my keychains and earrings to the ink I roll across my carved linoleum blocks.
+      </p>
+      <p>
+        I'm drawn to animals that don't always get the spotlight: velvet worms, Malayan tapirs, ocean sunfish,
+        banana slugs. I love the Pacific Northwest's biodiversity and try to capture what makes each creature
+        genuinely fascinating.
+      </p>
+
+      <h2>My Process</h2>
+      <p>
+        Sticker and print designs are hand-illustrated digitally, then professionally printed on premium
+        waterproof matte or holographic vinyl. Keychains and earrings are printed on shrink plastic, sealed
+        with acrylic, and topped with UV resin for a glass-like finish. Linocut prints are hand-carved and
+        hand-pulled in small numbered editions using water-based block printing ink on acid-free paper.
+      </p>
+
+      <h2>Find Me</h2>
+      <ul class="contact-list">
+        <li>
+          <strong>Etsy Shop:</strong>
+          <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer">forceofnaturepress.etsy.com</a>
+        </li>
+        <li>
+          <strong>Instagram:</strong>
+          <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">@forceofnature.press</a>
+        </li>
+        <li>
+          <strong>Email:</strong>
+          <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
+        </li>
+      </ul>
+
+      <div class="about-cta">
+        <a href="/shop" class="btn btn-primary">Browse the Shop</a>
+        <a href="/portfolio" class="btn btn-outline">View Portfolio</a>
+      </div>
+    </div>
+  </div>
+
+</Base>
+
+<style>
+  .about-page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 3rem 0 5rem;
+  }
+  .about-hero {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .about-logo {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px var(--shadow);
+  }
+  .about-content h1 { margin-bottom: 0.6em; }
+  .about-lead {
+    font-size: 1.1rem;
+    color: var(--brown-mid);
+    line-height: 1.7;
+    margin-bottom: 2em;
+    border-left: 4px solid var(--orange);
+    padding-left: 1em;
+  }
+  .about-content h2 {
+    font-size: 1.4rem;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--teal-dark);
+  }
+  .contact-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .contact-list a { color: var(--teal); }
+  .contact-list a:hover { color: var(--teal-dark); }
+  .about-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2.5rem;
+  }
+</style>
