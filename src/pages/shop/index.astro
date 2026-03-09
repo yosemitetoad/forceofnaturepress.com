@@ -1,7 +1,15 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { SHOP_ITEMS, CATEGORY_LABELS, getEtsyUrl } from '../../data/shop';
+import { fetchEtsyListings } from '../../lib/etsy';
 import type { ShopCategory } from '../../data/shop';
+
+let shopItems = SHOP_ITEMS;
+try {
+  shopItems = await fetchEtsyListings();
+} catch (e) {
+  console.warn('[shop] Etsy API unavailable, using static data:', e);
+}
 
 const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 ---
@@ -17,23 +25,45 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
   <div class="container shop-body">
 
-    <!-- CATEGORY FILTER -->
-    <div class="filter-bar" role="tablist" aria-label="Filter by category">
-      <button class="filter-btn active" data-cat="all" role="tab" aria-selected="true">All</button>
-      {categories.map(([cat, label]) => (
-        <button class="filter-btn" data-cat={cat} role="tab" aria-selected="false">{label}</button>
-      ))}
+    <!-- CONTROLS ROW -->
+    <div class="controls-row">
+      <div class="filter-bar" role="tablist" aria-label="Filter by category">
+        <button class="filter-btn active" data-cat="all" role="tab" aria-selected="true">All</button>
+        {categories.map(([cat, label]) => (
+          <button class="filter-btn" data-cat={cat} role="tab" aria-selected="false">{label}</button>
+        ))}
+      </div>
+
+      <div class="sort-search">
+        <input
+          type="search"
+          id="shopSearch"
+          placeholder="Search..."
+          aria-label="Search products"
+          class="shop-search"
+        />
+        <select id="shopSort" class="shop-sort" aria-label="Sort products">
+          <option value="default">Sort: Default</option>
+          <option value="alpha-asc">A → Z</option>
+          <option value="alpha-desc">Z → A</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+        </select>
+      </div>
     </div>
 
     <!-- PRODUCT GRID -->
     <div class="product-grid" id="productGrid">
-      {SHOP_ITEMS.map(item => (
+      {shopItems.map((item, i) => (
         <a
           href={getEtsyUrl(item)}
           target="_blank"
           rel="noopener noreferrer"
           class="product-card"
           data-category={item.category}
+          data-title={item.title.toLowerCase()}
+          data-price={item.price}
+          data-index={i}
           aria-label={`${item.title} — $${item.price.toFixed(2)} — opens on Etsy`}
         >
           <div class="product-img-wrap">
@@ -47,6 +77,8 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
       ))}
     </div>
 
+    <p class="no-results" id="noResults" style="display:none">No products match your search.</p>
+
     <p class="etsy-note">
       All listings open on <a href="https://www.etsy.com/shop/forceofnaturepress" target="_blank" rel="noopener noreferrer">Etsy</a>.
     </p>
@@ -55,26 +87,56 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 </Base>
 
 <script>
-  const btns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const cards = document.querySelectorAll<HTMLElement>('.product-card');
+  const grid = document.getElementById('productGrid')!;
+  const noResults = document.getElementById('noResults')!;
+  const searchInput = document.getElementById('shopSearch') as HTMLInputElement;
+  const sortSelect = document.getElementById('shopSort') as HTMLSelectElement;
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
 
-  btns.forEach(btn => {
+  let activeCat = 'all';
+
+  function applyFilters() {
+    const query = searchInput.value.toLowerCase().trim();
+    const sort = sortSelect.value;
+
+    // Collect all cards and sort them
+    const cards = Array.from(grid.querySelectorAll<HTMLElement>('.product-card'));
+
+    cards.sort((a, b) => {
+      if (sort === 'alpha-asc')  return a.dataset.title!.localeCompare(b.dataset.title!);
+      if (sort === 'alpha-desc') return b.dataset.title!.localeCompare(a.dataset.title!);
+      if (sort === 'price-asc')  return Number(a.dataset.price) - Number(b.dataset.price);
+      if (sort === 'price-desc') return Number(b.dataset.price) - Number(a.dataset.price);
+      if (sort === 'recent')     return Number(a.dataset.index) - Number(b.dataset.index);
+      return Number(a.dataset.index) - Number(b.dataset.index); // default
+    });
+
+    // Re-append in sorted order and apply visibility
+    let visible = 0;
+    cards.forEach(card => {
+      grid.appendChild(card);
+      const matchesCat = activeCat === 'all' || card.dataset.category === activeCat;
+      const matchesSearch = !query || card.dataset.title!.includes(query);
+      const show = matchesCat && matchesSearch;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    noResults.style.display = visible === 0 ? '' : 'none';
+  }
+
+  filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const cat = btn.dataset.cat;
-
-      btns.forEach(b => {
-        b.classList.remove('active');
-        b.setAttribute('aria-selected', 'false');
-      });
+      activeCat = btn.dataset.cat!;
+      filterBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
-
-      cards.forEach(card => {
-        const show = cat === 'all' || card.dataset.category === cat;
-        card.style.display = show ? '' : 'none';
-      });
+      applyFilters();
     });
   });
+
+  searchInput.addEventListener('input', applyFilters);
+  sortSelect.addEventListener('change', applyFilters);
 </script>
 
 <style>
@@ -88,12 +150,22 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
   .shop-body { padding-top: 2rem; padding-bottom: 4rem; }
 
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 2rem;
+    flex: 1;
   }
+
   .filter-btn {
     padding: 0.45em 1em;
     border: 2px solid var(--border);
@@ -114,6 +186,28 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
     background: var(--orange);
     border-color: var(--orange);
     color: var(--cream-light);
+  }
+
+  .sort-search {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .shop-search, .shop-sort {
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: var(--brown);
+    background: var(--cream-light);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4em 0.7em;
+    transition: border-color 0.15s;
+  }
+  .shop-search { width: 160px; }
+  .shop-search:focus, .shop-sort:focus {
+    outline: none;
+    border-color: var(--orange);
   }
 
   .product-grid {
@@ -169,6 +263,13 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
     font-size: 0.9rem;
   }
 
+  .no-results {
+    text-align: center;
+    color: var(--brown-mid);
+    font-style: italic;
+    padding: 2rem 0;
+  }
+
   .etsy-note {
     text-align: center;
     color: var(--brown-mid);
@@ -178,5 +279,7 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
   @media (max-width: 600px) {
     .product-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+    .sort-search { width: 100%; }
+    .shop-search { flex: 1; }
   }
 </style>

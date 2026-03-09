@@ -1,63 +1,59 @@
 ---
 import Base from '../layouts/Base.astro';
-import { ETSY_SHOP_URL, INSTAGRAM_URL, EMAIL } from '../consts';
+import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 ---
 
-<Base title="About — Force of Nature Press" description="Riley Briggs is the artist behind Force of Nature Press, creating nature-themed art, stickers, and linocut prints from the Pacific Northwest.">
+<Base title="About — Force of Nature Press" description="Riley Briggs is an artist, designer, printmaker, and ecologist based in Seattle, WA — and the one-person show behind Force of Nature Press.">
 
   <div class="about-page">
-    <div class="about-hero">
-      <img src="/beetleshopsticker.png" alt="Force of Nature Press logo sticker" class="about-logo" />
-    </div>
+    <div class="about-layout">
+      <div class="about-photo-col">
+        <img src="/riley_uncropped.JPG" alt="Riley Briggs in the forest" class="about-photo" />
+        <div class="muppet-wrapper">
+          <img src="/Muppet.JPG" alt="Muppet the cat" class="muppet-photo" />
+        </div>
+      </div>
 
     <div class="about-content">
-      <h1>Hi, I'm Riley Briggs!</h1>
-      <p class="about-lead">
-        I'm the artist behind Force of Nature Press — a one-person art shop based in the Pacific Northwest
-        dedicated to celebrating the strange, beautiful, and often-overlooked creatures of the natural world.
+      <h1>About Me</h1>
+
+      <p>
+        Hello there! I'm Riley. I wear many hats, but you could call me an artist, designer,
+        printmaker, and ecologist. I was born and raised in the heart of the Pacific Northwest, Seattle, WA,
+        where I still reside today, though I also lived for a time in Cornwall in the UK.
       </p>
 
-      <h2>What I Make</h2>
       <p>
-        My work spans waterproof vinyl stickers, resin keychains and earrings, hand-pressed 1.25" buttons
-        and magnets, and original hand-carved linocut prints and art prints. Every design starts as an
-        original illustration, and the physical pieces are made by hand — from the printed shrink plastic
-        in my keychains and earrings to the ink I roll across my carved linoleum blocks.
-      </p>
-      <p>
-        I'm drawn to animals that don't always get the spotlight: velvet worms, Malayan tapirs, ocean sunfish,
-        banana slugs. I love the Pacific Northwest's biodiversity and try to capture what makes each creature
-        genuinely fascinating.
+        I started Force of Nature Press in 2025 after graduating with a master's degree in evolutionary ecology
+        from the University of Exeter, where I wrote my dissertation in collaboration with the Natural History
+        Museum in London. Prior to starting FoNP, I worked with animals at an animal shelter and cared for
+        invertebrates at a zoo. I've always loved to draw and create, and anyone who knows me knows how much I
+        can go on and on about animals, so it seemed like a natural fit (mind the pun!) to enter a career that
+        can translate academic knowledge of nature to tangible art forms. I like to focus my work on some of the
+        weirder creatures out there, maybe ones you haven't heard of before or ones you never even knew could
+        exist, to spread awareness of the beautiful natural diversity on our Earth.
       </p>
 
-      <h2>My Process</h2>
       <p>
-        Sticker and print designs are hand-illustrated digitally, then professionally printed on premium
-        waterproof matte or holographic vinyl. Keychains and earrings are printed on shrink plastic, sealed
-        with acrylic, and topped with UV resin for a glass-like finish. Linocut prints are hand-carved and
-        hand-pulled in small numbered editions using water-based block printing ink on acid-free paper.
+        Outside of Force of Nature Press, I like to explore the forest, visit museums, play video games like
+        Animal Crossing and The Sims, play bass guitar, and hang out with my one-eyed tuxedo cat, Muppet (left).
       </p>
 
-      <h2>Find Me</h2>
-      <ul class="contact-list">
-        <li>
-          <strong>Etsy Shop:</strong>
-          <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer">forceofnaturepress.etsy.com</a>
-        </li>
-        <li>
-          <strong>Instagram:</strong>
-          <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">@forceofnature.press</a>
-        </li>
-        <li>
-          <strong>Email:</strong>
-          <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
-        </li>
-      </ul>
+      <p>
+        Force of Nature Press is a one-person show run out of my home studio in Seattle. I make and ship
+        everything myself — from stickers to lino prints to buttons to earrings to games to whatever else I
+        feel inspired to create. I am also open to freelance illustration work and collaborations; please
+        email me at <a href={`mailto:${EMAIL}`}>{EMAIL}</a> or fill out my <a href="/contact">contact form</a> if
+        you'd like to explore working together!
+      </p>
 
       <div class="about-cta">
-        <a href="/shop" class="btn btn-primary">Browse the Shop</a>
+        <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Instagram</a>
+        <a href={PINTEREST_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Pinterest</a>
+        <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Etsy</a>
         <a href="/portfolio" class="btn btn-outline">View Portfolio</a>
       </div>
+    </div>
     </div>
   </div>
 
@@ -65,20 +61,35 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, EMAIL } from '../consts';
 
 <style>
   .about-page {
-    max-width: 720px;
+    max-width: 1000px;
     margin: 0 auto;
     padding: 3rem 0 5rem;
   }
-  .about-hero {
-    text-align: center;
-    margin-bottom: 2.5rem;
+  .about-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 3rem;
+    align-items: start;
   }
-  .about-logo {
-    width: 200px;
-    height: 200px;
-    object-fit: contain;
-    border-radius: 50%;
-    box-shadow: 0 4px 20px var(--shadow);
+  .about-photo-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .about-photo {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    object-position: center 15%;
+    display: block;
+    -webkit-mask-image: url('/star.png');
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-image: url('/star.png');
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
   }
   .about-content h1 { margin-bottom: 0.6em; }
   .about-lead {
@@ -110,5 +121,31 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, EMAIL } from '../consts';
     gap: 1rem;
     flex-wrap: wrap;
     margin-top: 2.5rem;
+  }
+
+  .muppet-wrapper {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    -webkit-mask-image: url('/star.png');
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-image: url('/star.png');
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+  }
+  .muppet-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 25%;
+  }
+
+  @media (max-width: 720px) {
+    .about-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+    .about-photo-col { position: static; }
+    .about-photo { max-width: 260px; margin: 0 auto; }
   }
 </style>

@@ -8,27 +8,34 @@ const isActive = (path: string) =>
 
 <header>
   <div class="header-inner">
-    <a href="/" class="logo-link" aria-label="Force of Nature Press home">
-      <img src="/beetleshopiconsquare.png" alt="Force of Nature Press logo" class="logo-img" />
-      <span class="logo-text">{SITE_TITLE}</span>
-    </a>
-    <nav aria-label="Main navigation">
+    <nav class="nav-left" aria-label="Main navigation left">
       <a href="/shop" class:list={['nav-link', { active: isActive('/shop') }]}>Shop</a>
-      <a href="/portfolio" class:list={['nav-link', { active: isActive('/portfolio') }]}>Portfolio</a>
-      <a href="/blog" class:list={['nav-link', { active: isActive('/blog') }]}>Blog</a>
+      <a href="/portfolio" class:list={['nav-link', { active: isActive('/portfolio') }]}>Art</a>
       <a href="/games" class:list={['nav-link', { active: isActive('/games') }]}>Games</a>
-      <a href="/about" class:list={['nav-link', { active: isActive('/about') }]}>About</a>
     </nav>
+
+    <a href="/" class="logo-link" aria-label="Force of Nature Press home">
+      <img src="/beetleshopsticker.png" alt={SITE_TITLE} class="logo-img" />
+    </a>
+
+    <nav class="nav-right" aria-label="Main navigation right">
+      <a href="/about" class:list={['nav-link', { active: isActive('/about') }]}>About</a>
+      <a href="/blog" class:list={['nav-link', { active: isActive('/blog') }]}>Blog</a>
+      <a href="/contact" class:list={['nav-link', { active: isActive('/contact') }]}>Contact</a>
+    </nav>
+
     <button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle menu" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
   </div>
+
   <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
     <a href="/shop" class:list={['mobile-link', { active: isActive('/shop') }]}>Shop</a>
-    <a href="/portfolio" class:list={['mobile-link', { active: isActive('/portfolio') }]}>Portfolio</a>
-    <a href="/blog" class:list={['mobile-link', { active: isActive('/blog') }]}>Blog</a>
+    <a href="/portfolio" class:list={['mobile-link', { active: isActive('/portfolio') }]}>Art</a>
     <a href="/games" class:list={['mobile-link', { active: isActive('/games') }]}>Games</a>
     <a href="/about" class:list={['mobile-link', { active: isActive('/about') }]}>About</a>
+    <a href="/blog" class:list={['mobile-link', { active: isActive('/blog') }]}>Blog</a>
+    <a href="/contact" class:list={['mobile-link', { active: isActive('/contact') }]}>Contact</a>
   </nav>
 </header>
 
@@ -55,40 +62,43 @@ const isActive = (path: string) =>
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1.5rem;
-    height: 68px;
+    height: 80px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .nav-left {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    justify-content: flex-end;
+    gap: 0.2rem;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.2rem;
   }
 
   .logo-link {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    justify-content: center;
     text-decoration: none;
     flex-shrink: 0;
   }
 
   .logo-img {
-    width: 44px;
-    height: 44px;
-    border-radius: 6px;
-    object-fit: cover;
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    transition: transform 0.2s;
   }
-
-  .logo-text {
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: var(--brown);
-    line-height: 1.2;
-    max-width: 160px;
-  }
-
-  nav {
-    display: flex;
-    align-items: center;
-    gap: 0.2rem;
+  .logo-link:hover .logo-img {
+    transform: scale(1.07);
   }
 
   .nav-link {
@@ -99,6 +109,7 @@ const isActive = (path: string) =>
     font-size: 0.95rem;
     border-radius: 6px;
     transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
   }
   .nav-link:hover {
     background: var(--cream-dark);
@@ -118,6 +129,8 @@ const isActive = (path: string) =>
     cursor: pointer;
     padding: 0.5rem;
     border-radius: 6px;
+    position: absolute;
+    right: 1.5rem;
   }
   .mobile-menu-btn span {
     display: block;
@@ -150,8 +163,11 @@ const isActive = (path: string) =>
   .mobile-link.active { color: var(--orange); }
 
   @media (max-width: 720px) {
-    nav { display: none; }
+    .nav-left, .nav-right { display: none; }
     .mobile-menu-btn { display: flex; }
-    .logo-text { font-size: 0.95rem; max-width: 130px; }
+    .header-inner {
+      grid-template-columns: 1fr auto 1fr;
+      position: relative;
+    }
   }
 </style>
