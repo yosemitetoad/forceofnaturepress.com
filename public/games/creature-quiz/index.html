@@ -273,6 +273,45 @@ body {
   background: var(--green);
 }
 
+#float-stage {
+  display: none;
+  position: relative;
+  width: 100%;
+  height: 240px;
+  margin: 0 auto 18px;
+  border-radius: 14px;
+  background: rgba(91,123,109,0.05);
+  border: 2px dashed rgba(91,123,109,0.18);
+  overflow: hidden;
+}
+
+#float-stage.active { display: block; }
+
+.float-item {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.float-creature {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.float-qmark {
+  font-family: 'Fredoka One', cursive;
+  color: var(--green);
+  line-height: 1;
+}
+
+@keyframes floatItem {
+  0%   { opacity: 0;                transform: translate(0, 0) rotate(0deg); }
+  20%  { opacity: var(--peak-op);   }
+  80%  { opacity: var(--peak-op);   }
+  100% { opacity: 0; transform: translate(var(--travel-x), var(--travel-y)) rotate(var(--travel-r)); }
+}
+
 #result-img {
   width: 220px;
   height: 220px;
@@ -284,7 +323,7 @@ body {
   -webkit-user-drag: none;
   user-select: none;
   -webkit-user-select: none;
-  transition: opacity 50ms ease-in-out;
+  opacity: 0;
 }
 
 #result-you-got {
@@ -576,6 +615,7 @@ body {
   <!-- Result screen -->
   <div id="result-screen">
     <div id="result-card">
+      <div id="float-stage"></div>
       <div id="result-img" role="img" aria-label=""></div>
       <div id="result-reveal-label"></div>
       <div id="result-you-got">You got...</div>
@@ -796,55 +836,75 @@ function showResult() {
     resultScreen.classList.add('fade-in');
     setTimeout(() => resultScreen.classList.remove('fade-in'), 300);
 
-    // Cycling: exponential slowdown from 120ms → 700ms over 16 steps
+    // Build float stage
+    const floatStage = document.getElementById('float-stage');
+    floatStage.classList.add('active');
     const creatureKeys = Object.keys(CREATURES);
-    const STEPS = 16;
-    const T_START = 120, T_END = 700;
-    const factor = Math.pow(T_END / T_START, 1 / (STEPS - 1));
-    const timings = Array.from({ length: STEPS }, (_, i) => Math.round(T_START * Math.pow(factor, i)));
-    let step = 0;
-    let lastKey = null;
 
-    function cycleStep() {
-      if (step < timings.length) {
-        let key;
-        do { key = creatureKeys[Math.floor(Math.random() * creatureKeys.length)]; }
-        while (key === lastKey);
-        lastKey = key;
+    function rand(min, max) { return min + Math.random() * (max - min); }
 
-        const delay = timings[step] ?? timings[timings.length - 1];
-        step++;
+    // Spawn creatures
+    for (let i = 0; i < 6; i++) {
+      const el = document.createElement('div');
+      const size = rand(55, 95);
+      el.className = 'float-item float-creature';
+      el.style.width  = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.left   = `${rand(5, 88)}%`;
+      el.style.top    = `${rand(5, 75)}%`;
+      el.style.backgroundImage = `url('${CREATURES[creatureKeys[Math.floor(Math.random() * creatureKeys.length)]].img}')`;
+      el.style.setProperty('--peak-op', String(rand(0.45, 0.75).toFixed(2)));
+      el.style.setProperty('--travel-x', `${rand(-28, 28).toFixed(1)}px`);
+      el.style.setProperty('--travel-y', `${rand(-35, -8).toFixed(1)}px`);
+      el.style.setProperty('--travel-r', `${rand(-12, 12).toFixed(1)}deg`);
+      el.style.animation = `floatItem ${rand(1800, 3200).toFixed(0)}ms ease-in-out ${rand(0, 1800).toFixed(0)}ms infinite`;
+      floatStage.appendChild(el);
+    }
 
-        img.style.opacity = '0';
-        setTimeout(() => {
-          img.style.backgroundImage = `url('${CREATURES[key].img}')`;
-          img.style.opacity = '1';
-        }, 50);
+    // Spawn question marks
+    for (let i = 0; i < 5; i++) {
+      const el = document.createElement('div');
+      el.className = 'float-item float-qmark';
+      el.textContent = '?';
+      el.style.fontSize = `${rand(22, 42).toFixed(0)}px`;
+      el.style.left     = `${rand(5, 92)}%`;
+      el.style.top      = `${rand(8, 78)}%`;
+      el.style.setProperty('--peak-op', String(rand(0.2, 0.45).toFixed(2)));
+      el.style.setProperty('--travel-x', `${rand(-20, 20).toFixed(1)}px`);
+      el.style.setProperty('--travel-y', `${rand(-30, -5).toFixed(1)}px`);
+      el.style.setProperty('--travel-r', `${rand(-18, 18).toFixed(1)}deg`);
+      el.style.animation = `floatItem ${rand(2000, 3500).toFixed(0)}ms ease-in-out ${rand(0, 2000).toFixed(0)}ms infinite`;
+      floatStage.appendChild(el);
+    }
 
-        setTimeout(cycleStep, delay);
-      } else {
-        // Land on winner — disable transition for the bounce animation
-        img.style.opacity = '0';
-        setTimeout(() => {
-          img.style.transition = 'none';
-          img.style.backgroundImage = `url('${c.img}')`;
-          img.style.opacity = '1';
-          void img.offsetWidth;
-          img.classList.add('img-land');
-          setTimeout(() => {
-            img.classList.remove('img-land');
-            img.style.transition = '';
-          }, 600);
-        }, 50);
+    // After float duration, reveal winner
+    const FLOAT_MS = 3800;
+    setTimeout(() => {
+      // Fade out everything in the float stage
+      floatStage.querySelectorAll('.float-item').forEach(el => {
+        el.style.animationPlayState = 'paused';
+        el.style.transition = 'opacity 400ms ease';
+        el.style.opacity = '0';
+      });
+      revealLabel.textContent = '';
 
-        revealLabel.textContent = '';
+      setTimeout(() => {
+        // Hide float stage, show result image with bounce
+        floatStage.classList.remove('active');
+        floatStage.innerHTML = '';
+
+        img.style.backgroundImage = `url('${c.img}')`;
+        img.style.transition = 'none';
+        img.style.opacity = '1';
+        void img.offsetWidth;
+        img.classList.add('img-land');
+        setTimeout(() => img.classList.remove('img-land'), 600);
+
         resultCard.classList.remove('cycling');
         resultCard.classList.add('reveal-content');
         setTimeout(() => resultCard.classList.remove('reveal-content'), 600);
-      }
-    }
-
-    setTimeout(cycleStep, 350);
+      }, 420);
+    }, FLOAT_MS);
   }, 200);
 }
 
@@ -858,6 +918,12 @@ function resetQuiz() {
   resultScreen.classList.remove('visible');
   document.getElementById('result-card').classList.remove('cycling', 'reveal-content');
   document.getElementById('result-reveal-label').textContent = '';
+  const fs = document.getElementById('float-stage');
+  fs.classList.remove('active');
+  fs.innerHTML = '';
+  const ri = document.getElementById('result-img');
+  ri.style.backgroundImage = '';
+  ri.style.opacity = '0';
   questionScreen.style.display = '';
 
   const card = document.querySelector('#question-screen #quiz-card');
