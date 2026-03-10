@@ -596,7 +596,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     sku: 'PINBUNDLE',
     title: 'Nature Illustrations Pin Set — Pick Any 3',
-    category: 'buttons',
+    category: 'gift-sets',
     price: 8,
     image: 'https://i.etsystatic.com/63085988/r/il/453dba/7603113980/il_fullxfull.7603113980_sfpz.jpg',
   
@@ -670,7 +670,7 @@ export const SHOP_ITEMS: ShopItem[] = [
   {
     sku: 'MGNTBUNDLE',
     title: 'Nature Illustrations Magnet Set — Pick Any 3',
-    category: 'magnets',
+    category: 'gift-sets',
     price: 10,
     image: 'https://i.etsystatic.com/63085988/r/il/90a22b/7603235908/il_fullxfull.7603235908_71us.jpg',
   
@@ -822,5 +822,21 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 12,
     image: 'https://i.etsystatic.com/63085988/r/il/057013/7778363816/il_1588xN.7778363816_1oab.jpg',
     etsyListingId: '4467858004',
+  },
+  {
+    sku: '4469333696',
+    title: 'Opossum Sticker',
+    category: 'stickers',
+    price: 4,
+    image: 'https://i.etsystatic.com/63085988/r/il/89e77a/7835885943/il_1588xN.7835885943_b6zg.jpg',
+    etsyListingId: '4469333696',
+  },
+  {
+    sku: '4469328091',
+    title: 'Raccoon Sticker',
+    category: 'stickers',
+    price: 4,
+    image: 'https://i.etsystatic.com/63085988/r/il/6a5966/7835892691/il_1588xN.7835892691_czmy.jpg',
+    etsyListingId: '4469328091',
   },
 ];

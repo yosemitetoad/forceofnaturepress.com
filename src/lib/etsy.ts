@@ -20,6 +20,7 @@ interface EtsyResponse {
 
 function mapCategory(title: string): ShopCategory {
   const t = title.toLowerCase();
+  if (t.includes('gift set') || t.includes('bundle')) return 'gift-sets';
   if (t.includes('sticker sheet')) return 'sticker-sheets';
   if (t.includes('sticker')) return 'stickers';
   if (t.includes('keychain')) return 'keychains';
@@ -27,7 +28,6 @@ function mapCategory(title: string): ShopCategory {
   if (t.includes('button') || t.includes('pick any') || (t.includes('pin') && t.includes('set'))) return 'buttons';
   if (t.includes('magnet')) return 'magnets';
   if (t.includes('print')) return 'prints';
-  if (t.includes('gift set') || t.includes('bundle')) return 'gift-sets';
   return 'stickers';
 }
 

@@ -20,7 +20,7 @@ import Base from '../../layouts/Base.astro';
           <div class="game-preview">
             <img src="/dressupbeetlecover.png" alt="Dress Up Beetle! preview" class="game-thumb" />
           </div>
-          <button class="btn btn-primary game-play-btn" data-game="/games/dress-up-beetle.html">
+          <button class="btn btn-primary game-play-btn" data-game="/games/dress-up-beetle/dress-up-beetle.html" data-title="Dress Up Beetle!">
             Play Now
           </button>
         </div>
@@ -35,18 +35,22 @@ import Base from '../../layouts/Base.astro';
         </div>
       </div>
 
-      <!-- Placeholder for future games -->
-      <div class="game-card game-card--coming-soon">
-        <div class="game-preview game-preview--placeholder">
-          <span class="coming-soon-icon">?</span>
+      <!-- What Creature Are You? Quiz -->
+      <div class="game-card">
+        <div class="game-preview-col">
+          <div class="game-preview">
+            <img src="/games/creature-quiz/images/star_bg.png" alt="What Creature Are You? Quiz preview" class="game-thumb" />
+          </div>
+          <button class="btn btn-primary game-play-btn" data-game="/games/creature-quiz/index.html" data-title="What Creature Are You?">
+            Play Now
+          </button>
         </div>
         <div class="game-info">
-          <h2>More Coming Soon</h2>
-          <p class="game-meta">In development</p>
+          <h2>What Creature Are You?</h2>
+          <p class="game-meta">Personality quiz · By Force of Nature Press</p>
           <p>
-            More nature-themed interactive projects are in the works. Follow
-            <a href="https://www.instagram.com/forceofnature.press" target="_blank" rel="noopener noreferrer">@forceofnature.press</a>
-            on Instagram for updates!
+            Answer a few questions to find out which Force of Nature Press creature matches your personality.
+            Are you a Luna Moth, a Banana Slug, a Sea Otter? Take the quiz and find out!
           </p>
         </div>
       </div>
@@ -70,10 +74,13 @@ import Base from '../../layouts/Base.astro';
   const frame = document.getElementById('gameFrame') as HTMLIFrameElement;
   const closeBtn = document.getElementById('overlayClose')!;
 
+  const overlayTitle = document.getElementById('overlayTitle')!;
+
   document.querySelectorAll<HTMLButtonElement>('.game-play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const src = btn.dataset.game ?? '';
       frame.src = src;
+      overlayTitle.textContent = btn.dataset.title ?? '';
       overlay.classList.add('open');
       overlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
