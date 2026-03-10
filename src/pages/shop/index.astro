@@ -49,6 +49,11 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
           <option value="price-asc">Price: Low to High</option>
           <option value="price-desc">Price: High to Low</option>
         </select>
+        <select id="shopPerPage" class="shop-sort" aria-label="Items per page">
+          <option value="20">20 per page</option>
+          <option value="40">40 per page</option>
+          <option value="60">60 per page</option>
+        </select>
       </div>
     </div>
 
@@ -79,6 +84,8 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
     <p class="no-results" id="noResults" style="display:none">No products match your search.</p>
 
+    <div class="pagination" id="pagination"></div>
+
     <p class="etsy-note">
       All listings open on <a href="https://www.etsy.com/shop/forceofnaturepress" target="_blank" rel="noopener noreferrer">Etsy</a>.
     </p>
@@ -89,17 +96,22 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 <script>
   const grid = document.getElementById('productGrid')!;
   const noResults = document.getElementById('noResults')!;
+  const paginationEl = document.getElementById('pagination')!;
   const searchInput = document.getElementById('shopSearch') as HTMLInputElement;
   const sortSelect = document.getElementById('shopSort') as HTMLSelectElement;
+  const perPageSelect = document.getElementById('shopPerPage') as HTMLSelectElement;
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
 
   let activeCat = 'all';
+  let currentPage = 1;
 
-  function applyFilters() {
+  function applyFilters(resetPage = true) {
+    if (resetPage) currentPage = 1;
+
     const query = searchInput.value.toLowerCase().trim();
     const sort = sortSelect.value;
+    const perPage = Number(perPageSelect.value);
 
-    // Collect all cards and sort them
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('.product-card'));
 
     cards.sort((a, b) => {
@@ -107,22 +119,58 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
       if (sort === 'alpha-desc') return b.dataset.title!.localeCompare(a.dataset.title!);
       if (sort === 'price-asc')  return Number(a.dataset.price) - Number(b.dataset.price);
       if (sort === 'price-desc') return Number(b.dataset.price) - Number(a.dataset.price);
-      if (sort === 'recent')     return Number(a.dataset.index) - Number(b.dataset.index);
-      return Number(a.dataset.index) - Number(b.dataset.index); // default
+      return Number(a.dataset.index) - Number(b.dataset.index);
     });
 
-    // Re-append in sorted order and apply visibility
-    let visible = 0;
+    // Re-append sorted, collect matching cards
+    const matching: HTMLElement[] = [];
     cards.forEach(card => {
       grid.appendChild(card);
       const matchesCat = activeCat === 'all' || card.dataset.category === activeCat;
       const matchesSearch = !query || card.dataset.title!.includes(query);
-      const show = matchesCat && matchesSearch;
-      card.style.display = show ? '' : 'none';
-      if (show) visible++;
+      if (matchesCat && matchesSearch) matching.push(card);
     });
 
-    noResults.style.display = visible === 0 ? '' : 'none';
+    const totalPages = Math.max(1, Math.ceil(matching.length / perPage));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * perPage;
+    const end = start + perPage;
+
+    cards.forEach(card => { card.style.display = 'none'; });
+    matching.forEach((card, i) => {
+      card.style.display = (i >= start && i < end) ? '' : 'none';
+    });
+
+    noResults.style.display = matching.length === 0 ? '' : 'none';
+    renderPagination(totalPages);
+  }
+
+  function renderPagination(totalPages: number) {
+    paginationEl.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const prev = document.createElement('button');
+    prev.className = 'page-btn' + (currentPage === 1 ? ' disabled' : '');
+    prev.textContent = '←';
+    prev.disabled = currentPage === 1;
+    prev.addEventListener('click', () => { currentPage--; applyFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    paginationEl.appendChild(prev);
+
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+      btn.textContent = String(i);
+      btn.addEventListener('click', () => { currentPage = i; applyFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      paginationEl.appendChild(btn);
+    }
+
+    const next = document.createElement('button');
+    next.className = 'page-btn' + (currentPage === totalPages ? ' disabled' : '');
+    next.textContent = '→';
+    next.disabled = currentPage === totalPages;
+    next.addEventListener('click', () => { currentPage++; applyFilters(false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    paginationEl.appendChild(next);
   }
 
   filterBtns.forEach(btn => {
@@ -137,6 +185,9 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
   searchInput.addEventListener('input', applyFilters);
   sortSelect.addEventListener('change', applyFilters);
+  perPageSelect.addEventListener('change', applyFilters);
+
+  applyFilters();
 </script>
 
 <style>
@@ -268,6 +319,40 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
     color: var(--brown-mid);
     font-style: italic;
     padding: 2rem 0;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+  .page-btn {
+    min-width: 2.2rem;
+    padding: 0.4em 0.7em;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--cream-light);
+    color: var(--brown);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .page-btn:hover:not(.disabled) {
+    border-color: var(--orange);
+    background: rgba(200, 120, 48, 0.08);
+  }
+  .page-btn.active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: var(--cream-light);
+  }
+  .page-btn.disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .etsy-note {
