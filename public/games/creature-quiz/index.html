@@ -279,9 +279,6 @@ body {
   width: 100%;
   height: 240px;
   margin: 0 auto 18px;
-  border-radius: 14px;
-  background: rgba(91,123,109,0.05);
-  border: 2px dashed rgba(91,123,109,0.18);
   overflow: hidden;
 }
 
@@ -306,9 +303,9 @@ body {
 }
 
 @keyframes floatItem {
-  0%   { opacity: 0;                transform: translate(0, 0) rotate(0deg); }
-  20%  { opacity: var(--peak-op);   }
-  80%  { opacity: var(--peak-op);   }
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  20%  { opacity: var(--peak-op); }
+  80%  { opacity: var(--peak-op); }
   100% { opacity: 0; transform: translate(var(--travel-x), var(--travel-y)) rotate(var(--travel-r)); }
 }
 
@@ -843,17 +840,27 @@ function showResult() {
 
     function rand(min, max) { return min + Math.random() * (max - min); }
 
-    // Spawn creatures
+    // Shuffle all 8 creature keys so each floater is a different creature
+    const shuffled = [...creatureKeys].sort(() => Math.random() - 0.5);
+
+    // Place creatures in a 3-col × 2-row grid with jitter — guarantees even spread
+    // Grid cells (left%, top%) — centres of each zone
+    const creatureZones = [
+      [12, 20], [48, 15], [82, 22],
+      [18, 62], [52, 68], [80, 58],
+    ];
+    creatureZones.sort(() => Math.random() - 0.5); // shuffle zones too for variety
+
     for (let i = 0; i < 6; i++) {
       const el = document.createElement('div');
-      const size = rand(55, 95);
+      const size = rand(58, 92);
       el.className = 'float-item float-creature';
       el.style.width  = `${size}px`;
       el.style.height = `${size}px`;
-      el.style.left   = `${rand(5, 88)}%`;
-      el.style.top    = `${rand(5, 75)}%`;
-      el.style.backgroundImage = `url('${CREATURES[creatureKeys[Math.floor(Math.random() * creatureKeys.length)]].img}')`;
-      el.style.setProperty('--peak-op', String(rand(0.45, 0.75).toFixed(2)));
+      el.style.left   = `${creatureZones[i][0] + rand(-6, 6)}%`;
+      el.style.top    = `${creatureZones[i][1] + rand(-5, 5)}%`;
+      el.style.backgroundImage = `url('${CREATURES[shuffled[i]].img}')`;
+      el.style.setProperty('--peak-op', rand(0.45, 0.75).toFixed(2));
       el.style.setProperty('--travel-x', `${rand(-28, 28).toFixed(1)}px`);
       el.style.setProperty('--travel-y', `${rand(-35, -8).toFixed(1)}px`);
       el.style.setProperty('--travel-r', `${rand(-12, 12).toFixed(1)}deg`);
@@ -861,15 +868,20 @@ function showResult() {
       floatStage.appendChild(el);
     }
 
-    // Spawn question marks
+    // Question marks fill the gaps between creature zones
+    const qmarkZones = [
+      [32, 10], [68, 40], [25, 45], [60, 78], [88, 78],
+    ];
+    qmarkZones.sort(() => Math.random() - 0.5);
+
     for (let i = 0; i < 5; i++) {
       const el = document.createElement('div');
       el.className = 'float-item float-qmark';
       el.textContent = '?';
       el.style.fontSize = `${rand(22, 42).toFixed(0)}px`;
-      el.style.left     = `${rand(5, 92)}%`;
-      el.style.top      = `${rand(8, 78)}%`;
-      el.style.setProperty('--peak-op', String(rand(0.2, 0.45).toFixed(2)));
+      el.style.left     = `${qmarkZones[i][0] + rand(-4, 4)}%`;
+      el.style.top      = `${qmarkZones[i][1] + rand(-4, 4)}%`;
+      el.style.setProperty('--peak-op', rand(0.2, 0.45).toFixed(2));
       el.style.setProperty('--travel-x', `${rand(-20, 20).toFixed(1)}px`);
       el.style.setProperty('--travel-y', `${rand(-30, -5).toFixed(1)}px`);
       el.style.setProperty('--travel-r', `${rand(-18, 18).toFixed(1)}deg`);
@@ -877,10 +889,7 @@ function showResult() {
       floatStage.appendChild(el);
     }
 
-    // After float duration, reveal winner
-    const FLOAT_MS = 3800;
     setTimeout(() => {
-      // Fade out everything in the float stage
       floatStage.querySelectorAll('.float-item').forEach(el => {
         el.style.animationPlayState = 'paused';
         el.style.transition = 'opacity 400ms ease';
@@ -889,12 +898,10 @@ function showResult() {
       revealLabel.textContent = '';
 
       setTimeout(() => {
-        // Hide float stage, show result image with bounce
         floatStage.classList.remove('active');
         floatStage.innerHTML = '';
 
         img.style.backgroundImage = `url('${c.img}')`;
-        img.style.transition = 'none';
         img.style.opacity = '1';
         void img.offsetWidth;
         img.classList.add('img-land');
@@ -904,7 +911,7 @@ function showResult() {
         resultCard.classList.add('reveal-content');
         setTimeout(() => resultCard.classList.remove('reveal-content'), 600);
       }, 420);
-    }, FLOAT_MS);
+    }, 5500);
   }, 200);
 }
 
