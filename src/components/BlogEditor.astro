@@ -776,6 +776,7 @@ const { content = '' } = Astro.props;
 
   // ── Font size (numeric, px-based) ──
   const sizeInput = document.getElementById('sizeInput') as HTMLInputElement;
+  let pendingFontSize: number | null = null;
 
   function applyFontSize(px: number) {
     px = Math.max(8, Math.min(144, px));
@@ -788,37 +789,67 @@ const { content = '' } = Astro.props;
       return;
     }
 
-    // Use fontSize 7 as a marker, then fix the generated <font> tag
+    if (sel.isCollapsed) {
+      // Collapsed cursor: just remember the size; we'll apply it when the user types
+      pendingFontSize = px;
+      return;
+    }
+
+    // Selected text: use fontSize 7 as a marker, then replace with styled spans
+    pendingFontSize = null;
     document.execCommand('fontSize', false, '7');
     const fontEls = editor.querySelectorAll('font[size="7"]');
-
-    if (sel.isCollapsed) {
-      // Collapsed cursor: modify the <font> in place to preserve caret position
-      fontEls.forEach(el => {
-        el.removeAttribute('size');
-        (el as HTMLElement).style.fontSize = px + 'px';
-      });
-    } else {
-      // Selected text: replace with styled spans
-      const newSpans: HTMLElement[] = [];
-      fontEls.forEach(el => {
-        const span = document.createElement('span');
-        span.style.fontSize = px + 'px';
-        span.innerHTML = el.innerHTML;
-        el.replaceWith(span);
-        newSpans.push(span);
-      });
-      // Re-select the replaced content so subsequent changes still work
-      if (newSpans.length > 0) {
-        sel.removeAllRanges();
-        const range = document.createRange();
-        range.setStartBefore(newSpans[0]);
-        range.setEndAfter(newSpans[newSpans.length - 1]);
-        sel.addRange(range);
-        savedRange = range.cloneRange();
-      }
+    const newSpans: HTMLElement[] = [];
+    fontEls.forEach(el => {
+      const span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      span.innerHTML = el.innerHTML;
+      el.replaceWith(span);
+      newSpans.push(span);
+    });
+    if (newSpans.length > 0) {
+      sel.removeAllRanges();
+      const range = document.createRange();
+      range.setStartBefore(newSpans[0]);
+      range.setEndAfter(newSpans[newSpans.length - 1]);
+      sel.addRange(range);
+      savedRange = range.cloneRange();
     }
   }
+
+  // Intercept typing to apply pending font size
+  editor.addEventListener('beforeinput', (e) => {
+    if (pendingFontSize !== null && e.inputType === 'insertText' && e.data) {
+      e.preventDefault();
+      const px = pendingFontSize;
+      pendingFontSize = null;
+
+      lastUsedFontSize = px;
+      const span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      span.textContent = e.data;
+
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(span);
+        // Position cursor at end of text inside the span so subsequent typing stays inside it
+        const textNode = span.firstChild!;
+        range.setStart(textNode, textNode.textContent!.length);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  });
+
+  // When clicking in editor, clear pending size but remember it as last-used
+  let lastUsedFontSize: number | null = null;
+  editor.addEventListener('mousedown', () => {
+    if (pendingFontSize !== null) lastUsedFontSize = pendingFontSize;
+    pendingFontSize = null;
+  });
 
   // When the size input is focused via click, save the editor selection first
   sizeInput.addEventListener('mousedown', () => { saveSelection(); });
@@ -847,6 +878,11 @@ const { content = '' } = Astro.props;
   editor.addEventListener('keyup', updateSizeFromSelection);
   editor.addEventListener('mouseup', updateSizeFromSelection);
   function updateSizeFromSelection() {
+    // Don't overwrite the display if we have a pending size
+    if (pendingFontSize !== null) {
+      sizeInput.value = String(pendingFontSize);
+      return;
+    }
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     let node = sel.anchorNode;
@@ -854,7 +890,15 @@ const { content = '' } = Astro.props;
     if (node && editor.contains(node)) {
       const computed = window.getComputedStyle(node as Element);
       const px = Math.round(parseFloat(computed.fontSize));
-      if (px) sizeInput.value = String(px);
+      // If editor is empty and we have a last-used size, show that instead of the default
+      const editorEmpty = editor.textContent?.trim() === '';
+      if (editorEmpty && lastUsedFontSize) {
+        sizeInput.value = String(lastUsedFontSize);
+        pendingFontSize = lastUsedFontSize;
+      } else if (px) {
+        sizeInput.value = String(px);
+        lastUsedFontSize = px;
+      }
     }
   }
 
