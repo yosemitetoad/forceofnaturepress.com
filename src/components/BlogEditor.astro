@@ -1,0 +1,273 @@
+---
+interface Props {
+  content?: string;
+}
+const { content = '' } = Astro.props;
+---
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:wght@400;700&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+<div class="editor-wrap">
+  <div class="editor-toolbar" id="editorToolbar">
+    <!-- Undo / Redo -->
+    <button type="button" data-cmd="undo" title="Undo">&#8630;</button>
+    <button type="button" data-cmd="redo" title="Redo">&#8631;</button>
+    <span class="toolbar-sep"></span>
+
+    <!-- Font family -->
+    <select id="fontSelect" title="Font">
+      <option value="">Font</option>
+      <option value="Nunito">Nunito</option>
+      <option value="Lora">Lora</option>
+      <option value="Merriweather">Merriweather</option>
+      <option value="Open Sans">Open Sans</option>
+      <option value="Playfair Display">Playfair Display</option>
+      <option value="Roboto">Roboto</option>
+      <option value="Source Serif 4">Source Serif 4</option>
+      <option value="PT Serif">PT Serif</option>
+    </select>
+
+    <!-- Font size -->
+    <select id="sizeSelect" title="Text Size">
+      <option value="">Size</option>
+      <option value="1">Small</option>
+      <option value="3">Normal</option>
+      <option value="4">Large</option>
+      <option value="5">X-Large</option>
+      <option value="6">Huge</option>
+    </select>
+    <span class="toolbar-sep"></span>
+
+    <!-- Basic formatting -->
+    <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+    <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+    <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+    <button type="button" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+    <span class="toolbar-sep"></span>
+
+    <!-- Text color -->
+    <label class="color-wrap" title="Text Color">
+      <span class="color-label" id="colorLabel" style="color:#2d1f0e">A</span>
+      <input type="color" id="textColor" value="#2d1f0e" />
+    </label>
+    <!-- Highlight -->
+    <label class="color-wrap" title="Highlight">
+      <span class="highlight-label" id="highlightLabel" style="background:#ffeb3b">A</span>
+      <input type="color" id="highlightColor" value="#ffeb3b" />
+    </label>
+    <span class="toolbar-sep"></span>
+
+    <!-- Headings / Paragraph -->
+    <button type="button" data-cmd="formatBlock" data-val="h2" title="Heading">H2</button>
+    <button type="button" data-cmd="formatBlock" data-val="h3" title="Subheading">H3</button>
+    <button type="button" data-cmd="formatBlock" data-val="p" title="Paragraph">P</button>
+    <span class="toolbar-sep"></span>
+
+    <!-- Alignment -->
+    <button type="button" data-cmd="justifyLeft" title="Align Left">&#8676;</button>
+    <button type="button" data-cmd="justifyCenter" title="Center">&#8596;</button>
+    <button type="button" data-cmd="justifyRight" title="Align Right">&#8677;</button>
+    <span class="toolbar-sep"></span>
+
+    <!-- Lists -->
+    <button type="button" data-cmd="insertUnorderedList" title="Bullet List">&#8226; List</button>
+    <button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+    <span class="toolbar-sep"></span>
+
+    <!-- Link -->
+    <button type="button" id="linkBtn" title="Insert Link">Link</button>
+    <!-- Image -->
+    <span class="img-menu-wrap">
+      <button type="button" id="imgBtn" title="Insert Image">Image</button>
+      <div id="imgMenu" class="img-menu" style="display:none">
+        <button type="button" id="imgUploadChoice">Upload from computer</button>
+        <button type="button" id="imgUrlChoice">Paste a URL</button>
+      </div>
+    </span>
+    <span class="toolbar-sep"></span>
+
+    <!-- Quote / Clear -->
+    <button type="button" data-cmd="formatBlock" data-val="blockquote" title="Quote">Quote</button>
+    <button type="button" data-cmd="removeFormat" title="Clear Formatting">Clear</button>
+  </div>
+  <div id="editor" class="editor" contenteditable="true" set:html={content}></div>
+</div>
+
+<style>
+  .editor-wrap { margin: 0; }
+
+  .editor-toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.4rem;
+    background: #2d1f0e; border-radius: 8px 8px 0 0; border: 2px solid #2d1f0e;
+    align-items: center;
+  }
+  .editor-toolbar button {
+    background: transparent; border: none; color: #e4d3b8; padding: 0.3em 0.6em;
+    border-radius: 4px; font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  }
+  .editor-toolbar button:hover { background: #6b4a2a; color: #faf5ea; }
+  .toolbar-sep { width: 1px; background: #6b4a2a; margin: 0 0.15rem; align-self: stretch; }
+
+  .editor-toolbar select {
+    background: #6b4a2a; color: #e4d3b8; border: none; border-radius: 4px;
+    padding: 0.25em 0.4em; font-family: inherit; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; max-width: 110px;
+  }
+  .editor-toolbar select:hover { background: #8b6a3a; }
+
+  .color-wrap {
+    display: flex; align-items: center; cursor: pointer; position: relative;
+    padding: 0.2em 0.4em; border-radius: 4px;
+  }
+  .color-wrap:hover { background: #6b4a2a; }
+  .color-wrap input[type="color"] {
+    position: absolute; opacity: 0; width: 100%; height: 100%;
+    top: 0; left: 0; cursor: pointer; border: none; padding: 0;
+  }
+  .color-label {
+    font-weight: 800; font-size: 0.85rem; pointer-events: none;
+    border-bottom: 3px solid currentColor;
+  }
+  .highlight-label {
+    font-weight: 800; font-size: 0.85rem; pointer-events: none;
+    padding: 0 0.15em; border-radius: 2px; color: #2d1f0e;
+  }
+
+  .img-menu-wrap { position: relative; }
+  .img-menu {
+    position: absolute; top: 100%; left: 0; z-index: 10; margin-top: 0.3rem;
+    background: #2d1f0e; border: 2px solid #6b4a2a; border-radius: 6px;
+    overflow: hidden; min-width: 180px;
+  }
+  .img-menu button {
+    display: block; width: 100%; text-align: left; padding: 0.5em 0.8em;
+    background: transparent; border: none; color: #e4d3b8;
+    font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  }
+  .img-menu button:hover { background: #6b4a2a; color: #faf5ea; }
+
+  .editor {
+    min-height: 350px; padding: 1rem; background: #faf5ea; border: 2px solid #d4b896;
+    border-top: none; border-radius: 0 0 8px 8px; font-size: 0.95rem; line-height: 1.7;
+    outline: none;
+  }
+  .editor:focus { border-color: #c87830; }
+  .editor :global(h2) { font-size: 1.4rem; font-weight: 800; margin: 0.8em 0 0.3em; }
+  .editor :global(h3) { font-size: 1.15rem; font-weight: 800; margin: 0.6em 0 0.3em; }
+  .editor :global(p) { margin: 0 0 0.6em; }
+  .editor :global(blockquote) {
+    border-left: 4px solid #c87830; margin: 0.6em 0; padding: 0.4em 1em;
+    background: rgba(200, 120, 48, 0.06); color: #6b4a2a; font-style: italic;
+  }
+  .editor :global(a) { color: #3d7a6e; }
+  .editor :global(img) { max-width: 100%; border-radius: 6px; margin: 0.5em 0; }
+  .editor :global(ul), .editor :global(ol) { margin: 0.3em 0; padding-left: 1.5em; }
+</style>
+
+<script>
+  // Upload helper
+  async function uploadFile(file: File): Promise<string> {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Upload failed');
+    }
+    const { url } = await res.json();
+    return url;
+  }
+
+  const editor = document.getElementById('editor')!;
+
+  // Simple command buttons
+  document.querySelectorAll('#editorToolbar button[data-cmd]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = (btn as HTMLElement).dataset.cmd!;
+      const val = (btn as HTMLElement).dataset.val || '';
+      document.execCommand(cmd, false, val);
+      editor.focus();
+    });
+  });
+
+  // Font family
+  document.getElementById('fontSelect')!.addEventListener('change', (e) => {
+    const font = (e.target as HTMLSelectElement).value;
+    if (font) {
+      document.execCommand('fontName', false, font);
+      editor.focus();
+    }
+  });
+
+  // Font size
+  document.getElementById('sizeSelect')!.addEventListener('change', (e) => {
+    const size = (e.target as HTMLSelectElement).value;
+    if (size) {
+      document.execCommand('fontSize', false, size);
+      editor.focus();
+    }
+  });
+
+  // Text color
+  const textColorInput = document.getElementById('textColor') as HTMLInputElement;
+  const colorLabel = document.getElementById('colorLabel') as HTMLElement;
+  textColorInput.addEventListener('input', () => {
+    document.execCommand('foreColor', false, textColorInput.value);
+    colorLabel.style.color = textColorInput.value;
+    editor.focus();
+  });
+
+  // Highlight color
+  const highlightInput = document.getElementById('highlightColor') as HTMLInputElement;
+  const highlightLabel = document.getElementById('highlightLabel') as HTMLElement;
+  highlightInput.addEventListener('input', () => {
+    document.execCommand('hiliteColor', false, highlightInput.value);
+    highlightLabel.style.background = highlightInput.value;
+    editor.focus();
+  });
+
+  // Link button
+  document.getElementById('linkBtn')!.addEventListener('click', () => {
+    const url = prompt('Enter URL:');
+    if (url) {
+      document.execCommand('createLink', false, url);
+      editor.focus();
+    }
+  });
+
+  // Image button — dropdown menu
+  const imgMenu = document.getElementById('imgMenu') as HTMLElement;
+  document.getElementById('imgBtn')!.addEventListener('click', (e) => {
+    e.stopPropagation();
+    imgMenu.style.display = imgMenu.style.display === 'none' ? 'block' : 'none';
+  });
+  document.addEventListener('click', () => { imgMenu.style.display = 'none'; });
+
+  document.getElementById('imgUploadChoice')!.addEventListener('click', () => {
+    imgMenu.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const url = await uploadFile(file);
+        document.execCommand('insertImage', false, url);
+        editor.focus();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    };
+    input.click();
+  });
+
+  document.getElementById('imgUrlChoice')!.addEventListener('click', () => {
+    imgMenu.style.display = 'none';
+    const url = prompt('Enter image URL:');
+    if (url) {
+      document.execCommand('insertImage', false, url);
+      editor.focus();
+    }
+  });
+</script>

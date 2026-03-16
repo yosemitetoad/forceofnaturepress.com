@@ -4,7 +4,7 @@ export const prerender = false;
 import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
-import { getBlogPost } from '../../lib/db';
+import { getBlogPost, getApprovedComments } from '../../lib/db';
 
 const { slug } = Astro.params;
 const db = Astro.locals.runtime.env.DB;
@@ -14,6 +14,9 @@ const post = slug ? await getBlogPost(db, slug) : null;
 if (!post || !post.published) {
   return Astro.redirect('/blog');
 }
+
+const tags = post.tags ? post.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) : [];
 ---
 
 <html lang="en">
@@ -41,7 +44,52 @@ if (!post || !post.published) {
             <hr />
           </div>
           <div class="post-content" set:html={post.content}></div>
+
+          {tags.length > 0 && (
+            <div class="post-tags">
+              {tags.map(tag => (
+                <a href={`/blog?tag=${encodeURIComponent(tag)}`} class="post-tag">{tag}</a>
+              ))}
+            </div>
+          )}
         </div>
+
+        {post.commentsEnabled && (
+          <div class="comments-section">
+            <h2 class="comments-heading">Comments {comments.length > 0 && <span class="comment-count">({comments.length})</span>}</h2>
+
+            {comments.length > 0 && (
+              <div class="comments-list">
+                {comments.map(c => (
+                  <div class="comment">
+                    <div class="comment-header">
+                      <span class="comment-author">{c.authorName}</span>
+                      <span class="comment-date">{new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <p class="comment-body">{c.content}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form id="commentForm" class="comment-form">
+              <h3>Leave a comment</h3>
+              <div class="form-row">
+                <label for="authorName">Name</label>
+                <input type="text" id="authorName" name="authorName" required maxlength="100" placeholder="Your name" />
+              </div>
+              <div class="form-row">
+                <label for="commentContent">Comment</label>
+                <textarea id="commentContent" name="content" required maxlength="5000" rows="4" placeholder="Write your comment..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" id="commentBtn" class="comment-submit">Post Comment</button>
+                <span class="comment-note">Comments are reviewed before appearing.</span>
+              </div>
+              <div id="commentMsg" class="comment-msg" style="display:none"></div>
+            </form>
+          </div>
+        )}
       </article>
     </main>
     <Footer />
@@ -93,4 +141,92 @@ if (!post || !post.published) {
   .post-content :global(img) { max-width: 100%; border-radius: 8px; margin: 1em 0; }
   .post-content :global(ul), .post-content :global(ol) { margin: 0.5em 0; padding-left: 1.5em; }
   .post-content :global(li) { margin-bottom: 0.3em; }
+
+  .post-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+  .post-tag {
+    font-size: 0.8rem; background: var(--cream-light); border: 2px solid var(--border);
+    padding: 0.25em 0.8em; border-radius: 20px; font-weight: 700; color: var(--brown-mid);
+    text-decoration: none; transition: all 0.15s;
+  }
+  .post-tag:hover { border-color: var(--orange); color: var(--brown); }
+
+  .comments-section {
+    max-width: 720px; margin: 3rem auto 0; padding-top: 2rem;
+    border-top: 2px solid var(--border);
+  }
+  .comments-heading { font-size: 1.3rem; margin-bottom: 1.5rem; }
+  .comment-count { font-weight: 400; color: var(--brown-mid); font-size: 0.9em; }
+
+  .comments-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem; }
+  .comment {
+    background: var(--cream-light); border: 2px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.2rem;
+  }
+  .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+  .comment-author { font-weight: 800; font-size: 0.9rem; }
+  .comment-date { font-size: 0.78rem; color: var(--brown-mid); }
+  .comment-body { font-size: 0.92rem; line-height: 1.6; margin: 0; white-space: pre-wrap; }
+
+  .comment-form { margin-top: 1rem; }
+  .comment-form h3 { font-size: 1.1rem; margin-bottom: 1rem; }
+  .comment-form .form-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; }
+  .comment-form label { font-weight: 700; font-size: 0.85rem; }
+  .comment-form input, .comment-form textarea {
+    font-family: inherit; font-size: 0.92rem; padding: 0.6em 0.8em;
+    border: 2px solid var(--border); border-radius: 8px; background: var(--cream-light);
+  }
+  .comment-form input:focus, .comment-form textarea:focus { outline: none; border-color: var(--orange); }
+  .form-actions { display: flex; align-items: center; gap: 1rem; }
+  .comment-submit {
+    background: var(--green, #5b7b6d); color: var(--cream-light, #f5e6c8); border: none;
+    padding: 0.6em 1.5em; border-radius: 8px; font-family: inherit; font-weight: 800;
+    font-size: 0.9rem; cursor: pointer;
+  }
+  .comment-submit:hover { background: var(--green-dark, #3d5a4e); }
+  .comment-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .comment-note { font-size: 0.78rem; color: var(--brown-mid); font-style: italic; }
+  .comment-msg { margin-top: 0.8rem; font-size: 0.9rem; font-weight: 700; }
+  .comment-msg.success { color: var(--green, #5b7b6d); }
+  .comment-msg.error { color: #b44; }
 </style>
+
+<script define:vars={{ postId: post.id }}>
+  const form = document.getElementById('commentForm');
+  if (form) {
+    const btn = document.getElementById('commentBtn');
+    const msg = document.getElementById('commentMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+      msg.style.display = 'none';
+
+      const authorName = document.getElementById('authorName').value.trim();
+      const content = document.getElementById('commentContent').value.trim();
+
+      try {
+        const res = await fetch('/api/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postId, authorName, content }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to post comment');
+
+        msg.textContent = 'Comment submitted! It will appear after review.';
+        msg.className = 'comment-msg success';
+        msg.style.display = 'block';
+        form.reset();
+        btn.textContent = 'Post Comment';
+        btn.disabled = false;
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'comment-msg error';
+        msg.style.display = 'block';
+        btn.textContent = 'Post Comment';
+        btn.disabled = false;
+      }
+    });
+  }
+</script>

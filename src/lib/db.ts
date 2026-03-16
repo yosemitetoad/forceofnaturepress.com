@@ -481,6 +481,8 @@ export interface BlogPost {
   excerpt: string;
   coverImage: string | null;
   published: boolean;
+  tags: string;
+  commentsEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -493,6 +495,8 @@ interface BlogRow {
   excerpt: string;
   cover_image: string | null;
   published: number;
+  tags: string;
+  comments_enabled: number;
   created_at: string;
   updated_at: string;
 }
@@ -506,6 +510,8 @@ function rowToBlogPost(row: BlogRow): BlogPost {
     excerpt: row.excerpt,
     coverImage: row.cover_image,
     published: row.published === 1,
+    tags: row.tags ?? '',
+    commentsEnabled: (row.comments_enabled ?? 1) === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -542,17 +548,21 @@ export interface BlogPostInput {
   excerpt: string;
   coverImage?: string;
   published?: boolean;
+  tags?: string[];
+  commentsEnabled?: boolean;
 }
 
 export async function createBlogPost(db: D1Database, post: BlogPostInput): Promise<number> {
+  const tags = (post.tags ?? []).join(', ');
   const result = await db
     .prepare(
-      `INSERT INTO blog_posts (slug, title, content, excerpt, cover_image, published)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO blog_posts (slug, title, content, excerpt, cover_image, published, tags, comments_enabled)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       post.slug, post.title, post.content, post.excerpt,
-      post.coverImage ?? null, post.published ? 1 : 0
+      post.coverImage ?? null, post.published ? 1 : 0,
+      tags, post.commentsEnabled !== false ? 1 : 0
     )
     .run();
   return result.meta.last_row_id as number;
@@ -568,6 +578,8 @@ export async function updateBlogPost(db: D1Database, id: number, post: Partial<B
   if (post.excerpt !== undefined) { sets.push('excerpt = ?'); values.push(post.excerpt); }
   if (post.coverImage !== undefined) { sets.push('cover_image = ?'); values.push(post.coverImage ?? null); }
   if (post.published !== undefined) { sets.push('published = ?'); values.push(post.published ? 1 : 0); }
+  if (post.tags !== undefined) { sets.push('tags = ?'); values.push(post.tags.join(', ')); }
+  if (post.commentsEnabled !== undefined) { sets.push('comments_enabled = ?'); values.push(post.commentsEnabled ? 1 : 0); }
 
   if (sets.length === 0) return;
 
@@ -593,6 +605,98 @@ export async function getBlogPostCount(db: D1Database): Promise<{ total: number;
     )
     .first<{ total: number; published: number; drafts: number }>();
   return row ?? { total: 0, published: 0, drafts: 0 };
+}
+
+export async function getAllBlogTags(db: D1Database): Promise<string[]> {
+  const { results } = await db
+    .prepare('SELECT DISTINCT tags FROM blog_posts WHERE published = 1 AND tags != ?')
+    .bind('')
+    .all<{ tags: string }>();
+  const tagSet = new Set<string>();
+  for (const row of results ?? []) {
+    row.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
+  }
+  return [...tagSet].sort();
+}
+
+// ── Comments ──────────────────────────────────────────────────────────────
+
+export interface BlogComment {
+  id: number;
+  postId: number;
+  authorName: string;
+  content: string;
+  approved: boolean;
+  createdAt: string;
+}
+
+interface CommentRow {
+  id: number;
+  post_id: number;
+  author_name: string;
+  content: string;
+  approved: number;
+  created_at: string;
+}
+
+function rowToComment(row: CommentRow): BlogComment {
+  return {
+    id: row.id,
+    postId: row.post_id,
+    authorName: row.author_name,
+    content: row.content,
+    approved: row.approved === 1,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getApprovedComments(db: D1Database, postId: number): Promise<BlogComment[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM blog_comments WHERE post_id = ? AND approved = 1 ORDER BY created_at ASC')
+    .bind(postId)
+    .all<CommentRow>();
+  return (results ?? []).map(rowToComment);
+}
+
+export async function getAllComments(db: D1Database, limit: number = 50): Promise<(BlogComment & { postTitle?: string; postSlug?: string })[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT c.*, p.title as post_title, p.slug as post_slug
+       FROM blog_comments c
+       LEFT JOIN blog_posts p ON c.post_id = p.id
+       ORDER BY c.created_at DESC
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all<CommentRow & { post_title?: string; post_slug?: string }>();
+  return (results ?? []).map(row => ({
+    ...rowToComment(row),
+    postTitle: row.post_title,
+    postSlug: row.post_slug,
+  }));
+}
+
+export async function getPendingCommentCount(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) as total FROM blog_comments WHERE approved = 0')
+    .first<{ total: number }>();
+  return row?.total ?? 0;
+}
+
+export async function createComment(db: D1Database, postId: number, authorName: string, content: string): Promise<number> {
+  const result = await db
+    .prepare('INSERT INTO blog_comments (post_id, author_name, content) VALUES (?, ?, ?)')
+    .bind(postId, authorName, content)
+    .run();
+  return result.meta.last_row_id as number;
+}
+
+export async function approveComment(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE blog_comments SET approved = 1 WHERE id = ?').bind(id).run();
+}
+
+export async function deleteComment(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM blog_comments WHERE id = ?').bind(id).run();
 }
 
 export async function getItemAllTimeClicks(db: D1Database, sku: string): Promise<number> {

@@ -2,6 +2,7 @@
 export const prerender = false;
 
 import Admin from '../../../layouts/Admin.astro';
+import BlogEditor from '../../../components/BlogEditor.astro';
 ---
 
 <Admin title="New Blog Post">
@@ -39,36 +40,18 @@ import Admin from '../../../layouts/Admin.astro';
 
     <div class="form-row">
       <label>Post Content</label>
-      <div class="editor-toolbar">
-        <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-        <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-        <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-        <span class="toolbar-sep"></span>
-        <button type="button" data-cmd="formatBlock" data-val="h2" title="Heading">H2</button>
-        <button type="button" data-cmd="formatBlock" data-val="h3" title="Subheading">H3</button>
-        <button type="button" data-cmd="formatBlock" data-val="p" title="Paragraph">P</button>
-        <span class="toolbar-sep"></span>
-        <button type="button" data-cmd="insertUnorderedList" title="Bullet List">&#8226; List</button>
-        <button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
-        <span class="toolbar-sep"></span>
-        <button type="button" id="linkBtn" title="Insert Link">Link</button>
-        <span class="img-menu-wrap">
-          <button type="button" id="imgBtn" title="Insert Image">Image</button>
-          <div id="imgMenu" class="img-menu" style="display:none">
-            <button type="button" id="imgUploadChoice">Upload from computer</button>
-            <button type="button" id="imgUrlChoice">Paste a URL</button>
-          </div>
-        </span>
-        <span class="toolbar-sep"></span>
-        <button type="button" data-cmd="formatBlock" data-val="blockquote" title="Quote">Quote</button>
-        <button type="button" data-cmd="removeFormat" title="Clear Formatting">Clear</button>
-      </div>
-      <div id="editor" class="editor" contenteditable="true"></div>
+      <BlogEditor />
     </div>
 
     <div class="form-row">
       <label for="excerpt">Excerpt / Summary <span class="optional">(optional)</span></label>
       <textarea id="excerpt" name="excerpt" rows="2" placeholder="A brief summary shown in post listings..."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label for="tags">Tags <span class="optional">(optional)</span></label>
+      <input type="text" id="tags" name="tags" placeholder="nature, art, stickers — separate with commas" />
+      <span class="hint">Comma-separated labels for organizing and filtering posts.</span>
     </div>
 
     <div class="form-actions">
@@ -111,46 +94,6 @@ import Admin from '../../../layouts/Admin.astro';
   .cover-preview { margin-top: 0.5rem; }
   .cover-preview img { max-width: 300px; max-height: 160px; border-radius: 8px; object-fit: cover; border: 2px solid #d4b896; }
 
-  .editor-toolbar {
-    display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.4rem;
-    background: #2d1f0e; border-radius: 8px 8px 0 0; border: 2px solid #2d1f0e;
-  }
-  .editor-toolbar button {
-    background: transparent; border: none; color: #e4d3b8; padding: 0.3em 0.6em;
-    border-radius: 4px; font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
-  }
-  .editor-toolbar button:hover { background: #6b4a2a; color: #faf5ea; }
-  .toolbar-sep { width: 1px; background: #6b4a2a; margin: 0 0.15rem; }
-  .img-menu-wrap { position: relative; }
-  .img-menu {
-    position: absolute; top: 100%; left: 0; z-index: 10; margin-top: 0.3rem;
-    background: #2d1f0e; border: 2px solid #6b4a2a; border-radius: 6px;
-    overflow: hidden; min-width: 180px;
-  }
-  .img-menu button {
-    display: block; width: 100%; text-align: left; padding: 0.5em 0.8em;
-    background: transparent; border: none; color: #e4d3b8;
-    font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
-  }
-  .img-menu button:hover { background: #6b4a2a; color: #faf5ea; }
-
-  .editor {
-    min-height: 350px; padding: 1rem; background: #faf5ea; border: 2px solid #d4b896;
-    border-top: none; border-radius: 0 0 8px 8px; font-size: 0.95rem; line-height: 1.7;
-    outline: none;
-  }
-  .editor:focus { border-color: #c87830; }
-  .editor h2 { font-size: 1.4rem; font-weight: 800; margin: 0.8em 0 0.3em; }
-  .editor h3 { font-size: 1.15rem; font-weight: 800; margin: 0.6em 0 0.3em; }
-  .editor p { margin: 0 0 0.6em; }
-  .editor blockquote {
-    border-left: 4px solid #c87830; margin: 0.6em 0; padding: 0.4em 1em;
-    background: rgba(200, 120, 48, 0.06); color: #6b4a2a; font-style: italic;
-  }
-  .editor a { color: #3d7a6e; }
-  .editor img { max-width: 100%; border-radius: 6px; margin: 0.5em 0; }
-  .editor ul, .editor ol { margin: 0.3em 0; padding-left: 1.5em; }
-
   .form-actions {
     display: flex; align-items: center; justify-content: space-between;
     padding: 1rem; background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
@@ -183,19 +126,6 @@ import Admin from '../../../layouts/Admin.astro';
     }
   });
 
-  // Upload helper
-  async function uploadFile(file: File): Promise<string> {
-    const form = new FormData();
-    form.append('file', file);
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Upload failed');
-    }
-    const { url } = await res.json();
-    return url;
-  }
-
   // Cover image preview + upload
   const coverInput = document.getElementById('coverImage') as HTMLInputElement;
   const coverPreview = document.getElementById('coverPreview') as HTMLElement;
@@ -204,12 +134,8 @@ import Admin from '../../../layouts/Admin.astro';
   const uploadProgress = document.getElementById('uploadProgress') as HTMLElement;
 
   coverInput.addEventListener('input', () => {
-    if (coverInput.value) {
-      coverImg.src = coverInput.value;
-      coverPreview.style.display = 'block';
-    } else {
-      coverPreview.style.display = 'none';
-    }
+    if (coverInput.value) { coverImg.src = coverInput.value; coverPreview.style.display = 'block'; }
+    else { coverPreview.style.display = 'none'; }
   });
 
   coverUpload.addEventListener('change', async () => {
@@ -218,7 +144,11 @@ import Admin from '../../../layouts/Admin.astro';
     uploadProgress.style.display = 'block';
     uploadProgress.textContent = 'Uploading...';
     try {
-      const url = await uploadFile(file);
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Upload failed'); }
+      const { url } = await res.json();
       coverInput.value = url;
       coverImg.src = url;
       coverPreview.style.display = 'block';
@@ -231,62 +161,7 @@ import Admin from '../../../layouts/Admin.astro';
     coverUpload.value = '';
   });
 
-  // Toolbar commands
-  document.querySelectorAll('.editor-toolbar button[data-cmd]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cmd = (btn as HTMLElement).dataset.cmd!;
-      const val = (btn as HTMLElement).dataset.val || '';
-      document.execCommand(cmd, false, val);
-      document.getElementById('editor')!.focus();
-    });
-  });
-
-  // Link button
-  document.getElementById('linkBtn')!.addEventListener('click', () => {
-    const url = prompt('Enter URL:');
-    if (url) {
-      document.execCommand('createLink', false, url);
-      document.getElementById('editor')!.focus();
-    }
-  });
-
-  // Image button — dropdown menu
-  const imgMenu = document.getElementById('imgMenu') as HTMLElement;
-  document.getElementById('imgBtn')!.addEventListener('click', (e) => {
-    e.stopPropagation();
-    imgMenu.style.display = imgMenu.style.display === 'none' ? 'block' : 'none';
-  });
-  document.addEventListener('click', () => { imgMenu.style.display = 'none'; });
-
-  document.getElementById('imgUploadChoice')!.addEventListener('click', () => {
-    imgMenu.style.display = 'none';
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        const url = await uploadFile(file);
-        document.execCommand('insertImage', false, url);
-        document.getElementById('editor')!.focus();
-      } catch (err: any) {
-        alert(err.message);
-      }
-    };
-    input.click();
-  });
-
-  document.getElementById('imgUrlChoice')!.addEventListener('click', () => {
-    imgMenu.style.display = 'none';
-    const url = prompt('Enter image URL:');
-    if (url) {
-      document.execCommand('insertImage', false, url);
-      document.getElementById('editor')!.focus();
-    }
-  });
-
-  // Published toggle label
+  // Published toggle
   const publishedCheckbox = document.getElementById('published') as HTMLInputElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   publishedCheckbox.addEventListener('change', () => {
@@ -300,6 +175,9 @@ import Admin from '../../../layouts/Admin.astro';
     saveBtn.textContent = 'Saving...';
 
     const content = document.getElementById('editor')!.innerHTML;
+    const tagsRaw = (document.getElementById('tags') as HTMLInputElement).value;
+    const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+
     const body = {
       title: titleEl.value,
       slug: slugEl.value,
@@ -307,6 +185,7 @@ import Admin from '../../../layouts/Admin.astro';
       excerpt: (document.getElementById('excerpt') as HTMLTextAreaElement).value,
       coverImage: coverInput.value || undefined,
       published: publishedCheckbox.checked,
+      tags,
     };
 
     try {
@@ -315,10 +194,7 @@ import Admin from '../../../layouts/Admin.astro';
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to save');
-      }
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to save'); }
       const { id } = await res.json();
       window.location.href = `/admin/blog/${id}`;
     } catch (err: any) {

@@ -2,12 +2,13 @@
 export const prerender = false;
 
 import Admin from '../../layouts/Admin.astro';
-import { getAllShopItems, getAllPortfolioItems, getBlogPostCount } from '../../lib/db';
+import { getAllShopItems, getAllPortfolioItems, getBlogPostCount, getPendingCommentCount } from '../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 const shopItems = await getAllShopItems(db);
 const portfolioItems = await getAllPortfolioItems(db);
 const blogCounts = await getBlogPostCount(db);
+const pendingComments = await getPendingCommentCount(db);
 
 const shopCategories = new Map<string, number>();
 for (const item of shopItems) {
@@ -107,6 +108,12 @@ for (const item of portfolioItems) {
         <a href="/admin/blog" class="btn btn-primary">Manage Blog</a>
         <a href="/admin/blog/new" class="btn btn-secondary">New Post</a>
       </div>
+
+      {pendingComments > 0 && (
+        <div class="pending-alert">
+          <a href="/admin/comments">{pendingComments} comment{pendingComments !== 1 ? 's' : ''} awaiting review</a>
+        </div>
+      )}
     </div>
   </div>
 </Admin>
@@ -163,6 +170,15 @@ for (const item of portfolioItems) {
     font-size: 0.7rem; font-weight: 800;
   }
   .cat-count-green { background: #3d7a6e; }
+
+  .pending-alert {
+    margin-top: 1rem; padding: 0.6rem 1rem; background: #fff3e0;
+    border: 2px solid #c87830; border-radius: 8px;
+  }
+  .pending-alert a {
+    color: #c87830; font-weight: 800; font-size: 0.9rem; text-decoration: none;
+  }
+  .pending-alert a:hover { text-decoration: underline; }
 </style>
 
 <script>

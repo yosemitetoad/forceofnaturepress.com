@@ -3,12 +3,13 @@ export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
 import { SITE_DESCRIPTION } from '../../consts';
-import { getAllBlogPosts } from '../../lib/db';
+import { getAllBlogPosts, getAllBlogTags } from '../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 
 // Get published posts from D1
-let posts: Array<{ slug: string; title: string; excerpt: string; coverImage: string | null; createdAt: string }> = [];
+let posts: Array<{ slug: string; title: string; excerpt: string; coverImage: string | null; createdAt: string; tags: string }> = [];
+let allTags: string[] = [];
 try {
   const dbPosts = await getAllBlogPosts(db, false);
   posts = dbPosts.map(p => ({
@@ -17,7 +18,9 @@ try {
     excerpt: p.excerpt,
     coverImage: p.coverImage,
     createdAt: p.createdAt,
+    tags: p.tags ?? '',
   }));
+  allTags = await getAllBlogTags(db);
 } catch {
   // D1 not available — empty blog
 }
@@ -33,12 +36,26 @@ try {
   </div>
 
   <div class="container blog-body">
+    {posts.length > 0 && (
+      <div class="blog-filters">
+        <input type="search" id="blogSearch" placeholder="Search posts..." class="blog-search" />
+        {allTags.length > 0 && (
+          <div class="tag-filters">
+            <button class="tag-btn active" data-tag="">All</button>
+            {allTags.map(tag => (
+              <button class="tag-btn" data-tag={tag}>{tag}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
     {posts.length === 0 ? (
       <p class="no-posts">No posts yet — check back soon!</p>
     ) : (
-      <ul class="post-list">
+      <ul class="post-list" id="postList">
         {posts.map((post, i) => (
-          <li class:list={['post-item', { featured: i === 0 }]}>
+          <li class:list={['post-item', { featured: i === 0 }]} data-tags={post.tags} data-title={post.title.toLowerCase()} data-excerpt={(post.excerpt ?? '').toLowerCase()}>
             <a href={`/blog/${post.slug}/`} class="post-link">
               {post.coverImage && (
                 <div class="post-img-wrap">
@@ -48,6 +65,13 @@ try {
               <div class="post-text">
                 <p class="post-date">{new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 <h2 class="post-title">{post.title}</h2>
+                {post.tags && (
+                  <div class="post-tags">
+                    {post.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => (
+                      <span class="post-tag">{t}</span>
+                    ))}
+                  </div>
+                )}
                 {post.excerpt && (
                   <p class="post-desc">{post.excerpt}</p>
                 )}
@@ -57,6 +81,7 @@ try {
         ))}
       </ul>
     )}
+    <p class="no-results" id="noResults" style="display:none">No posts match your search.</p>
   </div>
 
 </Base>
@@ -72,7 +97,29 @@ try {
 
   .blog-body { padding-top: 2.5rem; padding-bottom: 5rem; }
 
-  .no-posts { color: var(--brown-mid); font-style: italic; }
+  .blog-filters { margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+  .blog-search {
+    font-family: inherit; font-size: 0.95rem; padding: 0.6em 1em;
+    border: 2px solid var(--border); border-radius: 8px; background: var(--cream-light);
+    max-width: 400px; width: 100%;
+  }
+  .blog-search:focus { outline: none; border-color: var(--orange); }
+  .tag-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .tag-btn {
+    background: var(--cream-light); border: 2px solid var(--border); border-radius: 20px;
+    padding: 0.3em 0.9em; font-family: inherit; font-size: 0.8rem; font-weight: 700;
+    color: var(--brown-mid); cursor: pointer; transition: all 0.15s;
+  }
+  .tag-btn:hover { border-color: var(--orange); color: var(--brown); }
+  .tag-btn.active { background: var(--green); color: var(--cream-light); border-color: var(--green); }
+
+  .post-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5em; }
+  .post-tag {
+    font-size: 0.72rem; background: var(--cream-dark, #e8d5b7); color: var(--brown-mid);
+    padding: 0.15em 0.6em; border-radius: 10px; font-weight: 700;
+  }
+
+  .no-posts, .no-results { color: var(--brown-mid); font-style: italic; }
 
   .post-list {
     list-style: none;
@@ -139,3 +186,51 @@ try {
     .featured .post-title { font-size: 1.3rem; }
   }
 </style>
+
+<script>
+  const searchInput = document.getElementById('blogSearch') as HTMLInputElement | null;
+  const postList = document.getElementById('postList');
+  const noResults = document.getElementById('noResults');
+  const tagBtns = document.querySelectorAll('.tag-btn');
+
+  if (searchInput && postList) {
+    let activeTag = '';
+
+    function filterPosts() {
+      const query = searchInput!.value.toLowerCase().trim();
+      const items = postList!.querySelectorAll('.post-item') as NodeListOf<HTMLElement>;
+      let visible = 0;
+
+      items.forEach(item => {
+        const title = item.dataset.title || '';
+        const excerpt = item.dataset.excerpt || '';
+        const tags = item.dataset.tags || '';
+
+        const matchesSearch = !query || title.includes(query) || excerpt.includes(query) || tags.toLowerCase().includes(query);
+        const matchesTag = !activeTag || tags.split(',').map(t => t.trim().toLowerCase()).includes(activeTag.toLowerCase());
+
+        if (matchesSearch && matchesTag) {
+          item.style.display = '';
+          visible++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      if (noResults) {
+        noResults.style.display = visible === 0 ? '' : 'none';
+      }
+    }
+
+    searchInput.addEventListener('input', filterPosts);
+
+    tagBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tagBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTag = (btn as HTMLElement).dataset.tag || '';
+        filterPosts();
+      });
+    });
+  }
+</script>
