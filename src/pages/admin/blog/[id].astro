@@ -35,8 +35,15 @@ if (!post) {
     </div>
 
     <div class="form-row">
-      <label for="coverImage">Cover Image URL <span class="optional">(optional)</span></label>
-      <input type="url" id="coverImage" name="coverImage" value={post.coverImage ?? ''} placeholder="https://..." />
+      <label for="coverImage">Cover Image <span class="optional">(optional)</span></label>
+      <div class="upload-row">
+        <input type="url" id="coverImage" name="coverImage" value={post.coverImage ?? ''} placeholder="Image URL or upload below" style="flex:1" />
+        <label class="upload-btn">
+          Upload
+          <input type="file" id="coverUpload" accept="image/*" hidden />
+        </label>
+      </div>
+      <div id="uploadProgress" class="upload-progress" style="display:none">Uploading...</div>
       <div id="coverPreview" class="cover-preview" style={post.coverImage ? '' : 'display:none'}>
         <img id="coverImg" src={post.coverImage ?? ''} alt="Cover preview" />
       </div>
@@ -108,6 +115,13 @@ if (!post) {
   input:focus, textarea:focus { outline: none; border-color: #c87830; }
   #title { font-size: 1.3rem; font-weight: 700; }
 
+  .upload-row { display: flex; gap: 0.5rem; align-items: center; }
+  .upload-btn {
+    background: #c87830; color: #faf5ea; padding: 0.6em 1.1em; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; white-space: nowrap;
+  }
+  .upload-btn:hover { background: #a05e18; }
+  .upload-progress { font-size: 0.85rem; color: #c87830; font-weight: 700; margin-top: 0.3rem; }
   .cover-preview { margin-top: 0.5rem; }
   .cover-preview img { max-width: 300px; max-height: 160px; border-radius: 8px; object-fit: cover; border: 2px solid #d4b896; }
 
@@ -164,10 +178,26 @@ if (!post) {
 </style>
 
 <script define:vars={{ postId: post.id }}>
-  // Cover image preview
+  // Upload helper
+  async function uploadFile(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Upload failed');
+    }
+    const { url } = await res.json();
+    return url;
+  }
+
+  // Cover image preview + upload
   const coverInput = document.getElementById('coverImage');
   const coverPreview = document.getElementById('coverPreview');
   const coverImg = document.getElementById('coverImg');
+  const coverUpload = document.getElementById('coverUpload');
+  const uploadProgress = document.getElementById('uploadProgress');
+
   coverInput.addEventListener('input', () => {
     if (coverInput.value) {
       coverImg.src = coverInput.value;
@@ -175,6 +205,25 @@ if (!post) {
     } else {
       coverPreview.style.display = 'none';
     }
+  });
+
+  coverUpload.addEventListener('change', async () => {
+    const file = coverUpload.files?.[0];
+    if (!file) return;
+    uploadProgress.style.display = 'block';
+    uploadProgress.textContent = 'Uploading...';
+    try {
+      const url = await uploadFile(file);
+      coverInput.value = url;
+      coverImg.src = url;
+      coverPreview.style.display = 'block';
+      uploadProgress.textContent = 'Uploaded!';
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 2000);
+    } catch (err) {
+      uploadProgress.textContent = err.message;
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 3000);
+    }
+    coverUpload.value = '';
   });
 
   // Toolbar commands
@@ -196,12 +245,31 @@ if (!post) {
     }
   });
 
-  // Image button
+  // Image button — upload or paste URL
   document.getElementById('imgBtn').addEventListener('click', () => {
-    const url = prompt('Enter image URL:');
-    if (url) {
-      document.execCommand('insertImage', false, url);
-      document.getElementById('editor').focus();
+    const choice = confirm('Click OK to upload an image from your computer, or Cancel to paste a URL.');
+    if (choice) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        try {
+          const url = await uploadFile(file);
+          document.execCommand('insertImage', false, url);
+          document.getElementById('editor').focus();
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+      input.click();
+    } else {
+      const url = prompt('Enter image URL:');
+      if (url) {
+        document.execCommand('insertImage', false, url);
+        document.getElementById('editor').focus();
+      }
     }
   });
 

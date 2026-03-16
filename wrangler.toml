@@ -7,6 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./dist"
 binding = "ASSETS"
 
+[[r2_buckets]]
+binding = "UPLOADS"
+bucket_name = "fonp-uploads"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "fonp-db"

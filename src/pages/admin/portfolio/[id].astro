@@ -26,8 +26,15 @@ if (!item) {
     </div>
 
     <div class="form-group">
-      <label for="image">Image URL</label>
-      <input type="url" id="image" name="image" value={item.image ?? ''} placeholder="https://..." />
+      <label for="image">Image</label>
+      <div class="upload-row">
+        <input type="url" id="image" name="image" value={item.image ?? ''} placeholder="Image URL or upload" style="flex:1" />
+        <label class="upload-btn">
+          Upload
+          <input type="file" id="imageUpload" accept="image/*" hidden />
+        </label>
+      </div>
+      <div id="uploadProgress" class="upload-progress" style="display:none">Uploading...</div>
     </div>
 
     <div class="preview-area">
@@ -85,6 +92,13 @@ if (!item) {
     font-family: inherit; font-size: 0.95rem; background: white; color: #2d1f0e; resize: vertical;
   }
   input:focus, textarea:focus { border-color: #c87830; outline: none; }
+  .upload-row { display: flex; gap: 0.5rem; align-items: center; }
+  .upload-btn {
+    background: #c87830; color: #faf5ea; padding: 0.6em 1.1em; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; white-space: nowrap;
+  }
+  .upload-btn:hover { background: #a05e18; }
+  .upload-progress { font-size: 0.85rem; color: #c87830; font-weight: 700; margin-top: 0.3rem; }
   .preview-area { margin-bottom: 1.2rem; }
   .preview-area img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #d4b896; }
   .form-actions { display: flex; gap: 0.8rem; }
@@ -113,6 +127,32 @@ if (!item) {
     } else {
       preview.style.display = 'none';
     }
+  });
+
+  const imageUpload = document.getElementById('imageUpload') as HTMLInputElement;
+  const uploadProgress = document.getElementById('uploadProgress') as HTMLElement;
+
+  imageUpload.addEventListener('change', async () => {
+    const file = imageUpload.files?.[0];
+    if (!file) return;
+    uploadProgress.style.display = 'block';
+    uploadProgress.textContent = 'Uploading...';
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Upload failed'); }
+      const { url } = await res.json();
+      imageInput.value = url;
+      preview.src = url;
+      preview.style.display = 'block';
+      uploadProgress.textContent = 'Uploaded!';
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 2000);
+    } catch (err: any) {
+      uploadProgress.textContent = err.message;
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 3000);
+    }
+    imageUpload.value = '';
   });
 
   form.addEventListener('submit', async (e) => {
