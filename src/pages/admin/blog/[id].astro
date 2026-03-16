@@ -64,7 +64,13 @@ if (!post) {
         <button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
         <span class="toolbar-sep"></span>
         <button type="button" id="linkBtn" title="Insert Link">Link</button>
-        <button type="button" id="imgBtn" title="Insert Image">Image</button>
+        <span class="img-menu-wrap">
+          <button type="button" id="imgBtn" title="Insert Image">Image</button>
+          <div id="imgMenu" class="img-menu" style="display:none">
+            <button type="button" id="imgUploadChoice">Upload from computer</button>
+            <button type="button" id="imgUrlChoice">Paste a URL</button>
+          </div>
+        </span>
         <span class="toolbar-sep"></span>
         <button type="button" data-cmd="formatBlock" data-val="blockquote" title="Quote">Quote</button>
         <button type="button" data-cmd="removeFormat" title="Clear Formatting">Clear</button>
@@ -135,6 +141,18 @@ if (!post) {
   }
   .editor-toolbar button:hover { background: #6b4a2a; color: #faf5ea; }
   .toolbar-sep { width: 1px; background: #6b4a2a; margin: 0 0.15rem; }
+  .img-menu-wrap { position: relative; }
+  .img-menu {
+    position: absolute; top: 100%; left: 0; z-index: 10; margin-top: 0.3rem;
+    background: #2d1f0e; border: 2px solid #6b4a2a; border-radius: 6px;
+    overflow: hidden; min-width: 180px;
+  }
+  .img-menu button {
+    display: block; width: 100%; text-align: left; padding: 0.5em 0.8em;
+    background: transparent; border: none; color: #e4d3b8;
+    font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  }
+  .img-menu button:hover { background: #6b4a2a; color: #faf5ea; }
 
   .editor {
     min-height: 350px; padding: 1rem; background: #faf5ea; border: 2px solid #d4b896;
@@ -245,31 +263,39 @@ if (!post) {
     }
   });
 
-  // Image button — upload or paste URL
-  document.getElementById('imgBtn').addEventListener('click', () => {
-    const choice = confirm('Click OK to upload an image from your computer, or Cancel to paste a URL.');
-    if (choice) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        try {
-          const url = await uploadFile(file);
-          document.execCommand('insertImage', false, url);
-          document.getElementById('editor').focus();
-        } catch (err) {
-          alert(err.message);
-        }
-      };
-      input.click();
-    } else {
-      const url = prompt('Enter image URL:');
-      if (url) {
+  // Image button — dropdown menu
+  const imgMenu = document.getElementById('imgMenu');
+  document.getElementById('imgBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    imgMenu.style.display = imgMenu.style.display === 'none' ? 'block' : 'none';
+  });
+  document.addEventListener('click', () => { imgMenu.style.display = 'none'; });
+
+  document.getElementById('imgUploadChoice').addEventListener('click', () => {
+    imgMenu.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const url = await uploadFile(file);
         document.execCommand('insertImage', false, url);
         document.getElementById('editor').focus();
+      } catch (err) {
+        alert(err.message);
       }
+    };
+    input.click();
+  });
+
+  document.getElementById('imgUrlChoice').addEventListener('click', () => {
+    imgMenu.style.display = 'none';
+    const url = prompt('Enter image URL:');
+    if (url) {
+      document.execCommand('insertImage', false, url);
+      document.getElementById('editor').focus();
     }
   });
 
