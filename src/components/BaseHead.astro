@@ -10,14 +10,14 @@ interface Props {
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const { title, description } = Astro.props;
-const ogImage = new URL('/beetleshopiconsquare.png', Astro.url);
+const ogImage = new URL('/beetleshopiconsquare.webp', Astro.url);
 ---
 
 <!-- Global Metadata -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
-<link rel="icon" type="image/png" href="/beetleshopiconsquare.png" />
+<link rel="icon" type="image/png" href="/beetleshopiconsquare.webp" />
 <link rel="sitemap" href="/sitemap-index.xml" />
 <link
   rel="alternate"
@@ -69,3 +69,13 @@ const ogImage = new URL('/beetleshopiconsquare.png', Astro.url);
     animation: none !important;
   }
 </style>
+<script>
+  // Force lazy images to load after View Transition page swaps
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach(img => {
+      if (!img.complete) {
+        img.loading = 'eager';
+      }
+    });
+  });
+</script>

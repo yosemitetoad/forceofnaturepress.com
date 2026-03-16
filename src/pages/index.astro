@@ -31,7 +31,7 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
       <div class="about-box">
         <div class="about-top">
           <div class="logo-block">
-            <img src="/beetleshopiconsquare.png" alt="Force of Nature Press beetle logo" class="about-logo" />
+            <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press beetle logo" class="about-logo" />
           </div>
           <div class="about-text">
             <h1>Force of Nature Press</h1>
@@ -64,8 +64,8 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
               </a>
             ))}
           </div>
-          <button class="carousel-btn carousel-prev" id="carouselPrev" aria-label="Previous product">&#8249;</button>
-          <button class="carousel-btn carousel-next" id="carouselNext" aria-label="Next product">&#8250;</button>
+          <button class="carousel-btn carousel-prev" id="carouselPrev" aria-label="Previous product"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="carousel-btn carousel-next" id="carouselNext" aria-label="Next product"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>
           <div class="carousel-dots" id="carouselDots">
             {featured.map((_, i) => (
               <button class={`carousel-dot ${i === 0 ? 'active' : ''}`} data-slide={i} aria-label={`Go to slide ${i + 1}`}></button>
@@ -154,7 +154,7 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
 <style>
   /* Full-page star background */
   .home-wrap {
-    background: url('/plainstarbanner.png') center / cover no-repeat;
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
     min-height: calc(100vh - 72px - 120px);
     padding: 2.5rem 0 4rem;
     margin-bottom: -4rem;
@@ -294,20 +294,18 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
   .carousel-btn {
     position: absolute;
     top: 50%;
-    transform: translateY(-60%);
+    transform: translateY(-50%);
     background: rgba(45, 31, 14, 0.6);
     color: var(--cream-light);
     border: none;
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    font-size: 1.4rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.15s;
-    line-height: 1;
   }
   .carousel-btn:hover { background: rgba(45, 31, 14, 0.85); }
   .carousel-prev { left: 8px; }
