@@ -1,12 +1,26 @@
 ---
-import { getCollection } from 'astro:content';
-import Base from '../../layouts/Base.astro';
-import FormattedDate from '../../components/FormattedDate.astro';
-import { SITE_DESCRIPTION } from '../../consts';
+export const prerender = false;
 
-const posts = (await getCollection('blog')).sort(
-  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
+import Base from '../../layouts/Base.astro';
+import { SITE_DESCRIPTION } from '../../consts';
+import { getAllBlogPosts } from '../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+
+// Get published posts from D1
+let posts: Array<{ slug: string; title: string; excerpt: string; coverImage: string | null; createdAt: string }> = [];
+try {
+  const dbPosts = await getAllBlogPosts(db, false);
+  posts = dbPosts.map(p => ({
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    coverImage: p.coverImage,
+    createdAt: p.createdAt,
+  }));
+} catch {
+  // D1 not available — empty blog
+}
 ---
 
 <Base title="Blog — Force of Nature Press" description={SITE_DESCRIPTION} fullWidth>
@@ -25,17 +39,17 @@ const posts = (await getCollection('blog')).sort(
       <ul class="post-list">
         {posts.map((post, i) => (
           <li class:list={['post-item', { featured: i === 0 }]}>
-            <a href={`/blog/${post.id}/`} class="post-link">
-              {post.data.heroImage && (
+            <a href={`/blog/${post.slug}/`} class="post-link">
+              {post.coverImage && (
                 <div class="post-img-wrap">
-                  <img src={post.data.heroImage.src} alt={post.data.title} loading="lazy" />
+                  <img src={post.coverImage} alt={post.title} loading="lazy" />
                 </div>
               )}
               <div class="post-text">
-                <p class="post-date"><FormattedDate date={post.data.pubDate} /></p>
-                <h2 class="post-title">{post.data.title}</h2>
-                {post.data.description && (
-                  <p class="post-desc">{post.data.description}</p>
+                <p class="post-date">{new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <h2 class="post-title">{post.title}</h2>
+                {post.excerpt && (
+                  <p class="post-desc">{post.excerpt}</p>
                 )}
               </div>
             </a>

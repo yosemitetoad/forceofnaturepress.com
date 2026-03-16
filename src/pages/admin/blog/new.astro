@@ -1,0 +1,236 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+---
+
+<Admin title="New Blog Post">
+  <div class="page-header">
+    <h1>New Post</h1>
+    <a href="/admin/blog" class="back-link">Back to Posts</a>
+  </div>
+
+  <form id="postForm" class="post-form">
+    <div class="form-row">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" required placeholder="Your post title" />
+    </div>
+
+    <div class="form-row">
+      <label for="slug">URL Slug</label>
+      <input type="text" id="slug" name="slug" required placeholder="your-post-title" pattern="[a-z0-9\-]+" />
+      <span class="hint">Lowercase letters, numbers, and hyphens only. This becomes the URL.</span>
+    </div>
+
+    <div class="form-row">
+      <label for="coverImage">Cover Image URL <span class="optional">(optional)</span></label>
+      <input type="url" id="coverImage" name="coverImage" placeholder="https://..." />
+      <div id="coverPreview" class="cover-preview" style="display:none">
+        <img id="coverImg" src="" alt="Cover preview" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Post Content</label>
+      <div class="editor-toolbar">
+        <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+        <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+        <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+        <span class="toolbar-sep"></span>
+        <button type="button" data-cmd="formatBlock" data-val="h2" title="Heading">H2</button>
+        <button type="button" data-cmd="formatBlock" data-val="h3" title="Subheading">H3</button>
+        <button type="button" data-cmd="formatBlock" data-val="p" title="Paragraph">P</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" data-cmd="insertUnorderedList" title="Bullet List">&#8226; List</button>
+        <button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" id="linkBtn" title="Insert Link">Link</button>
+        <button type="button" id="imgBtn" title="Insert Image">Image</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" data-cmd="formatBlock" data-val="blockquote" title="Quote">Quote</button>
+        <button type="button" data-cmd="removeFormat" title="Clear Formatting">Clear</button>
+      </div>
+      <div id="editor" class="editor" contenteditable="true"></div>
+    </div>
+
+    <div class="form-row">
+      <label for="excerpt">Excerpt / Summary <span class="optional">(optional)</span></label>
+      <textarea id="excerpt" name="excerpt" rows="2" placeholder="A brief summary shown in post listings..."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <label class="publish-toggle">
+        <input type="checkbox" id="published" name="published" />
+        <span>Publish immediately</span>
+      </label>
+      <div class="action-buttons">
+        <button type="submit" class="save-btn" id="saveBtn">Save Draft</button>
+      </div>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; }
+
+  .post-form { display: flex; flex-direction: column; gap: 1.2rem; }
+  .form-row { display: flex; flex-direction: column; gap: 0.3rem; }
+  .form-row label { font-weight: 800; font-size: 0.9rem; }
+  .optional { font-weight: 400; color: #8b7355; }
+  .hint { font-size: 0.75rem; color: #8b7355; }
+
+  input[type="text"], input[type="url"], textarea {
+    font-family: inherit; font-size: 0.95rem; padding: 0.6em 0.8em;
+    border: 2px solid #d4b896; border-radius: 8px; background: #faf5ea;
+  }
+  input:focus, textarea:focus { outline: none; border-color: #c87830; }
+  #title { font-size: 1.3rem; font-weight: 700; }
+
+  .cover-preview { margin-top: 0.5rem; }
+  .cover-preview img { max-width: 300px; max-height: 160px; border-radius: 8px; object-fit: cover; border: 2px solid #d4b896; }
+
+  .editor-toolbar {
+    display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.4rem;
+    background: #2d1f0e; border-radius: 8px 8px 0 0; border: 2px solid #2d1f0e;
+  }
+  .editor-toolbar button {
+    background: transparent; border: none; color: #e4d3b8; padding: 0.3em 0.6em;
+    border-radius: 4px; font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  }
+  .editor-toolbar button:hover { background: #6b4a2a; color: #faf5ea; }
+  .toolbar-sep { width: 1px; background: #6b4a2a; margin: 0 0.15rem; }
+
+  .editor {
+    min-height: 350px; padding: 1rem; background: #faf5ea; border: 2px solid #d4b896;
+    border-top: none; border-radius: 0 0 8px 8px; font-size: 0.95rem; line-height: 1.7;
+    outline: none;
+  }
+  .editor:focus { border-color: #c87830; }
+  .editor h2 { font-size: 1.4rem; font-weight: 800; margin: 0.8em 0 0.3em; }
+  .editor h3 { font-size: 1.15rem; font-weight: 800; margin: 0.6em 0 0.3em; }
+  .editor p { margin: 0 0 0.6em; }
+  .editor blockquote {
+    border-left: 4px solid #c87830; margin: 0.6em 0; padding: 0.4em 1em;
+    background: rgba(200, 120, 48, 0.06); color: #6b4a2a; font-style: italic;
+  }
+  .editor a { color: #3d7a6e; }
+  .editor img { max-width: 100%; border-radius: 6px; margin: 0.5em 0; }
+  .editor ul, .editor ol { margin: 0.3em 0; padding-left: 1.5em; }
+
+  .form-actions {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem; background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
+  }
+  .publish-toggle { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+  .publish-toggle input { width: 18px; height: 18px; accent-color: #5b7b6d; }
+  .save-btn {
+    background: #5b7b6d; color: #faf5ea; border: none; padding: 0.6em 1.5em;
+    border-radius: 8px; font-family: inherit; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+  }
+  .save-btn:hover { background: #3d5a4e; }
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+<script>
+  // Auto-generate slug from title
+  const titleEl = document.getElementById('title') as HTMLInputElement;
+  const slugEl = document.getElementById('slug') as HTMLInputElement;
+  let slugEdited = false;
+
+  slugEl.addEventListener('input', () => { slugEdited = true; });
+  titleEl.addEventListener('input', () => {
+    if (!slugEdited) {
+      slugEl.value = titleEl.value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+  });
+
+  // Cover image preview
+  const coverInput = document.getElementById('coverImage') as HTMLInputElement;
+  const coverPreview = document.getElementById('coverPreview') as HTMLElement;
+  const coverImg = document.getElementById('coverImg') as HTMLImageElement;
+  coverInput.addEventListener('input', () => {
+    if (coverInput.value) {
+      coverImg.src = coverInput.value;
+      coverPreview.style.display = 'block';
+    } else {
+      coverPreview.style.display = 'none';
+    }
+  });
+
+  // Toolbar commands
+  document.querySelectorAll('.editor-toolbar button[data-cmd]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = (btn as HTMLElement).dataset.cmd!;
+      const val = (btn as HTMLElement).dataset.val || '';
+      document.execCommand(cmd, false, val);
+      document.getElementById('editor')!.focus();
+    });
+  });
+
+  // Link button
+  document.getElementById('linkBtn')!.addEventListener('click', () => {
+    const url = prompt('Enter URL:');
+    if (url) {
+      document.execCommand('createLink', false, url);
+      document.getElementById('editor')!.focus();
+    }
+  });
+
+  // Image button
+  document.getElementById('imgBtn')!.addEventListener('click', () => {
+    const url = prompt('Enter image URL:');
+    if (url) {
+      document.execCommand('insertImage', false, url);
+      document.getElementById('editor')!.focus();
+    }
+  });
+
+  // Published toggle label
+  const publishedCheckbox = document.getElementById('published') as HTMLInputElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  publishedCheckbox.addEventListener('change', () => {
+    saveBtn.textContent = publishedCheckbox.checked ? 'Publish' : 'Save Draft';
+  });
+
+  // Submit
+  document.getElementById('postForm')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const content = document.getElementById('editor')!.innerHTML;
+    const body = {
+      title: titleEl.value,
+      slug: slugEl.value,
+      content,
+      excerpt: (document.getElementById('excerpt') as HTMLTextAreaElement).value,
+      coverImage: coverInput.value || undefined,
+      published: publishedCheckbox.checked,
+    };
+
+    try {
+      const res = await fetch('/api/admin/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save');
+      }
+      const { id } = await res.json();
+      window.location.href = `/admin/blog/${id}`;
+    } catch (err: any) {
+      alert(err.message);
+      saveBtn.disabled = false;
+      saveBtn.textContent = publishedCheckbox.checked ? 'Publish' : 'Save Draft';
+    }
+  });
+</script>

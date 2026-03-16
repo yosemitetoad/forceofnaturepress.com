@@ -471,6 +471,130 @@ export async function deletePortfolioItem(db: D1Database, id: number): Promise<v
   await db.prepare('DELETE FROM portfolio_items WHERE id = ?').bind(id).run();
 }
 
+// ── Blog ──────────────────────────────────────────────────────────────────
+
+export interface BlogPost {
+  id: number;
+  slug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  coverImage: string | null;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface BlogRow {
+  id: number;
+  slug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  cover_image: string | null;
+  published: number;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToBlogPost(row: BlogRow): BlogPost {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    content: row.content,
+    excerpt: row.excerpt,
+    coverImage: row.cover_image,
+    published: row.published === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getAllBlogPosts(db: D1Database, includeUnpublished = false): Promise<BlogPost[]> {
+  const query = includeUnpublished
+    ? 'SELECT * FROM blog_posts ORDER BY created_at DESC'
+    : 'SELECT * FROM blog_posts WHERE published = 1 ORDER BY created_at DESC';
+  const { results } = await db.prepare(query).all<BlogRow>();
+  return (results ?? []).map(rowToBlogPost);
+}
+
+export async function getBlogPost(db: D1Database, slug: string): Promise<BlogPost | null> {
+  const row = await db
+    .prepare('SELECT * FROM blog_posts WHERE slug = ?')
+    .bind(slug)
+    .first<BlogRow>();
+  return row ? rowToBlogPost(row) : null;
+}
+
+export async function getBlogPostById(db: D1Database, id: number): Promise<BlogPost | null> {
+  const row = await db
+    .prepare('SELECT * FROM blog_posts WHERE id = ?')
+    .bind(id)
+    .first<BlogRow>();
+  return row ? rowToBlogPost(row) : null;
+}
+
+export interface BlogPostInput {
+  slug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  coverImage?: string;
+  published?: boolean;
+}
+
+export async function createBlogPost(db: D1Database, post: BlogPostInput): Promise<number> {
+  const result = await db
+    .prepare(
+      `INSERT INTO blog_posts (slug, title, content, excerpt, cover_image, published)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      post.slug, post.title, post.content, post.excerpt,
+      post.coverImage ?? null, post.published ? 1 : 0
+    )
+    .run();
+  return result.meta.last_row_id as number;
+}
+
+export async function updateBlogPost(db: D1Database, id: number, post: Partial<BlogPostInput>): Promise<void> {
+  const sets: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (post.slug !== undefined) { sets.push('slug = ?'); values.push(post.slug); }
+  if (post.title !== undefined) { sets.push('title = ?'); values.push(post.title); }
+  if (post.content !== undefined) { sets.push('content = ?'); values.push(post.content); }
+  if (post.excerpt !== undefined) { sets.push('excerpt = ?'); values.push(post.excerpt); }
+  if (post.coverImage !== undefined) { sets.push('cover_image = ?'); values.push(post.coverImage ?? null); }
+  if (post.published !== undefined) { sets.push('published = ?'); values.push(post.published ? 1 : 0); }
+
+  if (sets.length === 0) return;
+
+  sets.push("updated_at = datetime('now')");
+  values.push(id);
+  await db
+    .prepare(`UPDATE blog_posts SET ${sets.join(', ')} WHERE id = ?`)
+    .bind(...values)
+    .run();
+}
+
+export async function deleteBlogPost(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM blog_posts WHERE id = ?').bind(id).run();
+}
+
+export async function getBlogPostCount(db: D1Database): Promise<{ total: number; published: number; drafts: number }> {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) as total,
+              SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) as published,
+              SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) as drafts
+       FROM blog_posts`
+    )
+    .first<{ total: number; published: number; drafts: number }>();
+  return row ?? { total: 0, published: 0, drafts: 0 };
+}
+
 export async function getItemAllTimeClicks(db: D1Database, sku: string): Promise<number> {
   const row = await db
     .prepare("SELECT COUNT(*) as total FROM analytics_events WHERE event_type = 'product_click' AND sku = ?")
