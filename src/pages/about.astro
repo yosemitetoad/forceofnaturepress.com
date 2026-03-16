@@ -3,14 +3,22 @@ import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 ---
 
-<Base title="About — Force of Nature Press" description="Riley Briggs is an artist, designer, printmaker, and ecologist based in Seattle, WA — and the one-person show behind Force of Nature Press.">
+<Base title="About — Force of Nature Press" description="Riley Briggs is an artist, designer, printmaker, and ecologist based in Seattle, WA — and the one-person show behind Force of Nature Press." fullWidth>
 
-  <div class="about-page">
+  <div class="about-wrap">
+  <div class="about-page container">
+    <div class="about-box">
     <div class="about-layout">
       <div class="about-photo-col">
         <img src="/riley_uncropped.JPG" alt="Riley Briggs in the forest" class="about-photo" />
         <div class="muppet-wrapper">
           <img src="/Muppet.JPG" alt="Muppet the cat" class="muppet-photo" />
+        </div>
+        <div class="about-cta">
+          <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Instagram</a>
+          <a href={PINTEREST_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Pinterest</a>
+          <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Etsy</a>
+          <a href="/portfolio" class="btn btn-outline">View Portfolio</a>
         </div>
       </div>
 
@@ -46,24 +54,30 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
         email me at <a href={`mailto:${EMAIL}`}>{EMAIL}</a> or fill out my <a href="/contact">contact form</a> if
         you'd like to explore working together!
       </p>
-
-      <div class="about-cta">
-        <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Instagram</a>
-        <a href={PINTEREST_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Pinterest</a>
-        <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Etsy</a>
-        <a href="/portfolio" class="btn btn-outline">View Portfolio</a>
-      </div>
     </div>
     </div>
+    </div>
+  </div>
   </div>
 
 </Base>
 
 <style>
+  .about-wrap {
+    background: url('/plainstarbanner.png') center / cover no-repeat;
+    min-height: calc(100vh - 72px - 120px);
+    padding: 2.5rem 0 4rem;
+    margin-bottom: -4rem;
+  }
+  .about-box {
+    background: rgba(240, 230, 208, 0.88);
+    border-radius: 14px;
+    padding: 2.5rem;
+    border: 2px solid var(--border);
+  }
   .about-page {
     max-width: 1000px;
     margin: 0 auto;
-    padding: 3rem 0 5rem;
   }
   .about-layout {
     display: grid;
@@ -118,9 +132,12 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
   .contact-list a:hover { color: var(--teal-dark); }
   .about-cta {
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-top: 2.5rem;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+  .about-cta .btn {
+    text-align: center;
   }
 
   .muppet-wrapper {

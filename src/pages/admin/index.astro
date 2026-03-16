@@ -1,0 +1,170 @@
+---
+export const prerender = false;
+
+import Admin from '../../layouts/Admin.astro';
+import { getAllShopItems, getAllPortfolioItems } from '../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const shopItems = await getAllShopItems(db);
+const portfolioItems = await getAllPortfolioItems(db);
+
+const shopCategories = new Map<string, number>();
+for (const item of shopItems) {
+  shopCategories.set(item.category, (shopCategories.get(item.category) ?? 0) + 1);
+}
+
+const portfolioCategories = new Map<string, number>();
+for (const item of portfolioItems) {
+  const cat = item.category ?? 'Uncategorized';
+  portfolioCategories.set(cat, (portfolioCategories.get(cat) ?? 0) + 1);
+}
+---
+
+<Admin title="Dashboard">
+  <h1>Dashboard</h1>
+
+  <div class="actions-top">
+    <button id="publish-btn" class="btn btn-publish">Publish Changes</button>
+  </div>
+  <div id="publish-status" class="publish-status"></div>
+
+  <div class="sections">
+    <div class="section">
+      <h2>Shop</h2>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-number">{shopItems.length}</div>
+          <div class="stat-label">Items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{shopCategories.size}</div>
+          <div class="stat-label">Categories</div>
+        </div>
+      </div>
+
+      <div class="section-actions">
+        <a href="/admin/shop" class="btn btn-primary">Manage Shop</a>
+        <a href="/admin/shop/new" class="btn btn-secondary">Add New Item</a>
+      </div>
+
+      <h3>Items by Category</h3>
+      <div class="category-grid">
+        {[...shopCategories.entries()].sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
+          <a href={`/admin/shop?category=${cat}`} class="cat-card">
+            <span class="cat-name">{cat}</span>
+            <span class="cat-count">{count}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Portfolio</h2>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-number">{portfolioItems.length}</div>
+          <div class="stat-label">Pieces</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{portfolioCategories.size}</div>
+          <div class="stat-label">Categories</div>
+        </div>
+      </div>
+
+      <div class="section-actions">
+        <a href="/admin/portfolio" class="btn btn-primary">Manage Portfolio</a>
+        <a href="/admin/portfolio/new" class="btn btn-secondary">Add New Piece</a>
+      </div>
+
+      {portfolioCategories.size > 0 && (
+        <h3>Pieces by Category</h3>
+        <div class="category-grid">
+          {[...portfolioCategories.entries()].sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
+            <div class="cat-card">
+              <span class="cat-name">{cat}</span>
+              <span class="cat-count cat-count-green">{count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</Admin>
+
+<style>
+  h1 { font-size: 2rem; font-weight: 800; margin-bottom: 1rem; }
+  h2 { font-size: 1.4rem; font-weight: 800; margin: 0 0 1rem; }
+  h3 { font-size: 1rem; font-weight: 800; margin: 1.2rem 0 0.6rem; color: #6b4a2a; }
+
+  .actions-top { margin-bottom: 0.5rem; }
+  .publish-status { min-height: 1.5em; font-size: 0.9rem; font-weight: 700; margin-bottom: 1.5rem; }
+
+  .sections { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 768px) { .sections { grid-template-columns: 1fr; } }
+
+  .section {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem;
+  }
+
+  .stats { display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+  .stat-card {
+    background: white; border: 2px solid #e4d3b8; border-radius: 8px;
+    padding: 0.8rem 1.2rem; text-align: center; flex: 1;
+  }
+  .stat-number { font-size: 1.8rem; font-weight: 800; color: #c87830; }
+  .stat-label { font-size: 0.8rem; font-weight: 700; color: #6b4a2a; }
+
+  .section-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-block; padding: 0.5em 1.1em; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem;
+    text-decoration: none; cursor: pointer; border: none; transition: background 0.15s;
+  }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-secondary { background: #3d7a6e; color: #faf5ea; }
+  .btn-secondary:hover { background: #2a5a50; }
+  .btn-publish { background: #5b5b9e; color: #faf5ea; }
+  .btn-publish:hover { background: #3d3d7a; }
+
+  .category-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .cat-card {
+    background: white; border: 1px solid #e4d3b8; border-radius: 8px;
+    padding: 0.4rem 0.8rem; display: flex; align-items: center; gap: 0.5rem;
+    text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s;
+  }
+  .cat-card:hover { border-color: #c87830; background: rgba(200, 120, 48, 0.08); }
+  .cat-name { font-weight: 700; font-size: 0.85rem; }
+  .cat-count {
+    background: #c87830; color: #faf5ea; border-radius: 50%;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800;
+  }
+  .cat-count-green { background: #3d7a6e; }
+</style>
+
+<script>
+  const btn = document.getElementById('publish-btn');
+  const status = document.getElementById('publish-status');
+  btn?.addEventListener('click', async () => {
+    btn.textContent = 'Publishing...';
+    btn.setAttribute('disabled', '');
+    try {
+      const res = await fetch('/api/admin/publish', { method: 'POST' });
+      if (res.ok) {
+        status!.textContent = 'Deploy triggered! Site will rebuild in ~60 seconds.';
+        status!.style.color = '#3d7a6e';
+      } else {
+        const data = await res.json();
+        status!.textContent = data.error || 'Publish failed.';
+        status!.style.color = '#b44';
+      }
+    } catch {
+      status!.textContent = 'Network error.';
+      status!.style.color = '#b44';
+    }
+    btn.textContent = 'Publish Changes';
+    btn.removeAttribute('disabled');
+  });
+</script>

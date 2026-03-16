@@ -1,0 +1,134 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAllPortfolioItems } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const items = await getAllPortfolioItems(db);
+---
+
+<Admin title="Portfolio">
+  <div class="page-header">
+    <h1>Portfolio ({items.length})</h1>
+    <a href="/admin/portfolio/new" class="btn btn-primary">+ Add Piece</a>
+  </div>
+
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search pieces..." class="search-input" />
+    <span id="result-count" class="result-count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Medium</th>
+          <th>Year</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="item-tbody">
+        {items.map((item) => (
+          <tr data-title={(item.title ?? '').toLowerCase()} data-category={(item.category ?? '').toLowerCase()}>
+            <td>
+              {item.image
+                ? <img src={item.image} alt="" class="thumb" />
+                : <div class="thumb-empty"></div>
+              }
+            </td>
+            <td class="title-cell">{item.title ?? '(untitled)'}</td>
+            <td>{item.category ?? '--'}</td>
+            <td>{item.medium ?? '--'}</td>
+            <td>{item.year ?? '--'}</td>
+            <td class="actions-cell">
+              <a href={`/admin/portfolio/${item.id}`} class="btn-sm btn-edit">Edit</a>
+              <button class="btn-sm btn-delete" data-id={item.id} data-title={item.title ?? 'this item'}>Delete</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <p id="no-results" class="no-results" style="display:none">No pieces match your search.</p>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 1rem; }
+  .search-input {
+    padding: 0.5em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #faf5ea; color: #2d1f0e; width: 220px;
+  }
+  .search-input:focus { border-color: #c87830; outline: none; }
+  .result-count { font-size: 0.85rem; color: #6b4a2a; font-weight: 700; margin-left: auto; }
+
+  .table-wrap { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  thead { background: #2d1f0e; color: #faf5ea; }
+  th { padding: 0.7rem 0.8rem; text-align: left; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  td { padding: 0.6rem 0.8rem; border-bottom: 1px solid #e4d3b8; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: rgba(200, 120, 48, 0.05); }
+  .thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+  .thumb-empty { width: 48px; height: 48px; border-radius: 6px; background: #e4d3b8; }
+  .title-cell { font-weight: 700; max-width: 280px; }
+  .actions-cell { white-space: nowrap; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-edit { background: #3d7a6e; color: #faf5ea; }
+  .btn-edit:hover { background: #2a5a50; }
+  .btn-delete { background: #b44; color: #faf5ea; }
+  .btn-delete:hover { background: #833; }
+  .no-results { text-align: center; color: #6b4a2a; font-style: italic; padding: 1.5rem 0; }
+</style>
+
+<script>
+  const search = document.getElementById('search') as HTMLInputElement;
+  const tbody = document.getElementById('item-tbody')!;
+  const noResults = document.getElementById('no-results')!;
+  const resultCount = document.getElementById('result-count')!;
+
+  function applyFilters() {
+    const query = search.value.toLowerCase().trim();
+    const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'));
+    let visible = 0;
+
+    rows.forEach(row => {
+      const match = !query || row.dataset.title!.includes(query) || row.dataset.category!.includes(query);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+
+    noResults.style.display = visible === 0 ? '' : 'none';
+    resultCount.textContent = `${visible} of ${rows.length} pieces`;
+  }
+
+  search.addEventListener('input', applyFilters);
+
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = (btn as HTMLElement).dataset.id;
+      const title = (btn as HTMLElement).dataset.title;
+      if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+
+      const res = await fetch(`/api/admin/portfolio/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        (btn as HTMLElement).closest('tr')?.remove();
+        applyFilters();
+      } else {
+        alert('Failed to delete item.');
+      }
+    });
+  });
+
+  applyFilters();
+</script>

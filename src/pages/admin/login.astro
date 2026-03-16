@@ -1,0 +1,142 @@
+---
+export const prerender = false;
+
+import { createSession } from '../../lib/db';
+
+const error = '';
+let loginError = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const password = form.get('password')?.toString() ?? '';
+  const expected = Astro.locals.runtime.env.ADMIN_PASSWORD;
+
+  if (password === expected) {
+    const db = Astro.locals.runtime.env.DB;
+    const token = crypto.randomUUID();
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await createSession(db, token, expires);
+
+    Astro.cookies.set('admin_session', token, {
+      path: '/',
+      httpOnly: true,
+      secure: import.meta.env.PROD,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
+    return Astro.redirect('/admin');
+  } else {
+    loginError = 'Incorrect password.';
+  }
+}
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin Login — Force of Nature Press</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: url('/plainstarbanner.png') center / cover no-repeat fixed;
+      background-color: #f0e6d0;
+      color: #2d1f0e;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      background: rgba(240, 230, 208, 0.92);
+      border: 2px solid #d4b896;
+      border-radius: 14px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .login-box img {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: 0 0 0.3rem;
+    }
+    .subtitle {
+      color: #6b4a2a;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 0.7em 1em;
+      border: 2px solid #d4b896;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      background: #faf5ea;
+      color: #2d1f0e;
+      outline: none;
+    }
+    input[type="password"]:focus {
+      border-color: #c87830;
+    }
+    .error {
+      color: #b44;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      min-height: 1.3em;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin-top: 1.2rem;
+      padding: 0.7em 1.4em;
+      border: none;
+      border-radius: 8px;
+      background: #c87830;
+      color: #faf5ea;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #a05e18; }
+    button:active { transform: translateY(1px); }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="/beetleshopiconsquare.png" alt="Force of Nature Press" />
+    <h1>Admin</h1>
+    <p class="subtitle">Force of Nature Press</p>
+    <form method="POST">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required autofocus />
+      <div class="error">{loginError}</div>
+      <button type="submit">Log In</button>
+    </form>
+  </div>
+</body>
+</html>

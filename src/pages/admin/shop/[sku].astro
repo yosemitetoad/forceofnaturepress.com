@@ -1,0 +1,228 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getShopItem, getItemClickStats, getItemAllTimeClicks } from '../../../lib/db';
+import { CATEGORY_LABELS } from '../../../data/shop';
+
+const { sku } = Astro.params;
+const db = Astro.locals.runtime.env.DB;
+const item = await getShopItem(db, sku!);
+
+if (!item) {
+  return Astro.redirect('/admin/shop');
+}
+
+const categories = Object.entries(CATEGORY_LABELS);
+
+const [stats30, allTimeClicks] = await Promise.all([
+  getItemClickStats(db, sku!, 30),
+  getItemAllTimeClicks(db, sku!),
+]);
+---
+
+<Admin title={`Edit: ${item.title}`}>
+  <div class="page-header">
+    <h1>Edit Item</h1>
+    <a href="/admin/shop" class="back-link">Back to Shop Items</a>
+  </div>
+
+  <form id="item-form" class="item-form" data-sku={item.sku}>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="sku">SKU</label>
+        <input type="text" id="sku" value={item.sku} disabled />
+        <span class="hint">SKU cannot be changed</span>
+      </div>
+      <div class="form-group">
+        <label for="category">Category *</label>
+        <select id="category" name="category" required>
+          {categories.map(([value, label]) => (
+            <option value={value} selected={value === item.category}>{label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="title">Title *</label>
+      <input type="text" id="title" name="title" required value={item.title} />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="price">Price ($) *</label>
+        <input type="number" id="price" name="price" step="0.01" min="0" required value={item.price} />
+      </div>
+      <div class="form-group">
+        <label for="etsyListingId">Etsy Listing ID</label>
+        <input type="text" id="etsyListingId" name="etsyListingId" value={item.etsyListingId ?? ''} placeholder="Optional" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="image">Image URL *</label>
+      <input type="url" id="image" name="image" required value={item.image} />
+    </div>
+
+    <div class="preview-area">
+      <img id="image-preview" src={item.image} alt="Preview" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="/admin/shop" class="btn btn-outline">Cancel</a>
+      <button type="button" id="delete-btn" class="btn btn-danger">Delete Item</button>
+    </div>
+
+    <div id="form-status" class="form-status"></div>
+  </form>
+
+  <div class="item-stats">
+    <h2>Item Analytics</h2>
+    <div class="stats-row">
+      <div class="mini-stat">
+        <div class="mini-number">{stats30.totalClicks}</div>
+        <div class="mini-label">Clicks (30 days)</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-number">{allTimeClicks}</div>
+        <div class="mini-label">Clicks (all time)</div>
+      </div>
+    </div>
+    {stats30.dailyClicks.length > 0 ? (
+      <div class="sparkline-wrap">
+        <canvas id="itemChart" data-stats={JSON.stringify(stats30.dailyClicks)} height="80"></canvas>
+      </div>
+    ) : (
+      <p class="empty-stats">No click data yet for this item.</p>
+    )}
+  </div>
+</Admin>
+
+<style>
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
+  }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; }
+
+  .item-form {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; max-width: 700px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1.2rem; }
+  label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  .hint { font-size: 0.75rem; color: #6b4a2a; }
+  input, select {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; background: white; color: #2d1f0e;
+  }
+  input:disabled { background: #e4d3b8; cursor: not-allowed; }
+  input:focus, select:focus { border-color: #c87830; outline: none; }
+  .preview-area { margin-bottom: 1.2rem; }
+  .preview-area img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #d4b896; }
+  .form-actions { display: flex; gap: 0.8rem; align-items: center; }
+  .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: none; border: 2px solid #d4b896; color: #6b4a2a; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-danger { background: #b44; color: #faf5ea; margin-left: auto; }
+  .btn-danger:hover { background: #833; }
+  .form-status { margin-top: 1rem; font-weight: 700; font-size: 0.9rem; min-height: 1.3em; }
+
+  .item-stats {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
+    padding: 1.5rem; max-width: 700px; margin-top: 1.5rem;
+  }
+  .item-stats h2 { font-size: 1.1rem; font-weight: 800; margin: 0 0 1rem; }
+  .stats-row { display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .mini-stat { text-align: center; }
+  .mini-number { font-size: 1.5rem; font-weight: 800; color: #c87830; }
+  .mini-label { font-size: 0.75rem; font-weight: 700; color: #6b4a2a; }
+  .sparkline-wrap { overflow-x: auto; }
+  .sparkline-wrap canvas { width: 100%; }
+  .empty-stats { color: #6b4a2a; font-style: italic; font-size: 0.85rem; margin: 0; }
+</style>
+
+<script>
+  const form = document.getElementById('item-form') as HTMLFormElement;
+  const sku = form.dataset.sku!;
+  const status = document.getElementById('form-status')!;
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+  const preview = document.getElementById('image-preview') as HTMLImageElement;
+  const deleteBtn = document.getElementById('delete-btn')!;
+
+  imageInput.addEventListener('input', () => {
+    preview.src = imageInput.value || '';
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    data.price = Number(data.price) as any;
+
+    const res = await fetch(`/api/admin/shop/${sku}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      status.textContent = 'Saved!';
+      status.style.color = '#3d7a6e';
+    } else {
+      const err = await res.json();
+      status.textContent = err.error || 'Failed to save.';
+      status.style.color = '#b44';
+    }
+  });
+
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+    const res = await fetch(`/api/admin/shop/${sku}`, { method: 'DELETE' });
+    if (res.ok) {
+      window.location.href = '/admin/shop';
+    } else {
+      status.textContent = 'Failed to delete.';
+      status.style.color = '#b44';
+    }
+  });
+
+  // Mini sparkline chart for item clicks
+  const canvas = document.getElementById('itemChart') as HTMLCanvasElement | null;
+  if (canvas) {
+    const stats = JSON.parse(canvas.dataset.stats || '[]');
+    if (stats.length > 0) {
+      const ctx = canvas.getContext('2d')!;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 80 * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = 80;
+      const pad = { top: 8, right: 8, bottom: 18, left: 8 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+      const maxVal = Math.max(...stats.map((s: any) => s.clicks), 1);
+      const barW = Math.max(3, chartW / stats.length - 2);
+
+      stats.forEach((s: any, i: number) => {
+        const x = pad.left + (i / stats.length) * chartW;
+        const bh = (s.clicks / maxVal) * chartH;
+        ctx.fillStyle = '#c87830';
+        ctx.fillRect(x, pad.top + chartH - bh, barW, bh);
+
+        if (stats.length <= 14 || i % Math.ceil(stats.length / 7) === 0) {
+          ctx.fillStyle = '#6b4a2a';
+          ctx.font = '9px Nunito, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(s.date.slice(5), x + barW / 2, h - 2);
+        }
+      });
+    }
+  }
+</script>

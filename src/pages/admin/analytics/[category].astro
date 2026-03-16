@@ -1,0 +1,209 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getCategoryDailyClicks, getCategoryTotalClicks, getCategoryAllTimeClicks, getCategoryTopItems, getCategoryItemCount } from '../../../lib/db';
+import { CATEGORY_LABELS } from '../../../data/shop';
+
+const { category } = Astro.params;
+const db = Astro.locals.runtime.env.DB;
+
+const label = CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS];
+if (!label) {
+  return Astro.redirect('/admin/analytics');
+}
+
+const daysParam = Astro.url.searchParams.get('days');
+const days = daysParam === 'all' ? 99999 : Number(daysParam ?? 30);
+const isAllTime = daysParam === 'all';
+
+const [dailyClicks, totalClicks, allTimeClicks, topItems, itemCount] = await Promise.all([
+  getCategoryDailyClicks(db, category!, days),
+  getCategoryTotalClicks(db, category!, days),
+  getCategoryAllTimeClicks(db, category!),
+  getCategoryTopItems(db, category!, days, 15),
+  getCategoryItemCount(db, category!),
+]);
+---
+
+<Admin title={`Analytics: ${label}`}>
+  <div class="page-header">
+    <div class="header-left">
+      <h1>{label}</h1>
+      <a href="/admin/analytics" class="back-link">Back to Analytics</a>
+    </div>
+    <div class="period-select">
+      <a href={`/admin/analytics/${category}?days=7`} class={`period-btn ${days === 7 ? 'active' : ''}`}>7 Days</a>
+      <a href={`/admin/analytics/${category}?days=30`} class={`period-btn ${!isAllTime && days === 30 ? 'active' : ''}`}>30 Days</a>
+      <a href={`/admin/analytics/${category}?days=90`} class={`period-btn ${days === 90 ? 'active' : ''}`}>90 Days</a>
+      <a href={`/admin/analytics/${category}?days=365`} class={`period-btn ${days === 365 ? 'active' : ''}`}>1 Year</a>
+      <a href={`/admin/analytics/${category}?days=all`} class={`period-btn ${isAllTime ? 'active' : ''}`}>All Time</a>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-number">{totalClicks}</div>
+      <div class="stat-label">Clicks ({isAllTime ? 'all time' : `${days} days`})</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{allTimeClicks}</div>
+      <div class="stat-label">Clicks (All Time)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{itemCount}</div>
+      <div class="stat-label">Items in Category</div>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <h2>Clicks Over Time</h2>
+    {dailyClicks.length === 0 ? (
+      <p class="empty-state">No click data yet for this category.</p>
+    ) : (
+      <div class="chart-wrap">
+        <canvas id="categoryChart" data-stats={JSON.stringify(dailyClicks)}></canvas>
+      </div>
+    )}
+  </div>
+
+  <div class="section">
+    <h2>Top Items in {label}</h2>
+    {topItems.length === 0 ? (
+      <p class="empty-state">No clicks recorded yet.</p>
+    ) : (
+      <div class="top-list">
+        {topItems.map((item, i) => (
+          <a href={`/admin/shop/${item.sku}`} class="top-item">
+            <span class="top-rank">{i + 1}</span>
+            <img src={item.image} alt="" class="top-thumb" />
+            <div class="top-info">
+              <span class="top-title">{item.title ?? item.sku}</span>
+              <span class="top-clicks">{item.clicks} click{item.clicks !== 1 ? 's' : ''}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</Admin>
+
+<style>
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .header-left { display: flex; flex-direction: column; gap: 0.3rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.2rem; font-weight: 800; margin: 0 0 1rem; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; }
+
+  .period-select { display: flex; gap: 0.4rem; }
+  .period-btn {
+    padding: 0.4em 0.9em; border-radius: 8px; font-family: inherit; font-weight: 700;
+    font-size: 0.85rem; text-decoration: none; border: 2px solid #d4b896; color: #2d1f0e; background: #faf5ea;
+  }
+  .period-btn:hover { border-color: #c87830; }
+  .period-btn.active { background: #c87830; border-color: #c87830; color: #faf5ea; }
+
+  .stats-row { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .stat-card {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
+    padding: 1rem 1.5rem; text-align: center; flex: 1; min-width: 120px;
+  }
+  .stat-number { font-size: 1.8rem; font-weight: 800; color: #c87830; }
+  .stat-label { font-size: 0.8rem; font-weight: 700; color: #6b4a2a; }
+
+  .chart-section { margin-bottom: 2rem; }
+  .chart-wrap {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem;
+    overflow-x: auto;
+  }
+  canvas { width: 100%; height: 200px; }
+
+  .section {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .empty-state { color: #6b4a2a; font-style: italic; font-size: 0.9rem; }
+
+  .top-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .top-item {
+    display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem;
+    border-radius: 8px; text-decoration: none; color: inherit;
+    transition: background 0.15s;
+  }
+  .top-item:hover { background: rgba(200, 120, 48, 0.08); }
+  .top-rank {
+    width: 24px; height: 24px; border-radius: 50%; background: #2d1f0e; color: #faf5ea;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800; flex-shrink: 0;
+  }
+  .top-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+  .top-info { display: flex; flex-direction: column; min-width: 0; }
+  .top-title { font-weight: 700; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top-clicks { font-size: 0.75rem; color: #6b4a2a; }
+</style>
+
+<script>
+  const canvas = document.getElementById('categoryChart') as HTMLCanvasElement | null;
+  if (canvas) {
+    const stats = JSON.parse(canvas.dataset.stats || '[]');
+    if (stats.length > 0) {
+      const ctx = canvas.getContext('2d')!;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 200 * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = 200;
+      const pad = { top: 20, right: 20, bottom: 30, left: 40 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+
+      const maxVal = Math.max(...stats.map((s: any) => s.clicks), 1);
+      const barW = Math.max(3, chartW / stats.length - 2);
+
+      // Y-axis
+      ctx.strokeStyle = '#d4b896';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top);
+      ctx.lineTo(pad.left, h - pad.bottom);
+      ctx.stroke();
+
+      // Grid lines
+      ctx.fillStyle = '#6b4a2a';
+      ctx.font = '11px Nunito, sans-serif';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (chartH * (4 - i)) / 4;
+        const val = Math.round((maxVal * i) / 4);
+        ctx.fillText(String(val), pad.left - 6, y + 4);
+        if (i > 0) {
+          ctx.strokeStyle = '#e4d3b8';
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+        }
+      }
+
+      // Bars
+      stats.forEach((s: any, i: number) => {
+        const x = pad.left + (i / stats.length) * chartW;
+        const bh = (s.clicks / maxVal) * chartH;
+        ctx.fillStyle = '#c87830';
+        ctx.fillRect(x, pad.top + chartH - bh, barW, bh);
+
+        if (stats.length <= 14 || i % Math.ceil(stats.length / 7) === 0) {
+          ctx.fillStyle = '#6b4a2a';
+          ctx.font = '10px Nunito, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(s.date.slice(5), x + barW / 2, h - pad.bottom + 14);
+        }
+      });
+    }
+  }
+</script>

@@ -1,5 +1,11 @@
 name = "forceofnaturepresssite"
 compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fonp-db"
+database_id = "ead878ce-e7f3-4ece-b2d2-b99f6d2b099a"

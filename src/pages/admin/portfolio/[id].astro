@@ -1,0 +1,152 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPortfolioItem } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const id = Number(Astro.params.id);
+const item = await getPortfolioItem(db, id);
+
+if (!item) {
+  return Astro.redirect('/admin/portfolio');
+}
+---
+
+<Admin title={`Edit: ${item.title ?? 'Portfolio Piece'}`}>
+  <div class="page-header">
+    <h1>Edit Piece</h1>
+    <a href="/admin/portfolio" class="back-link">Back to Portfolio</a>
+  </div>
+
+  <form id="item-form" class="item-form" data-id={item.id}>
+    <div class="form-group">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" value={item.title ?? ''} placeholder="e.g. California Poppy" />
+    </div>
+
+    <div class="form-group">
+      <label for="image">Image URL</label>
+      <input type="url" id="image" name="image" value={item.image ?? ''} placeholder="https://..." />
+    </div>
+
+    <div class="preview-area">
+      <img id="image-preview" src={item.image ?? ''} alt="Preview" style={item.image ? '' : 'display:none'} />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="category">Category</label>
+        <input type="text" id="category" name="category" value={item.category ?? ''} placeholder="e.g. Sticker Designs" />
+      </div>
+      <div class="form-group">
+        <label for="medium">Medium</label>
+        <input type="text" id="medium" name="medium" value={item.medium ?? ''} placeholder="e.g. Digital illustration" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="year">Year</label>
+        <input type="text" id="year" name="year" value={item.year ?? ''} placeholder="e.g. 2024" />
+      </div>
+      <div class="form-group">
+        <label for="link">Link</label>
+        <input type="url" id="link" name="link" value={item.link ?? ''} placeholder="https://... (optional)" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3" placeholder="A short description of this piece...">{item.description ?? ''}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <button type="button" id="delete-btn" class="btn btn-danger">Delete</button>
+      <a href="/admin/portfolio" class="btn btn-outline">Cancel</a>
+    </div>
+
+    <div id="form-status" class="form-status"></div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; }
+
+  .item-form { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; max-width: 700px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1.2rem; }
+  label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  input, textarea {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; background: white; color: #2d1f0e; resize: vertical;
+  }
+  input:focus, textarea:focus { border-color: #c87830; outline: none; }
+  .preview-area { margin-bottom: 1.2rem; }
+  .preview-area img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #d4b896; }
+  .form-actions { display: flex; gap: 0.8rem; }
+  .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-danger { background: #b44; color: #faf5ea; }
+  .btn-danger:hover { background: #833; }
+  .btn-outline { background: none; border: 2px solid #d4b896; color: #6b4a2a; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .form-status { margin-top: 1rem; font-weight: 700; font-size: 0.9rem; min-height: 1.3em; }
+</style>
+
+<script>
+  const form = document.getElementById('item-form') as HTMLFormElement;
+  const status = document.getElementById('form-status')!;
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+  const preview = document.getElementById('image-preview') as HTMLImageElement;
+  const deleteBtn = document.getElementById('delete-btn')!;
+  const itemId = form.dataset.id;
+
+  imageInput.addEventListener('input', () => {
+    if (imageInput.value) {
+      preview.src = imageInput.value;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data: Record<string, string> = {};
+    const fd = new FormData(form);
+    for (const [key, val] of fd.entries()) {
+      data[key] = (val as string).trim();
+    }
+
+    const res = await fetch(`/api/admin/portfolio/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      status.textContent = 'Saved!';
+      status.style.color = '#3d7a6e';
+    } else {
+      const err = await res.json();
+      status.textContent = err.error || 'Failed to save.';
+      status.style.color = '#b44';
+    }
+  });
+
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm('Delete this piece? This cannot be undone.')) return;
+
+    const res = await fetch(`/api/admin/portfolio/${itemId}`, { method: 'DELETE' });
+    if (res.ok) {
+      window.location.href = '/admin/portfolio';
+    } else {
+      alert('Failed to delete.');
+    }
+  });
+</script>

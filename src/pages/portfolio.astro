@@ -1,11 +1,12 @@
 ---
-import Base from '../layouts/Base.astro';
-import { SHOP_ITEMS, getEtsyUrl } from '../data/shop';
+export const prerender = false;
 
-// Portfolio shows stickers and prints as artwork
-const artworks = SHOP_ITEMS.filter(i =>
-  i.category === 'stickers' || i.category === 'prints'
-);
+import Base from '../layouts/Base.astro';
+import { getAllPortfolioItems, getPortfolioCategories } from '../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const items = await getAllPortfolioItems(db);
+const categories = await getPortfolioCategories(db);
 ---
 
 <Base
@@ -17,38 +18,53 @@ const artworks = SHOP_ITEMS.filter(i =>
   <div class="portfolio-header">
     <div class="container">
       <h1>Portfolio</h1>
-      <p>Original nature illustrations — sticker designs, linocut prints, and art prints. Click any piece to view it in the shop.</p>
+      <p>Original nature illustrations — sticker designs, linocut prints, and art prints.</p>
     </div>
   </div>
 
   <div class="container portfolio-body">
 
-    <div class="filter-bar">
-      <button class="filter-btn active" data-cat="all">All Work</button>
-      <button class="filter-btn" data-cat="stickers">Sticker Designs</button>
-      <button class="filter-btn" data-cat="prints">Prints</button>
-    </div>
+    {categories.length > 0 && (
+      <div class="filter-bar">
+        <button class="filter-btn active" data-cat="all">All Work</button>
+        {categories.map(cat => (
+          <button class="filter-btn" data-cat={cat}>{cat}</button>
+        ))}
+      </div>
+    )}
 
     <div class="portfolio-grid" id="portfolioGrid">
-      {artworks.map(item => (
-        <a
-          href={getEtsyUrl(item)}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="artwork-card"
-          data-category={item.category}
-          aria-label={`${item.title} — opens on Etsy`}
-        >
-          <div class="artwork-img-wrap">
-            <img src={item.image} alt={item.title} loading="lazy" width="500" height="500" />
-            <div class="artwork-overlay">
-              <span>View on Etsy →</span>
+      {items.map(item => {
+        const hasInfo = item.medium || item.year || item.description;
+        const inner = (
+          <div class="artwork-card" data-category={item.category ?? ''}>
+            <div class="artwork-img-wrap">
+              {item.image
+                ? <img src={item.image} alt={item.title ?? ''} loading="lazy" width="500" height="500" />
+                : <div class="artwork-placeholder"></div>
+              }
+              {hasInfo && (
+                <div class="artwork-overlay">
+                  {item.medium && <span class="overlay-medium">{item.medium}</span>}
+                  {item.year && <span class="overlay-year">{item.year}</span>}
+                  {item.description && <p class="overlay-desc">{item.description}</p>}
+                  {item.link && <span class="overlay-link-hint">View project</span>}
+                </div>
+              )}
             </div>
+            {item.title && <p class="artwork-title">{item.title}</p>}
           </div>
-          <p class="artwork-title">{item.title}</p>
-        </a>
-      ))}
+        );
+
+        return item.link
+          ? <a href={item.link} target="_blank" rel="noopener noreferrer" class="artwork-link">{inner}</a>
+          : inner;
+      })}
     </div>
+
+    {items.length === 0 && (
+      <p class="empty-msg">Portfolio pieces coming soon.</p>
+    )}
 
   </div>
 
@@ -64,8 +80,10 @@ const artworks = SHOP_ITEMS.filter(i =>
       btns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       cards.forEach(card => {
+        const el = card.closest('.artwork-link') as HTMLElement | null;
+        const target = el ?? card;
         const show = cat === 'all' || card.dataset.category === cat;
-        card.style.display = show ? '' : 'none';
+        target.style.display = show ? '' : 'none';
       });
     });
   });
@@ -113,11 +131,17 @@ const artworks = SHOP_ITEMS.filter(i =>
     gap: 1.2rem;
   }
 
+  .artwork-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
   .artwork-card {
     display: block;
-    text-decoration: none;
     color: var(--brown);
   }
+
   .artwork-img-wrap {
     position: relative;
     aspect-ratio: 1;
@@ -134,22 +158,46 @@ const artworks = SHOP_ITEMS.filter(i =>
     transition: transform 0.25s;
     display: block;
   }
+  .artwork-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--cream-dark);
+  }
+
   .artwork-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(45, 31, 14, 0.6);
+    background: rgba(245, 230, 200, 0.92);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.2s;
-    color: var(--cream-light);
-    font-weight: 700;
-    font-size: 0.95rem;
+    transition: opacity 0.25s;
+    color: var(--brown);
+    padding: 1.2rem;
+    text-align: center;
+    gap: 0.25rem;
   }
-  .artwork-card:hover .artwork-img-wrap img { transform: scale(1.06); }
+  .overlay-medium { font-weight: 800; font-size: 0.9rem; }
+  .overlay-year { font-size: 0.85rem; color: var(--brown-mid); }
+  .overlay-desc {
+    font-size: 0.8rem;
+    margin: 0.4rem 0 0;
+    line-height: 1.4;
+    color: var(--brown-mid);
+  }
+  .overlay-link-hint {
+    margin-top: 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--orange);
+  }
+
   .artwork-card:hover .artwork-overlay { opacity: 1; }
-  .artwork-card:hover .artwork-img-wrap { border-color: var(--orange); }
+  .artwork-card:hover .artwork-img-wrap img { transform: scale(1.04); }
+  .artwork-card:hover .artwork-img-wrap,
+  .artwork-link:hover .artwork-img-wrap { border-color: var(--orange); }
 
   .artwork-title {
     margin: 0.5rem 0 0 0;
@@ -157,6 +205,13 @@ const artworks = SHOP_ITEMS.filter(i =>
     font-weight: 600;
     color: var(--brown-mid);
     line-height: 1.3;
+  }
+
+  .empty-msg {
+    text-align: center;
+    color: var(--brown-mid);
+    font-style: italic;
+    padding: 3rem 0;
   }
 
   @media (max-width: 600px) {

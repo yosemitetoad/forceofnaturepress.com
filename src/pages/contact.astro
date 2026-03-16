@@ -5,15 +5,16 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 
 <Base title="Contact — Force of Nature Press" description="Get in touch with Force of Nature Press — find us on Etsy, Instagram, Pinterest, or send an email." fullWidth>
 
-  <div class="contact-header">
-    <div class="container">
-      <h1>Get in Touch</h1>
-      <p>Questions about an order, a wholesale inquiry, or just want to say hi? Here's where to find me.</p>
+  <div class="contact-wrap">
+    <div class="contact-header">
+      <div class="container">
+        <h1>Get in Touch</h1>
+        <p>Questions about an order, a wholesale inquiry, or just want to say hi? Here's where to find me.</p>
+      </div>
     </div>
-  </div>
 
-  <div class="container contact-body">
-    <div class="contact-layout">
+    <div class="container contact-body">
+      <div class="contact-layout">
 
       <!-- Left: social/email links -->
       <div class="contact-cards">
@@ -25,7 +26,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
           </div>
           <div class="contact-info">
             <h2>Email</h2>
-            <p>For order questions, wholesale inquiries, or anything else.</p>
+            <p>For wholesale inquiries, freelance opportunities, collabs, projects, or anything else.</p>
             <span class="contact-handle">{EMAIL}</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -61,11 +62,11 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 
         <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="contact-card">
           <div class="contact-icon etsy-icon">
-            <img src="/beetleshopiconsquare.png" alt="Force of Nature Press" class="etsy-logo-img" />
+            <img src="/etsylogo.png" alt="" class="etsy-logo-img" />
           </div>
           <div class="contact-info">
-            <h2>Etsy Shop</h2>
-            <p>Browse and purchase stickers, prints, keychains, and more.</p>
+            <h2>Etsy</h2>
+            <p>For questions regarding Etsy orders, please message me on Etsy instead of emailing or filling out the contact form!</p>
             <span class="contact-handle">forceofnaturepress.etsy.com</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -101,6 +102,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 
     </div>
   </div>
+  </div>
 
 </Base>
 
@@ -126,15 +128,25 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 </script>
 
 <style>
+  .contact-wrap {
+    background: url('/plainstarbanner.png') center / cover no-repeat;
+    min-height: calc(100vh - 72px - 120px);
+    padding: 2.5rem 0 4rem;
+    margin-bottom: -4rem;
+  }
+
   .contact-header {
-    background: var(--cream-light);
-    border-bottom: 2px solid var(--border);
-    padding: 2.5rem 0 1.5rem;
+    background: rgba(240, 230, 208, 0.88);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem 2rem 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
   }
   .contact-header h1 { margin-bottom: 0.3em; }
   .contact-header p { color: var(--brown-mid); margin: 0; }
 
-  .contact-body { padding-top: 2.5rem; padding-bottom: 5rem; }
+  .contact-body { padding-top: 2rem; padding-bottom: 0; }
 
   .contact-layout {
     display: grid;
@@ -180,8 +192,8 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
   }
   .contact-icon svg { width: 24px; height: 24px; }
 
-  .etsy-icon      { background: var(--cream-dark); padding: 0; overflow: hidden; }
-  .etsy-logo-img  { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .etsy-icon      { background: #f1641e1a; padding: 8px; }
+  .etsy-logo-img  { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 0; }
   .instagram-icon { background: #e1306c1a; color: #e1306c; }
   .pinterest-icon { background: #e600231a; color: #e60023; }
   .email-icon     { background: rgba(200,120,48,0.12); color: var(--orange); }

@@ -1,0 +1,127 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+---
+
+<Admin title="Add Portfolio Piece">
+  <div class="page-header">
+    <h1>Add New Piece</h1>
+    <a href="/admin/portfolio" class="back-link">Back to Portfolio</a>
+  </div>
+
+  <form id="item-form" class="item-form">
+    <div class="form-group">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" placeholder="e.g. California Poppy" />
+    </div>
+
+    <div class="form-group">
+      <label for="image">Image URL</label>
+      <input type="url" id="image" name="image" placeholder="https://..." />
+    </div>
+
+    <div class="preview-area">
+      <img id="image-preview" src="" alt="Preview" style="display:none" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="category">Category</label>
+        <input type="text" id="category" name="category" placeholder="e.g. Sticker Designs" />
+      </div>
+      <div class="form-group">
+        <label for="medium">Medium</label>
+        <input type="text" id="medium" name="medium" placeholder="e.g. Digital illustration" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="year">Year</label>
+        <input type="text" id="year" name="year" placeholder="e.g. 2024" />
+      </div>
+      <div class="form-group">
+        <label for="link">Link</label>
+        <input type="url" id="link" name="link" placeholder="https://... (optional)" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3" placeholder="A short description of this piece..."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Add Piece</button>
+      <a href="/admin/portfolio" class="btn btn-outline">Cancel</a>
+    </div>
+
+    <div id="form-status" class="form-status"></div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; }
+
+  .item-form { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; max-width: 700px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1.2rem; }
+  label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  input, textarea {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; background: white; color: #2d1f0e; resize: vertical;
+  }
+  input:focus, textarea:focus { border-color: #c87830; outline: none; }
+  .preview-area { margin-bottom: 1.2rem; }
+  .preview-area img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #d4b896; }
+  .form-actions { display: flex; gap: 0.8rem; }
+  .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: none; border: 2px solid #d4b896; color: #6b4a2a; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .form-status { margin-top: 1rem; font-weight: 700; font-size: 0.9rem; min-height: 1.3em; }
+</style>
+
+<script>
+  const form = document.getElementById('item-form') as HTMLFormElement;
+  const status = document.getElementById('form-status')!;
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+  const preview = document.getElementById('image-preview') as HTMLImageElement;
+
+  imageInput.addEventListener('input', () => {
+    if (imageInput.value) {
+      preview.src = imageInput.value;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data: Record<string, string> = {};
+    const fd = new FormData(form);
+    for (const [key, val] of fd.entries()) {
+      const v = (val as string).trim();
+      if (v) data[key] = v;
+    }
+
+    const res = await fetch('/api/admin/portfolio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      window.location.href = '/admin/portfolio';
+    } else {
+      const err = await res.json();
+      status.textContent = err.error || 'Failed to add piece.';
+      status.style.color = '#b44';
+    }
+  });
+</script>

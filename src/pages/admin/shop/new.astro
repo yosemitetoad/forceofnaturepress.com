@@ -1,0 +1,129 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { CATEGORY_LABELS } from '../../../data/shop';
+
+const categories = Object.entries(CATEGORY_LABELS);
+---
+
+<Admin title="Add Shop Item">
+  <div class="page-header">
+    <h1>Add New Item</h1>
+    <a href="/admin/shop" class="back-link">Back to Shop Items</a>
+  </div>
+
+  <form id="item-form" class="item-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="sku">SKU *</label>
+        <input type="text" id="sku" name="sku" required placeholder="e.g. SEABUNSTCKR" />
+      </div>
+      <div class="form-group">
+        <label for="category">Category *</label>
+        <select id="category" name="category" required>
+          {categories.map(([value, label]) => (
+            <option value={value}>{label}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="title">Title *</label>
+      <input type="text" id="title" name="title" required placeholder="e.g. Sea Bunny Sticker" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="price">Price ($) *</label>
+        <input type="number" id="price" name="price" step="0.01" min="0" required placeholder="4.00" />
+      </div>
+      <div class="form-group">
+        <label for="etsyListingId">Etsy Listing ID</label>
+        <input type="text" id="etsyListingId" name="etsyListingId" placeholder="Optional" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="image">Image URL *</label>
+      <input type="url" id="image" name="image" required placeholder="https://i.etsystatic.com/..." />
+    </div>
+
+    <div class="preview-area">
+      <img id="image-preview" src="" alt="Preview" style="display:none" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create Item</button>
+      <a href="/admin/shop" class="btn btn-outline">Cancel</a>
+    </div>
+
+    <div id="form-status" class="form-status"></div>
+  </form>
+</Admin>
+
+<style>
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
+  }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; }
+
+  .item-form {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; max-width: 700px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1.2rem; }
+  label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  input, select {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; background: white; color: #2d1f0e;
+  }
+  input:focus, select:focus { border-color: #c87830; outline: none; }
+  .preview-area { margin-bottom: 1.2rem; }
+  .preview-area img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #d4b896; }
+  .form-actions { display: flex; gap: 0.8rem; }
+  .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: none; border: 2px solid #d4b896; color: #6b4a2a; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .form-status { margin-top: 1rem; font-weight: 700; font-size: 0.9rem; min-height: 1.3em; }
+</style>
+
+<script>
+  const form = document.getElementById('item-form') as HTMLFormElement;
+  const status = document.getElementById('form-status')!;
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+  const preview = document.getElementById('image-preview') as HTMLImageElement;
+
+  imageInput.addEventListener('input', () => {
+    if (imageInput.value) {
+      preview.src = imageInput.value;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    data.price = Number(data.price) as any;
+
+    const res = await fetch('/api/admin/shop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      window.location.href = '/admin/shop';
+    } else {
+      const err = await res.json();
+      status.textContent = err.error || 'Failed to create item.';
+      status.style.color = '#b44';
+    }
+  });
+</script>

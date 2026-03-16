@@ -1,198 +1,393 @@
 ---
+export const prerender = false;
+
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, SITE_DESCRIPTION } from '../consts';
 import { SHOP_ITEMS, getEtsyUrl } from '../data/shop';
+import { getAllShopItems } from '../lib/db';
 
-const featured = SHOP_ITEMS.filter(i =>
-  ['SEALSTCKR', 'LUNAMOTH', 'RACLINO', 'FLYAGRCSTCKR', 'ORCA', 'OTTERPRNT'].includes(i.sku)
-);
+const featuredSkus = ['4467858004', 'FLYAGRCGLD', 'PSSMKYCHN', 'RACLINO', 'BEECLOVERSTCKR', 'OTTERPRNT', 'SOCKEYEPIN', 'HRBRSLMGNT'];
+
+let allItems = SHOP_ITEMS;
+try {
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const dbItems = await getAllShopItems(db);
+    if (dbItems.length > 0) allItems = dbItems;
+  }
+} catch (e) {
+  console.warn('[home] D1 unavailable, using static data:', e);
+}
+
+const featured = allItems.filter(i => featuredSkus.includes(i.sku));
 ---
 
 <Base title="Force of Nature Press" description={SITE_DESCRIPTION} fullWidth>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-inner">
-      <img src="/beetleshopiconsquare.png" alt="Force of Nature Press beetle logo" class="hero-logo" />
-      <h1>Force of Nature Press</h1>
-      <p class="hero-tagline">
-        Nature-themed art, stickers, and linocut prints.<br/>Handmade in the Pacific Northwest.
-      </p>
-      <div class="hero-btns">
-        <a href="/shop" class="btn btn-primary">Visit the Shop</a>
-        <a href="/games" class="btn btn-secondary">Play Dress Up Beetle!</a>
+  <div class="home-wrap">
+    <div class="home-layout container">
+
+      <!-- LEFT: About box -->
+      <div class="about-box">
+        <div class="about-top">
+          <div class="logo-block">
+            <img src="/beetleshopiconsquare.png" alt="Force of Nature Press beetle logo" class="about-logo" />
+          </div>
+          <div class="about-text">
+            <h1>Force of Nature Press</h1>
+            <p>
+              Force of Nature Press is a small, independent art shop based in the Pacific Northwest. We create nature-inspired stickers, linocut prints, keychains, earrings, and other handmade goods celebrating the beauty of the natural world.
+            </p>
+            <p>
+              Every piece is designed and produced by hand with care -- from the original illustrations to the final product. Whether you're drawn to mossy forests, ocean creatures, or backyard bugs, there's something here for you.
+            </p>
+            <div class="about-links">
+              <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Visit the Shop on Etsy</a>
+              <a href="/about" class="btn btn-outline">Learn More</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Carousel -->
+      <div class="carousel-wrap">
+        <h2>Featured Products:</h2>
+        <div class="carousel" id="carousel">
+          <div class="carousel-track" id="carouselTrack">
+            {featured.map(item => (
+              <a href={getEtsyUrl(item)} target="_blank" rel="noopener noreferrer" class="carousel-slide" data-sku={item.sku}>
+                <img src={item.image} alt={item.title} loading="lazy" />
+                <div class="carousel-caption">
+                  <span class="carousel-title">{item.title}</span>
+                  <span class="carousel-price">${item.price.toFixed(2)}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+          <button class="carousel-btn carousel-prev" id="carouselPrev" aria-label="Previous product">&#8249;</button>
+          <button class="carousel-btn carousel-next" id="carouselNext" aria-label="Next product">&#8250;</button>
+          <div class="carousel-dots" id="carouselDots">
+            {featured.map((_, i) => (
+              <button class={`carousel-dot ${i === 0 ? 'active' : ''}`} data-slide={i} aria-label={`Go to slide ${i + 1}`}></button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- What's New — full width below -->
+      <div class="whats-new">
+        <h2>What's New:</h2>
+        <div class="news-item">
+          <h3>Play Dress Up Beetle!</h3>
+          <p>
+            Our very first browser game is live! Dress up your own beetle with hats, accessories, and more.
+            <a href="/games">Head over to Games to try it out!</a>
+          </p>
+        </div>
+        <div class="news-item">
+          <h3>New Stickers & Prints</h3>
+          <p>
+            Fresh designs are hitting the shop regularly -- keep an eye out for new nature-themed goodies.
+            <a href="/shop">Browse the latest drops.</a>
+          </p>
+        </div>
       </div>
     </div>
-  </section>
-
-  <!-- SECTION TEASERS -->
-  <section class="teasers container">
-    <a href="/shop" class="teaser">
-      <div class="teaser-icon">🛒</div>
-      <h3>Shop</h3>
-      <p>Stickers, keychains, earrings, linocut prints, and more.</p>
-    </a>
-    <a href="/portfolio" class="teaser">
-      <div class="teaser-icon">🎨</div>
-      <h3>Portfolio</h3>
-      <p>Browse the full gallery of original nature illustrations.</p>
-    </a>
-    <a href="/blog" class="teaser">
-      <div class="teaser-icon">📖</div>
-      <h3>Blog</h3>
-      <p>Behind the scenes, new releases, and nature notes.</p>
-    </a>
-    <a href="/games" class="teaser">
-      <div class="teaser-icon">🎮</div>
-      <h3>Games</h3>
-      <p>Play Dress Up Beetle! and future interactive projects.</p>
-    </a>
-  </section>
-
-  <!-- FEATURED PRODUCTS -->
-  <section class="featured container">
-    <div class="section-title">
-      <h2>Featured Products</h2>
-      <p>A few favorites — <a href="/shop">see the full shop</a></p>
-    </div>
-    <div class="featured-grid">
-      {featured.map(item => (
-        <a href={getEtsyUrl(item)} target="_blank" rel="noopener noreferrer" class="product-card">
-          <div class="product-img-wrap">
-            <img src={item.image} alt={item.title} loading="lazy" />
-          </div>
-          <div class="product-info">
-            <span class="product-title">{item.title}</span>
-            <span class="product-price">${item.price.toFixed(2)}</span>
-          </div>
-        </a>
-      ))}
-    </div>
-    <div class="featured-cta">
-      <a href="/shop" class="btn btn-primary">Browse All Products</a>
-      <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-outline">Visit Etsy Shop</a>
-    </div>
-  </section>
+  </div>
 
 </Base>
 
+<script>
+  function initCarousel() {
+    const track = document.getElementById('carouselTrack');
+    const dots = document.querySelectorAll<HTMLButtonElement>('.carousel-dot');
+    const prev = document.getElementById('carouselPrev');
+    const next = document.getElementById('carouselNext');
+    if (!track || !prev || !next) return;
+
+    const slides = track.querySelectorAll('.carousel-slide');
+    const total = slides.length;
+    let current = 0;
+    let autoTimer: ReturnType<typeof setInterval>;
+
+    function goTo(i: number) {
+      current = ((i % total) + total) % total;
+      track.style.transform = `translateX(-${current * 100}%)`;
+      dots.forEach((d, idx) => d.classList.toggle('active', idx === current));
+    }
+
+    prev.addEventListener('click', () => { goTo(current - 1); resetAuto(); });
+    next.addEventListener('click', () => { goTo(current + 1); resetAuto(); });
+    dots.forEach(d => d.addEventListener('click', () => {
+      goTo(Number(d.dataset.slide));
+      resetAuto();
+    }));
+
+    function resetAuto() {
+      clearInterval(autoTimer);
+      autoTimer = setInterval(() => goTo(current + 1), 5000);
+    }
+
+    resetAuto();
+  }
+
+  initCarousel();
+  document.addEventListener('astro:after-swap', initCarousel);
+
+  // ── Analytics tracking ──
+  function track(type: string, sku?: string) {
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, sku, page: '/' }),
+    }).catch(() => {});
+  }
+
+  track('view');
+
+  document.getElementById('carouselTrack')?.addEventListener('click', (e) => {
+    const slide = (e.target as HTMLElement).closest('.carousel-slide') as HTMLElement | null;
+    if (slide?.dataset.sku) track('click', slide.dataset.sku);
+  });
+</script>
+
 <style>
-  .hero {
-    background: var(--cream-light);
-    border-bottom: 2px solid var(--border);
-    padding: 5rem 1.5rem 4rem;
-    text-align: center;
+  /* Full-page star background */
+  .home-wrap {
+    background: url('/plainstarbanner.png') center / cover no-repeat;
+    min-height: calc(100vh - 72px - 120px);
+    padding: 2.5rem 0 4rem;
+    margin-bottom: -4rem;
   }
-  .hero-inner { max-width: 600px; margin: 0 auto; }
-  .hero-logo {
-    width: 140px;
-    height: 140px;
-    border-radius: 16px;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 20px var(--shadow);
+
+  .home-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: min-content 1fr;
+    gap: 2rem;
   }
-  .hero h1 { font-size: 2.8rem; margin-bottom: 0.5rem; }
-  .hero-tagline {
-    font-size: 1.1rem;
-    color: var(--brown-mid);
-    margin-bottom: 2rem;
-    line-height: 1.6;
-  }
-  .hero-btns {
+
+  /* About box — left column */
+  .about-box {
+    background: rgba(240, 230, 208, 0.88);
+    border-radius: 14px;
+    padding: 1.5rem;
+    border: 2px solid var(--border);
     display: flex;
-    gap: 1rem;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .about-top {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .logo-block {
+    background: var(--brown);
+    border-radius: 0;
+    padding: 3px;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    width: fit-content;
+    margin: 0 auto 1rem;
+  }
+
+  .about-logo {
+    width: 145px;
+    height: 145px;
+    border-radius: 0;
+    display: block;
+  }
+
+  .about-text h1 {
+    font-size: 1.6rem;
+    color: var(--brown);
+    margin-bottom: 0.4rem;
+  }
+
+  .about-text p {
+    font-size: 0.88rem;
+    color: var(--brown);
+    line-height: 1.6;
+    margin-bottom: 0.7em;
+  }
+
+  .about-links {
+    display: flex;
+    gap: 0.8rem;
     flex-wrap: wrap;
+    margin-top: 0.3rem;
   }
 
-  .teasers {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    padding-top: 3rem;
-    padding-bottom: 1rem;
-  }
-  .teaser {
-    background: var(--cream-light);
+  /* Carousel — right column */
+  .carousel-wrap {
+    display: flex;
+    flex-direction: column;
+    background: rgba(240, 230, 208, 0.88);
+    border-radius: 14px;
+    padding: 1.5rem;
     border: 2px solid var(--border);
-    border-radius: 12px;
-    padding: 1.8rem 1.4rem;
-    text-decoration: none;
-    color: var(--brown);
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-    display: block;
   }
-  .teaser:hover {
-    border-color: var(--orange);
-    box-shadow: 0 4px 16px var(--shadow);
-    transform: translateY(-2px);
-    color: var(--brown);
-  }
-  .teaser-icon { font-size: 2rem; margin-bottom: 0.6rem; }
-  .teaser h3 { font-size: 1.2rem; margin-bottom: 0.4rem; color: var(--brown); }
-  .teaser p { font-size: 0.9rem; color: var(--brown-mid); margin: 0; line-height: 1.5; }
 
-  .featured { padding-top: 3rem; padding-bottom: 4rem; }
-  .featured-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  .product-card {
-    display: block;
-    text-decoration: none;
+  .carousel-wrap h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
     color: var(--brown);
-    border: 2px solid var(--border);
+  }
+
+  .carousel {
+    position: relative;
+    overflow: hidden;
     border-radius: 10px;
-    overflow: hidden;
-    background: var(--cream-light);
-    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-  }
-  .product-card:hover {
-    border-color: var(--orange);
-    box-shadow: 0 4px 16px var(--shadow);
-    transform: translateY(-2px);
-    color: var(--brown);
-  }
-  .product-img-wrap {
-    aspect-ratio: 1;
-    overflow: hidden;
     background: var(--cream-dark);
   }
-  .product-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 0;
-    transition: transform 0.2s;
-    display: block;
+
+  .carousel-track {
+    display: flex;
+    transition: transform 0.4s ease;
   }
-  .product-card:hover .product-img-wrap img { transform: scale(1.04); }
-  .product-info {
-    padding: 0.8rem 1rem;
+
+  .carousel-slide {
+    min-width: 100%;
+    display: block;
+    text-decoration: none;
+    color: var(--brown);
+    position: relative;
+  }
+
+  .carousel-slide img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    border-radius: 0;
+  }
+
+  .carousel-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(45, 31, 14, 0.75);
+    color: var(--cream-light);
+    padding: 0.6rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
   }
-  .product-title { font-weight: 700; font-size: 0.9rem; line-height: 1.3; }
-  .product-price { font-weight: 800; color: var(--teal); white-space: nowrap; font-size: 0.95rem; }
 
-  .featured-cta {
+  .carousel-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .carousel-price {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--cream-light);
+  }
+
+  .carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-60%);
+    background: rgba(45, 31, 14, 0.6);
+    color: var(--cream-light);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    cursor: pointer;
     display: flex;
-    gap: 1rem;
+    align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
+    transition: background 0.15s;
+    line-height: 1;
+  }
+  .carousel-btn:hover { background: rgba(45, 31, 14, 0.85); }
+  .carousel-prev { left: 8px; }
+  .carousel-next { right: 8px; }
+
+  .carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 0.6rem 0 0.4rem;
+    background: transparent;
   }
 
-  @media (max-width: 900px) {
-    .teasers { grid-template-columns: repeat(2, 1fr); }
-    .featured-grid { grid-template-columns: repeat(2, 1fr); }
+  .carousel-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--brown-mid);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s;
   }
+  .carousel-dot.active {
+    background: var(--orange);
+    border-color: var(--orange);
+  }
+
+  /* What's New — spans both columns */
+  .whats-new {
+    grid-column: 1 / -1;
+    background: rgba(240, 230, 208, 0.88);
+    border-radius: 14px;
+    padding: 2rem 2rem;
+    border: 2px solid var(--border);
+  }
+
+  .whats-new h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.2rem;
+    color: var(--brown);
+  }
+
+  .news-item {
+    margin-bottom: 1rem;
+  }
+  .news-item:last-child { margin-bottom: 0; }
+
+  .news-item h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.3rem;
+    color: var(--brown);
+  }
+
+  .news-item p {
+    font-size: 0.9rem;
+    color: var(--brown-mid);
+    margin: 0;
+    line-height: 1.6;
+  }
+  .news-item a {
+    color: var(--teal);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .home-layout {
+      grid-template-columns: 1fr;
+    }
+    .whats-new {
+      grid-column: 1;
+    }
+  }
+
   @media (max-width: 600px) {
-    .teasers { grid-template-columns: 1fr; }
-    .featured-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
-    .hero h1 { font-size: 2rem; }
+    .home-wrap {
+      padding: 1.5rem 0 2.5rem;
+    }
+    .about-text h1 {
+      font-size: 1.5rem;
+    }
   }
 </style>

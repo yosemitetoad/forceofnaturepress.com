@@ -1,14 +1,20 @@
 ---
+export const prerender = false;
+
 import Base from '../../layouts/Base.astro';
 import { SHOP_ITEMS, CATEGORY_LABELS, getEtsyUrl } from '../../data/shop';
-import { fetchEtsyListings } from '../../lib/etsy';
+import { getAllShopItems } from '../../lib/db';
 import type { ShopCategory } from '../../data/shop';
 
 let shopItems = SHOP_ITEMS;
 try {
-  shopItems = await fetchEtsyListings();
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const dbItems = await getAllShopItems(db);
+    if (dbItems.length > 0) shopItems = dbItems;
+  }
 } catch (e) {
-  console.warn('[shop] Etsy API unavailable, using static data:', e);
+  console.warn('[shop] D1 unavailable, using static data:', e);
 }
 
 const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
@@ -70,6 +76,7 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
           data-title={item.title.toLowerCase()}
           data-price={item.price}
           data-index={i}
+          data-sku={item.sku}
           aria-label={`${item.title} — $${item.price.toFixed(2)} — opens on Etsy`}
         >
           <div class="product-img-wrap">
@@ -189,6 +196,26 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
   perPageSelect.addEventListener('change', applyFilters);
 
   applyFilters();
+
+  // ── Analytics tracking ──
+  function track(type: string, sku?: string) {
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, sku, page: '/shop' }),
+    }).catch(() => {});
+  }
+
+  // Track page view
+  track('view');
+
+  // Track product clicks
+  grid.addEventListener('click', (e) => {
+    const card = (e.target as HTMLElement).closest('.product-card') as HTMLElement | null;
+    if (card?.dataset.sku) {
+      track('click', card.dataset.sku);
+    }
+  });
 </script>
 
 <style>

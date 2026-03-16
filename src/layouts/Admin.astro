@@ -1,0 +1,117 @@
+---
+export const prerender = false;
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>{title} — Force of Nature Press - Admin View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="admin-nav">
+    <div class="nav-inner">
+      <a href="/admin" class="nav-brand">
+        <img src="/beetleshopiconsquare.png" alt="" width="32" height="32" />
+        Force of Nature Press - Admin View
+      </a>
+      <div class="nav-links">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/shop">Shop</a>
+        <a href="/admin/portfolio">Portfolio</a>
+        <a href="/admin/analytics">Analytics</a>
+        <a href="/" target="_blank">View Site</a>
+        <form method="POST" action="/api/admin/logout" class="logout-form">
+          <button type="submit">Log Out</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+  <main class="admin-main">
+    <slot />
+  </main>
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f0e6d0;
+    color: #2d1f0e;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .admin-nav {
+    background: #2d1f0e;
+    color: #faf5ea;
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #faf5ea;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 1.1rem;
+  }
+  .nav-brand img { border-radius: 4px; }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+  }
+  .nav-links a {
+    color: #e4d3b8;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .nav-links a:hover { color: #faf5ea; }
+  .logout-form { margin: 0; }
+  .logout-form button {
+    background: none;
+    border: 1px solid #6b4a2a;
+    color: #e4d3b8;
+    padding: 0.3em 0.8em;
+    border-radius: 6px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .logout-form button:hover {
+    background: #6b4a2a;
+    color: #faf5ea;
+  }
+  .admin-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+</style>

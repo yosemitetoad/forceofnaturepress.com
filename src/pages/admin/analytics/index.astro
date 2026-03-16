@@ -1,0 +1,266 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAnalyticsSummary, getDailyStats, getTopClickedItems, getCategoryClicks } from '../../../lib/db';
+import { CATEGORY_LABELS } from '../../../data/shop';
+
+const db = Astro.locals.runtime.env.DB;
+const daysParam = Astro.url.searchParams.get('days');
+const days = daysParam === 'all' ? 99999 : Number(daysParam ?? 30);
+const isAllTime = daysParam === 'all';
+
+const [summary, dailyStats, topItems, categoryClicks] = await Promise.all([
+  getAnalyticsSummary(db, days),
+  getDailyStats(db, days),
+  getTopClickedItems(db, 15, days),
+  getCategoryClicks(db, days),
+]);
+
+const clickRate = summary.totalViews > 0
+  ? ((summary.totalClicks / summary.totalViews) * 100).toFixed(1)
+  : '0.0';
+---
+
+<Admin title="Analytics">
+  <div class="page-header">
+    <h1>Analytics</h1>
+    <div class="period-select">
+      <a href="/admin/analytics?days=7" class={`period-btn ${days === 7 ? 'active' : ''}`}>7 Days</a>
+      <a href="/admin/analytics?days=30" class={`period-btn ${!isAllTime && days === 30 ? 'active' : ''}`}>30 Days</a>
+      <a href="/admin/analytics?days=90" class={`period-btn ${days === 90 ? 'active' : ''}`}>90 Days</a>
+      <a href="/admin/analytics?days=365" class={`period-btn ${days === 365 ? 'active' : ''}`}>1 Year</a>
+      <a href="/admin/analytics?days=all" class={`period-btn ${isAllTime ? 'active' : ''}`}>All Time</a>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-number">{summary.totalViews}</div>
+      <div class="stat-label">Page Views</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{summary.totalClicks}</div>
+      <div class="stat-label">Product Clicks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{clickRate}%</div>
+      <div class="stat-label">Click Rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{summary.uniqueItemsClicked}</div>
+      <div class="stat-label">Items Clicked</div>
+    </div>
+  </div>
+
+  <!-- Daily chart -->
+  <div class="chart-section">
+    <h2>Daily Traffic</h2>
+    {dailyStats.length === 0 ? (
+      <p class="empty-state">No data yet. Analytics will appear once visitors start browsing your shop.</p>
+    ) : (
+      <div class="chart-wrap">
+        <canvas id="dailyChart" data-stats={JSON.stringify(dailyStats)}></canvas>
+      </div>
+    )}
+  </div>
+
+  <div class="two-col">
+    <!-- Top items -->
+    <div class="section">
+      <h2>Most Clicked Items</h2>
+      {topItems.length === 0 ? (
+        <p class="empty-state">No clicks recorded yet.</p>
+      ) : (
+        <div class="top-list">
+          {topItems.map((item, i) => (
+            <a href={`/admin/shop/${item.sku}`} class="top-item">
+              <span class="top-rank">{i + 1}</span>
+              <img src={item.image} alt="" class="top-thumb" />
+              <div class="top-info">
+                <span class="top-title">{item.title ?? item.sku}</span>
+                <span class="top-clicks">{item.clicks} click{item.clicks !== 1 ? 's' : ''}</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <!-- Category breakdown -->
+    <div class="section">
+      <h2>Clicks by Category</h2>
+      {categoryClicks.length === 0 ? (
+        <p class="empty-state">No category data yet.</p>
+      ) : (
+        <div class="cat-bars">
+          {categoryClicks.map((cat) => {
+            const maxClicks = categoryClicks[0]?.clicks ?? 1;
+            const pct = Math.max(4, (cat.clicks / maxClicks) * 100);
+            return (
+              <a href={`/admin/analytics/${cat.category}`} class="cat-bar-row">
+                <span class="cat-bar-label">{CATEGORY_LABELS[cat.category as keyof typeof CATEGORY_LABELS] ?? cat.category}</span>
+                <div class="cat-bar-track">
+                  <div class="cat-bar-fill" style={`width: ${pct}%`}></div>
+                </div>
+                <span class="cat-bar-count">{cat.clicks}</span>
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+</Admin>
+
+<style>
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+  }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.2rem; font-weight: 800; margin: 0 0 1rem; }
+
+  .period-select { display: flex; gap: 0.4rem; }
+  .period-btn {
+    padding: 0.4em 0.9em; border-radius: 8px; font-family: inherit; font-weight: 700;
+    font-size: 0.85rem; text-decoration: none; border: 2px solid #d4b896; color: #2d1f0e; background: #faf5ea;
+  }
+  .period-btn:hover { border-color: #c87830; }
+  .period-btn.active { background: #c87830; border-color: #c87830; color: #faf5ea; }
+
+  .stats-row { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .stat-card {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
+    padding: 1rem 1.5rem; text-align: center; flex: 1; min-width: 120px;
+  }
+  .stat-number { font-size: 1.8rem; font-weight: 800; color: #c87830; }
+  .stat-label { font-size: 0.8rem; font-weight: 700; color: #6b4a2a; }
+
+  .chart-section { margin-bottom: 2rem; }
+  .chart-wrap {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem;
+    overflow-x: auto;
+  }
+  canvas { width: 100%; height: 200px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+  .section {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem;
+  }
+  .empty-state { color: #6b4a2a; font-style: italic; font-size: 0.9rem; }
+
+  .top-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .top-item {
+    display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem;
+    border-radius: 8px; text-decoration: none; color: inherit;
+    transition: background 0.15s;
+  }
+  .top-item:hover { background: rgba(200, 120, 48, 0.08); }
+  .top-rank {
+    width: 24px; height: 24px; border-radius: 50%; background: #2d1f0e; color: #faf5ea;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800; flex-shrink: 0;
+  }
+  .top-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+  .top-info { display: flex; flex-direction: column; min-width: 0; }
+  .top-title { font-weight: 700; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top-clicks { font-size: 0.75rem; color: #6b4a2a; }
+
+  .cat-bars { display: flex; flex-direction: column; gap: 0.6rem; }
+  .cat-bar-row { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; border-radius: 6px; padding: 0.3rem 0.4rem; transition: background 0.15s; }
+  .cat-bar-row:hover { background: rgba(200, 120, 48, 0.08); }
+  .cat-bar-label { font-weight: 700; font-size: 0.8rem; width: 110px; flex-shrink: 0; text-align: right; }
+  .cat-bar-track { flex: 1; height: 22px; background: #e4d3b8; border-radius: 6px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; background: #c87830; border-radius: 6px; transition: width 0.3s; }
+  .cat-bar-count { font-weight: 800; font-size: 0.8rem; width: 36px; color: #6b4a2a; }
+</style>
+
+<script>
+  // Simple canvas bar chart for daily stats
+  const canvas = document.getElementById('dailyChart') as HTMLCanvasElement | null;
+  if (canvas) {
+    const stats = JSON.parse(canvas.dataset.stats || '[]');
+    if (stats.length > 0) {
+      const ctx = canvas.getContext('2d')!;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 200 * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = 200;
+      const pad = { top: 20, right: 20, bottom: 30, left: 40 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+
+      const maxVal = Math.max(...stats.map((s: any) => Math.max(s.views, s.clicks)), 1);
+      const barGroupW = chartW / stats.length;
+      const barW = Math.max(2, barGroupW * 0.35);
+
+      // Y-axis
+      ctx.strokeStyle = '#d4b896';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top);
+      ctx.lineTo(pad.left, h - pad.bottom);
+      ctx.stroke();
+
+      // Grid lines
+      ctx.fillStyle = '#6b4a2a';
+      ctx.font = '11px Nunito, sans-serif';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + (chartH * (4 - i)) / 4;
+        const val = Math.round((maxVal * i) / 4);
+        ctx.fillText(String(val), pad.left - 6, y + 4);
+        if (i > 0) {
+          ctx.strokeStyle = '#e4d3b8';
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+        }
+      }
+
+      // Bars
+      stats.forEach((s: any, i: number) => {
+        const x = pad.left + i * barGroupW + barGroupW / 2;
+
+        // Views bar
+        const vh = (s.views / maxVal) * chartH;
+        ctx.fillStyle = '#3d7a6e';
+        ctx.fillRect(x - barW - 1, pad.top + chartH - vh, barW, vh);
+
+        // Clicks bar
+        const ch = (s.clicks / maxVal) * chartH;
+        ctx.fillStyle = '#c87830';
+        ctx.fillRect(x + 1, pad.top + chartH - ch, barW, ch);
+
+        // Date label (show every few)
+        if (stats.length <= 14 || i % Math.ceil(stats.length / 10) === 0) {
+          ctx.fillStyle = '#6b4a2a';
+          ctx.font = '10px Nunito, sans-serif';
+          ctx.textAlign = 'center';
+          const label = s.date.slice(5); // MM-DD
+          ctx.fillText(label, x, h - pad.bottom + 14);
+        }
+      });
+
+      // Legend
+      ctx.fillStyle = '#3d7a6e';
+      ctx.fillRect(w - 160, 6, 10, 10);
+      ctx.fillStyle = '#6b4a2a';
+      ctx.font = '11px Nunito, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Views', w - 146, 15);
+
+      ctx.fillStyle = '#c87830';
+      ctx.fillRect(w - 90, 6, 10, 10);
+      ctx.fillStyle = '#6b4a2a';
+      ctx.fillText('Clicks', w - 76, 15);
+    }
+  }
+</script>
