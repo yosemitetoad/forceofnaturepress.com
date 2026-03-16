@@ -781,21 +781,35 @@ const { content = '' } = Astro.props;
     px = Math.max(8, Math.min(144, px));
     sizeInput.value = String(px);
     restoreSelection();
-    // Use fontSize 7 as a marker, then replace the generated <font> tag with a span
+
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      editor.focus();
+      return;
+    }
+
+    // Use fontSize 7 as a marker, then fix the generated <font> tag
     document.execCommand('fontSize', false, '7');
     const fontEls = editor.querySelectorAll('font[size="7"]');
-    const newSpans: HTMLElement[] = [];
-    fontEls.forEach(el => {
-      const span = document.createElement('span');
-      span.style.fontSize = px + 'px';
-      span.innerHTML = el.innerHTML;
-      el.replaceWith(span);
-      newSpans.push(span);
-    });
-    // Re-select the replaced content so subsequent changes still work
-    if (newSpans.length > 0) {
-      const sel = window.getSelection();
-      if (sel) {
+
+    if (sel.isCollapsed) {
+      // Collapsed cursor: modify the <font> in place to preserve caret position
+      fontEls.forEach(el => {
+        el.removeAttribute('size');
+        (el as HTMLElement).style.fontSize = px + 'px';
+      });
+    } else {
+      // Selected text: replace with styled spans
+      const newSpans: HTMLElement[] = [];
+      fontEls.forEach(el => {
+        const span = document.createElement('span');
+        span.style.fontSize = px + 'px';
+        span.innerHTML = el.innerHTML;
+        el.replaceWith(span);
+        newSpans.push(span);
+      });
+      // Re-select the replaced content so subsequent changes still work
+      if (newSpans.length > 0) {
         sel.removeAllRanges();
         const range = document.createRange();
         range.setStartBefore(newSpans[0]);
@@ -821,9 +835,11 @@ const { content = '' } = Astro.props;
     // Don't auto-apply on blur -- user may just be clicking elsewhere
   });
   document.getElementById('sizeDown')!.addEventListener('click', () => {
+    saveSelection();
     applyFontSize((parseInt(sizeInput.value,10)||16) - 2);
   });
   document.getElementById('sizeUp')!.addEventListener('click', () => {
+    saveSelection();
     applyFontSize((parseInt(sizeInput.value,10)||16) + 2);
   });
 
