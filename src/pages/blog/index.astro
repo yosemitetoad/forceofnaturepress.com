@@ -3,13 +3,15 @@ export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
 import { SITE_DESCRIPTION } from '../../consts';
-import { getAllBlogPosts, getAllBlogTags } from '../../lib/db';
+import { getAllBlogPosts, getAllBlogTags, getPageContentMulti } from '../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 
 // Get published posts from D1
 let posts: Array<{ slug: string; title: string; excerpt: string; coverImage: string | null; createdAt: string; tags: string }> = [];
 let allTags: string[] = [];
+let blogHeader = 'Blog';
+let blogSubheader = 'Behind the scenes, new releases, and nature notes from the studio.';
 try {
   const dbPosts = await getAllBlogPosts(db, false);
   posts = dbPosts.map(p => ({
@@ -21,6 +23,9 @@ try {
     tags: p.tags ?? '',
   }));
   allTags = await getAllBlogTags(db);
+  const content = await getPageContentMulti(db, ['blog_header', 'blog_subheader']);
+  if (content.blog_header) blogHeader = content.blog_header;
+  if (content.blog_subheader) blogSubheader = content.blog_subheader;
 } catch {
   // D1 not available — empty blog
 }
@@ -30,8 +35,8 @@ try {
 
   <div class="blog-header">
     <div class="container">
-      <h1>Blog</h1>
-      <p>Behind the scenes, new releases, and nature notes from the studio.</p>
+      <h1>{blogHeader}</h1>
+      <p>{blogSubheader}</p>
     </div>
   </div>
 

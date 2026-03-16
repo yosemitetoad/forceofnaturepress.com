@@ -2,11 +2,15 @@
 export const prerender = false;
 
 import Base from '../layouts/Base.astro';
-import { getAllPortfolioItems, getPortfolioCategories } from '../lib/db';
+import { getAllPortfolioItems, getPortfolioCategories, getPageContentMulti } from '../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 const items = await getAllPortfolioItems(db);
 const categories = await getPortfolioCategories(db);
+
+const content = await getPageContentMulti(db, ['portfolio_header', 'portfolio_subheader']);
+const portfolioHeader = content.portfolio_header ?? 'Portfolio';
+const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illustrations — sticker designs, linocut prints, and art prints.';
 ---
 
 <Base
@@ -17,8 +21,8 @@ const categories = await getPortfolioCategories(db);
 
   <div class="portfolio-header">
     <div class="container">
-      <h1>Portfolio</h1>
-      <p>Original nature illustrations — sticker designs, linocut prints, and art prints.</p>
+      <h1>{portfolioHeader}</h1>
+      <p>{portfolioSubheader}</p>
     </div>
   </div>
 

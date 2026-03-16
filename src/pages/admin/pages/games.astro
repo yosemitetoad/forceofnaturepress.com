@@ -1,0 +1,304 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContentMulti, getAllGameCards } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, ['games_header', 'games_subheader']);
+const gameCards = await getAllGameCards(db);
+
+const header = content.games_header ?? 'Games';
+const subheader = content.games_subheader ?? '';
+---
+
+<Admin title="Games Page">
+  <div class="page-header">
+    <h1>Games Page</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <!-- Header text -->
+  <form id="headerForm">
+    <section class="editor-section">
+      <h2>Page Header</h2>
+      <div class="field">
+        <label for="games_header">Title</label>
+        <input type="text" id="games_header" name="games_header" value={header} />
+      </div>
+      <div class="field">
+        <label for="games_subheader">Subtitle</label>
+        <input type="text" id="games_subheader" name="games_subheader" value={subheader} />
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Header</button>
+        <span class="save-status" id="headerStatus"></span>
+      </div>
+    </section>
+  </form>
+
+  <!-- Game Cards -->
+  <section class="editor-section">
+    <div class="section-header">
+      <h2>Game Cards ({gameCards.length})</h2>
+      <button type="button" id="addCardBtn" class="btn btn-primary">+ Add Card</button>
+    </div>
+
+    <div id="cardsContainer">
+      {gameCards.map(card => (
+        <div class="card-editor" data-id={card.id}>
+          <div class="card-editor-header">
+            <div class="card-editor-title">
+              <img src={card.image} alt="" class="card-thumb" />
+              <strong>{card.title}</strong>
+              <span class={`status-badge status-${card.status}`}>{card.status === 'in_development' ? 'In Development' : card.status}</span>
+            </div>
+            <div class="card-actions">
+              <button type="button" class="btn-sm btn-edit card-toggle">Edit</button>
+              <button type="button" class="btn-sm btn-delete card-delete" data-id={card.id} data-title={card.title}>Delete</button>
+            </div>
+          </div>
+          <div class="card-fields" style="display:none">
+            <div class="field-row">
+              <div class="field">
+                <label>Title</label>
+                <input type="text" class="card-title" value={card.title} />
+              </div>
+              <div class="field">
+                <label>Category Label</label>
+                <input type="text" class="card-category" value={card.category} />
+              </div>
+            </div>
+            <div class="field">
+              <label>Description</label>
+              <textarea class="card-description" rows="3">{card.description}</textarea>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Cover Image Path</label>
+                <input type="text" class="card-image" value={card.image} />
+              </div>
+              <div class="field">
+                <label>Game Link (URL path)</label>
+                <input type="text" class="card-link" value={card.link} />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Status</label>
+                <select class="card-status">
+                  <option value="published" selected={card.status === 'published'}>Published</option>
+                  <option value="in_development" selected={card.status === 'in_development'}>In Development</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Sort Order</label>
+                <input type="number" class="card-sort" value={String(card.sortOrder)} />
+              </div>
+            </div>
+            <div class="card-save-row">
+              <button type="button" class="btn btn-primary card-save" data-id={card.id}>Save Card</button>
+              <span class="save-status card-status-msg"></span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- New card form (hidden) -->
+  <div id="newCardModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h2>Add Game Card</h2>
+      <form id="newCardForm">
+        <div class="field-row">
+          <div class="field">
+            <label>Title</label>
+            <input type="text" name="title" required />
+          </div>
+          <div class="field">
+            <label>Category Label</label>
+            <input type="text" name="category" required placeholder="e.g. Browser Game" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea name="description" rows="3" required></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Cover Image Path</label>
+            <input type="text" name="image" required placeholder="/path/to/image.webp" />
+          </div>
+          <div class="field">
+            <label>Game Link (leave blank if in development)</label>
+            <input type="text" name="link" placeholder="/games/..." />
+          </div>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select name="status">
+            <option value="published">Published</option>
+            <option value="in_development">In Development</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Create Card</button>
+          <button type="button" class="btn btn-outline" id="cancelNewCard">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none; }
+  .btn-edit { background: #3d7a6e; color: #faf5ea; }
+  .btn-edit:hover { background: #2a5a50; }
+  .btn-delete { background: #b44; color: #faf5ea; }
+  .btn-delete:hover { background: #833; }
+
+  .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .section-header h2 { margin: 0; }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; margin-bottom: 0.3rem; }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: #c87830; outline: none; }
+  .field textarea { resize: vertical; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .card-editor { background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px; padding: 1rem; margin-bottom: 0.8rem; }
+  .card-editor-header { display: flex; justify-content: space-between; align-items: center; }
+  .card-editor-title { display: flex; align-items: center; gap: 0.6rem; }
+  .card-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
+  .card-actions { display: flex; gap: 0.4rem; }
+  .card-fields { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #d4b896; }
+  .card-save-row { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+
+  .status-badge { font-size: 0.75rem; font-weight: 700; padding: 0.15em 0.5em; border-radius: 4px; text-transform: capitalize; }
+  .status-published { background: #3d7a6e22; color: #3d7a6e; }
+  .status-in_development { background: #c8783022; color: #c87830; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .modal-content { background: #faf5ea; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+</style>
+
+<script>
+  // ── Header save ──
+  const headerForm = document.getElementById('headerForm') as HTMLFormElement;
+  const headerStatus = document.getElementById('headerStatus')!;
+
+  headerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    headerStatus.textContent = 'Saving...';
+    headerStatus.className = 'save-status';
+    const formData = new FormData(headerForm);
+    const updates: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) updates[key] = String(value);
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (res.ok) { headerStatus.textContent = 'Saved!'; headerStatus.className = 'save-status success'; }
+      else throw new Error();
+    } catch { headerStatus.textContent = 'Error saving.'; headerStatus.className = 'save-status error'; }
+    setTimeout(() => { headerStatus.textContent = ''; }, 3000);
+  });
+
+  // ── Card toggle ──
+  document.addEventListener('click', (e) => {
+    const toggleBtn = (e.target as HTMLElement).closest('.card-toggle');
+    if (toggleBtn) {
+      const fields = toggleBtn.closest('.card-editor')?.querySelector('.card-fields') as HTMLElement;
+      if (fields) fields.style.display = fields.style.display === 'none' ? '' : 'none';
+    }
+  });
+
+  // ── Card save ──
+  document.addEventListener('click', async (e) => {
+    const saveBtn = (e.target as HTMLElement).closest('.card-save') as HTMLElement;
+    if (!saveBtn) return;
+    const id = saveBtn.dataset.id;
+    const editor = saveBtn.closest('.card-editor')!;
+    const statusMsg = editor.querySelector('.card-status-msg')!;
+    statusMsg.textContent = 'Saving...';
+
+    const body = {
+      title: (editor.querySelector('.card-title') as HTMLInputElement).value,
+      category: (editor.querySelector('.card-category') as HTMLInputElement).value,
+      description: (editor.querySelector('.card-description') as HTMLTextAreaElement).value,
+      image: (editor.querySelector('.card-image') as HTMLInputElement).value,
+      link: (editor.querySelector('.card-link') as HTMLInputElement).value,
+      status: (editor.querySelector('.card-status') as HTMLSelectElement).value,
+      sortOrder: Number((editor.querySelector('.card-sort') as HTMLInputElement).value),
+    };
+
+    try {
+      const res = await fetch(`/api/admin/game-cards/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) { statusMsg.textContent = 'Saved!'; (statusMsg as HTMLElement).className = 'save-status card-status-msg success'; }
+      else throw new Error();
+    } catch { statusMsg.textContent = 'Error.'; (statusMsg as HTMLElement).className = 'save-status card-status-msg error'; }
+    setTimeout(() => { statusMsg.textContent = ''; }, 3000);
+  });
+
+  // ── Card delete ──
+  document.addEventListener('click', async (e) => {
+    const delBtn = (e.target as HTMLElement).closest('.card-delete') as HTMLElement;
+    if (!delBtn) return;
+    if (!confirm(`Delete "${delBtn.dataset.title}"? This cannot be undone.`)) return;
+    const res = await fetch(`/api/admin/game-cards/${delBtn.dataset.id}`, { method: 'DELETE' });
+    if (res.ok) delBtn.closest('.card-editor')?.remove();
+    else alert('Failed to delete.');
+  });
+
+  // ── Add card ──
+  const modal = document.getElementById('newCardModal')!;
+  document.getElementById('addCardBtn')?.addEventListener('click', () => { modal.style.display = ''; });
+  document.getElementById('cancelNewCard')?.addEventListener('click', () => { modal.style.display = 'none'; });
+
+  const newForm = document.getElementById('newCardForm') as HTMLFormElement;
+  newForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(newForm);
+    const body: Record<string, string> = {};
+    for (const [k, v] of fd.entries()) body[k] = String(v);
+
+    const res = await fetch('/api/admin/game-cards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      alert('Failed to create card.');
+    }
+  });
+</script>

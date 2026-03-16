@@ -1,0 +1,324 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContentMulti, getAllShopItems } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, [
+  'home_intro_p1', 'home_intro_p2', 'home_featured_skus', 'home_whats_new'
+]);
+const allItems = await getAllShopItems(db);
+
+const introP1 = content.home_intro_p1 ?? '';
+const introP2 = content.home_intro_p2 ?? '';
+const featuredSkus = (content.home_featured_skus ?? '').split(',').map(s => s.trim()).filter(Boolean);
+let whatsNew: { title: string; text: string; linkText: string; linkUrl: string }[] = [];
+try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
+---
+
+<Admin title="Home Page Content">
+  <div class="page-header">
+    <h1>Home Page</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <form id="homeForm">
+    <!-- Intro Text -->
+    <section class="editor-section">
+      <h2>Intro Box</h2>
+      <div class="field">
+        <label for="intro_p1">Paragraph 1</label>
+        <textarea id="intro_p1" name="home_intro_p1" rows="3">{introP1}</textarea>
+      </div>
+      <div class="field">
+        <label for="intro_p2">Paragraph 2</label>
+        <textarea id="intro_p2" name="home_intro_p2" rows="3">{introP2}</textarea>
+      </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="editor-section">
+      <h2>Featured Products</h2>
+      <p class="help-text">Select which products appear in the carousel. Drag to reorder.</p>
+      <div class="featured-picker">
+        <div class="featured-selected" id="featuredList">
+          {featuredSkus.map(sku => {
+            const item = allItems.find(i => i.sku === sku);
+            return item ? (
+              <div class="featured-chip" data-sku={sku}>
+                <img src={item.image} alt="" class="chip-thumb" />
+                <span>{item.title}</span>
+                <button type="button" class="chip-remove" data-sku={sku}>&times;</button>
+              </div>
+            ) : null;
+          })}
+        </div>
+        <div class="add-featured">
+          <select id="addFeaturedSelect">
+            <option value="">+ Add product...</option>
+            {allItems.map(item => (
+              <option value={item.sku} data-image={item.image}>{item.title} ({item.sku})</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="featuredSkusInput" name="home_featured_skus" value={featuredSkus.join(',')} />
+    </section>
+
+    <!-- What's New -->
+    <section class="editor-section">
+      <h2>What's New</h2>
+      <div id="whatsNewItems">
+        {whatsNew.map((item, i) => (
+          <div class="news-editor" data-index={i}>
+            <div class="news-editor-header">
+              <strong>Item {i + 1}</strong>
+              <button type="button" class="btn-sm btn-delete news-remove" data-index={i}>Remove</button>
+            </div>
+            <div class="field">
+              <label>Title</label>
+              <input type="text" class="news-title" value={item.title} />
+            </div>
+            <div class="field">
+              <label>Text</label>
+              <textarea class="news-text" rows="2">{item.text}</textarea>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Link Text</label>
+                <input type="text" class="news-link-text" value={item.linkText} />
+              </div>
+              <div class="field">
+                <label>Link URL</label>
+                <input type="text" class="news-link-url" value={item.linkUrl} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" id="addNewsItem" class="btn btn-outline">+ Add News Item</button>
+      <input type="hidden" id="whatsNewInput" name="home_whats_new" />
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none; }
+  .btn-delete { background: #b44; color: #faf5ea; }
+  .btn-delete:hover { background: #833; }
+
+  .editor-section {
+    background: #faf5ea;
+    border: 2px solid #d4b896;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; margin-bottom: 0.3rem; }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: #c87830; outline: none; }
+  .field textarea { resize: vertical; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 0.8rem; }
+
+  /* Featured products */
+  .featured-selected { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; min-height: 40px; }
+  .featured-chip {
+    display: flex; align-items: center; gap: 0.4rem; background: #e4d3b8; border-radius: 8px;
+    padding: 0.3rem 0.6rem; font-size: 0.85rem; font-weight: 700; cursor: grab;
+  }
+  .featured-chip:active { cursor: grabbing; }
+  .chip-thumb { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; }
+  .chip-remove { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #b44; padding: 0 0.2rem; font-weight: 700; }
+  .add-featured select {
+    padding: 0.5em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+  }
+
+  /* News items */
+  .news-editor {
+    background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px;
+    padding: 1rem; margin-bottom: 0.8rem;
+  }
+  .news-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+</style>
+
+<script>
+  const form = document.getElementById('homeForm') as HTMLFormElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const saveStatus = document.getElementById('saveStatus')!;
+  const featuredList = document.getElementById('featuredList')!;
+  const featuredInput = document.getElementById('featuredSkusInput') as HTMLInputElement;
+  const addSelect = document.getElementById('addFeaturedSelect') as HTMLSelectElement;
+
+  // ── Featured products ──
+  function updateFeaturedInput() {
+    const chips = featuredList.querySelectorAll('.featured-chip');
+    const skus = Array.from(chips).map(c => (c as HTMLElement).dataset.sku);
+    featuredInput.value = skus.join(',');
+  }
+
+  featuredList.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.chip-remove') as HTMLElement;
+    if (btn) {
+      btn.closest('.featured-chip')?.remove();
+      updateFeaturedInput();
+    }
+  });
+
+  addSelect.addEventListener('change', () => {
+    const sku = addSelect.value;
+    if (!sku) return;
+    if (featuredList.querySelector(`[data-sku="${sku}"]`)) { addSelect.value = ''; return; }
+
+    const opt = addSelect.selectedOptions[0];
+    const chip = document.createElement('div');
+    chip.className = 'featured-chip';
+    chip.dataset.sku = sku;
+    chip.draggable = true;
+    chip.innerHTML = `
+      <img src="${opt.dataset.image}" alt="" class="chip-thumb" />
+      <span>${opt.textContent?.split(' (')[0]}</span>
+      <button type="button" class="chip-remove" data-sku="${sku}">&times;</button>
+    `;
+    featuredList.appendChild(chip);
+    addSelect.value = '';
+    updateFeaturedInput();
+  });
+
+  // Drag to reorder featured chips
+  let dragEl: HTMLElement | null = null;
+  featuredList.addEventListener('dragstart', (e) => {
+    dragEl = (e.target as HTMLElement).closest('.featured-chip') as HTMLElement;
+    if (dragEl) dragEl.style.opacity = '0.4';
+  });
+  featuredList.addEventListener('dragend', () => {
+    if (dragEl) dragEl.style.opacity = '1';
+    dragEl = null;
+  });
+  featuredList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const target = (e.target as HTMLElement).closest('.featured-chip') as HTMLElement;
+    if (target && target !== dragEl) {
+      const rect = target.getBoundingClientRect();
+      const mid = rect.left + rect.width / 2;
+      if (e.clientX < mid) {
+        featuredList.insertBefore(dragEl!, target);
+      } else {
+        target.after(dragEl!);
+      }
+    }
+  });
+  featuredList.addEventListener('drop', (e) => {
+    e.preventDefault();
+    updateFeaturedInput();
+  });
+
+  // Make existing chips draggable
+  featuredList.querySelectorAll('.featured-chip').forEach(c => (c as HTMLElement).draggable = true);
+
+  // ── What's New ──
+  function collectWhatsNew(): string {
+    const items: { title: string; text: string; linkText: string; linkUrl: string }[] = [];
+    document.querySelectorAll('.news-editor').forEach(el => {
+      items.push({
+        title: (el.querySelector('.news-title') as HTMLInputElement).value,
+        text: (el.querySelector('.news-text') as HTMLTextAreaElement).value,
+        linkText: (el.querySelector('.news-link-text') as HTMLInputElement).value,
+        linkUrl: (el.querySelector('.news-link-url') as HTMLInputElement).value,
+      });
+    });
+    return JSON.stringify(items);
+  }
+
+  document.getElementById('addNewsItem')?.addEventListener('click', () => {
+    const container = document.getElementById('whatsNewItems')!;
+    const idx = container.children.length;
+    const div = document.createElement('div');
+    div.className = 'news-editor';
+    div.dataset.index = String(idx);
+    div.innerHTML = `
+      <div class="news-editor-header">
+        <strong>Item ${idx + 1}</strong>
+        <button type="button" class="btn-sm btn-delete news-remove">Remove</button>
+      </div>
+      <div class="field"><label>Title</label><input type="text" class="news-title" value="" /></div>
+      <div class="field"><label>Text</label><textarea class="news-text" rows="2"></textarea></div>
+      <div class="field-row">
+        <div class="field"><label>Link Text</label><input type="text" class="news-link-text" value="" /></div>
+        <div class="field"><label>Link URL</label><input type="text" class="news-link-url" value="" /></div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).classList.contains('news-remove')) {
+      (e.target as HTMLElement).closest('.news-editor')?.remove();
+    }
+  });
+
+  // ── Save ──
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.className = 'save-status';
+
+    const whatsNewInput = document.getElementById('whatsNewInput') as HTMLInputElement;
+    whatsNewInput.value = collectWhatsNew();
+
+    const updates: Record<string, string> = {};
+    const formData = new FormData(form);
+    for (const [key, value] of formData.entries()) {
+      updates[key] = String(value);
+    }
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (res.ok) {
+        saveStatus.textContent = 'Saved!';
+        saveStatus.className = 'save-status success';
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch {
+      saveStatus.textContent = 'Error saving. Please try again.';
+      saveStatus.className = 'save-status error';
+    }
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+</script>

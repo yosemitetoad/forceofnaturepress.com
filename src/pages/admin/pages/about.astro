@@ -1,0 +1,128 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContent } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const bioRaw = await getPageContent(db, 'about_bio');
+let paragraphs: string[] = [];
+try { paragraphs = JSON.parse(bioRaw ?? '[]'); } catch {}
+---
+
+<Admin title="About Page">
+  <div class="page-header">
+    <h1>About Page</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <form id="aboutForm">
+    <section class="editor-section">
+      <h2>Bio Paragraphs</h2>
+      <p class="help-text">
+        Edit your bio text. Use <code>{`{EMAIL}`}</code> to insert your email link and <code>{`{CONTACT_FORM}`}</code> to insert a contact form link.
+      </p>
+      <div id="paragraphContainer">
+        {paragraphs.map((p, i) => (
+          <div class="para-editor" data-index={i}>
+            <div class="para-header">
+              <label>Paragraph {i + 1}</label>
+              <button type="button" class="btn-sm btn-delete para-remove">Remove</button>
+            </div>
+            <textarea class="para-text" rows="4">{p}</textarea>
+          </div>
+        ))}
+      </div>
+      <button type="button" id="addParagraph" class="btn btn-outline">+ Add Paragraph</button>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none; }
+  .btn-delete { background: #b44; color: #faf5ea; }
+  .btn-delete:hover { background: #833; }
+
+  .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 1rem; line-height: 1.5; }
+  .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
+
+  .para-editor { margin-bottom: 1rem; }
+  .para-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+  .para-header label { font-weight: 700; font-size: 0.88rem; color: #2d1f0e; }
+  .para-text {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box; resize: vertical;
+  }
+  .para-text:focus { border-color: #c87830; outline: none; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+</style>
+
+<script>
+  const form = document.getElementById('aboutForm') as HTMLFormElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const saveStatus = document.getElementById('saveStatus')!;
+  const container = document.getElementById('paragraphContainer')!;
+
+  document.getElementById('addParagraph')?.addEventListener('click', () => {
+    const idx = container.children.length;
+    const div = document.createElement('div');
+    div.className = 'para-editor';
+    div.innerHTML = `
+      <div class="para-header">
+        <label>Paragraph ${idx + 1}</label>
+        <button type="button" class="btn-sm btn-delete para-remove">Remove</button>
+      </div>
+      <textarea class="para-text" rows="4"></textarea>
+    `;
+    container.appendChild(div);
+  });
+
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).classList.contains('para-remove')) {
+      (e.target as HTMLElement).closest('.para-editor')?.remove();
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.className = 'save-status';
+
+    const paragraphs: string[] = [];
+    container.querySelectorAll('.para-text').forEach(ta => {
+      paragraphs.push((ta as HTMLTextAreaElement).value);
+    });
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: { about_bio: JSON.stringify(paragraphs) } }),
+      });
+      if (res.ok) { saveStatus.textContent = 'Saved!'; saveStatus.className = 'save-status success'; }
+      else throw new Error();
+    } catch { saveStatus.textContent = 'Error saving.'; saveStatus.className = 'save-status error'; }
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+</script>

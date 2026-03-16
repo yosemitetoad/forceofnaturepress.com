@@ -1,0 +1,74 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAllGameCards } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const gameCards = await getAllGameCards(db);
+---
+
+<Admin title="Page Content">
+  <h1>Page Content</h1>
+  <p class="subtitle">Edit text and content across your site pages. Changes take effect after publishing.</p>
+
+  <div class="page-grid">
+    <a href="/admin/pages/home" class="page-link-card">
+      <h2>Home Page</h2>
+      <p>Intro text, featured products carousel, and What's New section.</p>
+    </a>
+    <a href="/admin/pages/games" class="page-link-card">
+      <h2>Games</h2>
+      <p>Header text and {gameCards.length} game card(s).</p>
+    </a>
+    <a href="/admin/pages/about" class="page-link-card">
+      <h2>About</h2>
+      <p>Bio paragraphs and personal information.</p>
+    </a>
+    <a href="/admin/pages/contact" class="page-link-card">
+      <h2>Contact</h2>
+      <p>Header text and social/contact card descriptions.</p>
+    </a>
+    <a href="/admin/pages/headers" class="page-link-card">
+      <h2>Page Headers</h2>
+      <p>Shop, Portfolio, and Blog header titles and subtitles.</p>
+    </a>
+  </div>
+</Admin>
+
+<style>
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0 0 0.3rem; }
+  .subtitle { color: #6b4a2a; margin: 0 0 1.5rem; font-size: 0.95rem; }
+
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .page-link-card {
+    background: #faf5ea;
+    border: 2px solid #d4b896;
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: #2d1f0e;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .page-link-card:hover {
+    border-color: #c87830;
+    box-shadow: 0 4px 16px rgba(45, 31, 14, 0.12);
+    transform: translateY(-2px);
+  }
+  .page-link-card h2 {
+    font-size: 1.2rem;
+    margin: 0 0 0.4rem;
+    color: #2d1f0e;
+  }
+  .page-link-card p {
+    font-size: 0.88rem;
+    color: #6b4a2a;
+    margin: 0;
+    line-height: 1.5;
+  }
+</style>

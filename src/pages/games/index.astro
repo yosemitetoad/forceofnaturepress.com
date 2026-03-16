@@ -1,78 +1,60 @@
 ---
+export const prerender = false;
+
 import Base from '../../layouts/Base.astro';
+import { getPageContentMulti, getAllGameCards } from '../../lib/db';
+import type { GameCard } from '../../lib/db';
+
+let gamesHeader = 'Games';
+let gamesSubheader = 'Interactive projects and browser games — click to play right here in your browser.';
+let gameCards: GameCard[] = [];
+
+try {
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const content = await getPageContentMulti(db, ['games_header', 'games_subheader']);
+    if (content.games_header) gamesHeader = content.games_header;
+    if (content.games_subheader) gamesSubheader = content.games_subheader;
+    gameCards = await getAllGameCards(db);
+  }
+} catch (e) {
+  console.warn('[games] D1 unavailable:', e);
+}
 ---
 
 <Base title="Games — Force of Nature Press" description="Play Dress Up Beetle! and other interactive projects by Force of Nature Press." fullWidth>
 
   <div class="games-header">
     <div class="container">
-      <h1>Games</h1>
-      <p>Interactive projects and browser games — click to play right here in your browser.</p>
+      <h1>{gamesHeader}</h1>
+      <p>{gamesSubheader}</p>
     </div>
   </div>
 
   <div class="container games-body">
     <div class="games-grid">
 
-      <!-- Dress Up Beetle -->
-      <div class="game-card">
-        <div class="game-preview-col">
-          <div class="game-preview">
-            <img src="/dressupbeetlecover.webp" alt="Dress Up Beetle! preview" class="game-thumb" />
+      {gameCards.map(card => (
+        <div class={`game-card ${card.status === 'in_development' ? 'game-card--in-dev' : ''}`}>
+          <div class="game-preview-col">
+            <div class="game-preview">
+              <img src={card.image} alt={`${card.title} preview`} class="game-thumb" />
+            </div>
+            {card.status === 'in_development' ? (
+              <span class="btn btn-in-dev">In Development</span>
+            ) : (
+              <button class="btn btn-primary game-play-btn" data-game={card.link} data-title={card.title}>
+                Play Now
+              </button>
+            )}
           </div>
-          <button class="btn btn-primary game-play-btn" data-game="/games/dress-up-beetle/dress-up-beetle.html" data-title="Dress Up Beetle!">
-            Play Now
-          </button>
-        </div>
-        <div class="game-info">
-          <h2>Dress Up Beetle!</h2>
-          <p class="game-meta">Browser Game</p>
-          <p>
-            Deck out your stag beetle in hats, outfits, and accessories! Drag items from the panel,
-            rotate and scale them, then take a screenshot of your creation. A cozy little dress-up game
-            featuring original Force of Nature Press artwork.
-          </p>
-        </div>
-      </div>
-
-      <!-- What Creature Are You? Quiz -->
-      <div class="game-card">
-        <div class="game-preview-col">
-          <div class="game-preview">
-            <img src="/games/creature-quiz/images/creaturequiz_coverimage.webp" alt="What Creature Are You? Quiz preview" class="game-thumb" />
+          <div class="game-info">
+            <h2>{card.title}</h2>
+            <p class="game-meta">{card.category}</p>
+            <p>{card.description}</p>
           </div>
-          <button class="btn btn-primary game-play-btn" data-game="/games/creature-quiz/index.html" data-title="What Creature Are You?">
-            Play Now
-          </button>
         </div>
-        <div class="game-info">
-          <h2>What Creature Are You?</h2>
-          <p class="game-meta">Personality Quiz</p>
-          <p>
-            Answer a few questions to find out which Force of Nature Press creature matches your personality.
-            Are you a Luna Moth, a Banana Slug, a Sea Otter? Take the quiz and find out!
-          </p>
-        </div>
-      </div>
-
-      <!-- For the Love of Nature (In Development) -->
-      <div class="game-card game-card--in-dev">
-        <div class="game-preview-col">
-          <div class="game-preview">
-            <img src="/games/dating-sim/images/datingsim_coverimage_demo.webp" alt="For the Love of Nature: A Visual Novel preview" class="game-thumb" />
-          </div>
-          <span class="btn btn-in-dev">In Development</span>
-        </div>
-        <div class="game-info">
-          <h2>For the Love of Nature (DEMO)</h2>
-          <p class="game-meta">Visual Novel</p>
-          <p>
-            Welcome to Meadow's End, a town full of natural beauty, as well as beautiful... bugs?
-            In this demo, get to know Bedelia Bee, a shy shop girl with big dreams.
-          </p>
-        </div>
-      </div>
-
+      ))}
 
     </div>
   </div>

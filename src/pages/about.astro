@@ -1,6 +1,20 @@
 ---
+export const prerender = false;
+
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
+import { getPageContent } from '../lib/db';
+
+let bioParagraphs: string[] | null = null;
+try {
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const bioRaw = await getPageContent(db, 'about_bio');
+    if (bioRaw) bioParagraphs = JSON.parse(bioRaw);
+  }
+} catch (e) {
+  console.warn('[about] D1 unavailable:', e);
+}
 ---
 
 <Base title="About — Force of Nature Press" description="Riley Briggs is an artist, designer, printmaker, and ecologist based in Seattle, WA — and the one-person show behind Force of Nature Press." fullWidth>
@@ -25,35 +39,27 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
     <div class="about-content">
       <h1>About Me</h1>
 
-      <p>
-        Hello there! I'm Riley. I wear many hats, but you could call me an artist, designer,
-        printmaker, and ecologist. I was born and raised in the heart of the Pacific Northwest, Seattle, WA,
-        where I still live today, though I've also lived in Cornwall in the UK as well.
-      </p>
-
-      <p>
-        I started Force of Nature Press in 2025 after graduating with a master's degree in evolutionary ecology
-        from the University of Exeter, where I wrote my dissertation in collaboration with the Natural History
-        Museum in London. I've also previously worked in animal care and dog training at an animal shelter, and
-        cared for a variety of invertebrates at a zoo. I've always loved to draw and create, and anyone who knows
-        me knows how much I can go on and on about animals, so it seemed like a natural fit (mind the pun!) to
-        enter a career that can translate intellectual knowledge of nature to tangible art forms. I like to focus
-        my work on some of the weirder creatures out there, maybe ones you haven't heard of before or ones you
-        never even knew could exist, to spread awareness of the beautiful natural diversity on our Earth.
-      </p>
-
-      <p>
-        Outside of Force of Nature Press, I like to explore the forest, visit museums, play video games like
-        Animal Crossing and The Sims, play bass guitar, and hang out with my one-eyed tuxedo cat, Muppet.
-      </p>
-
-      <p>
-        Force of Nature Press is a one-person show run out of my home studio in Seattle. I make and ship
-        everything myself, from stickers to lino prints to buttons to earrings to games to even the website
-        you're reading this on. I am also open to freelance work and collaborations; please
-        email me at <a href={`mailto:${EMAIL}`}>{EMAIL}</a> or fill out my <a href="/contact">contact form</a> if
-        you'd like to explore working together!
-      </p>
+      {bioParagraphs ? (
+        bioParagraphs.map(p => {
+          const parts = p.split(/(\{EMAIL\}|\{CONTACT_FORM\})/);
+          return (
+            <p>
+              {parts.map(part =>
+                part === '{EMAIL}' ? <a href={`mailto:${EMAIL}`}>{EMAIL}</a> :
+                part === '{CONTACT_FORM}' ? <a href="/contact">contact form</a> :
+                part
+              )}
+            </p>
+          );
+        })
+      ) : (
+        <>
+          <p>Hello there! I'm Riley. I wear many hats, but you could call me an artist, designer, printmaker, and ecologist. I was born and raised in the heart of the Pacific Northwest, Seattle, WA, where I still live today, though I've also lived in Cornwall in the UK as well.</p>
+          <p>I started Force of Nature Press in 2025 after graduating with a master's degree in evolutionary ecology from the University of Exeter, where I wrote my dissertation in collaboration with the Natural History Museum in London. I've also previously worked in animal care and dog training at an animal shelter, and cared for a variety of invertebrates at a zoo. I've always loved to draw and create, and anyone who knows me knows how much I can go on and on about animals, so it seemed like a natural fit (mind the pun!) to enter a career that can translate intellectual knowledge of nature to tangible art forms. I like to focus my work on some of the weirder creatures out there, maybe ones you haven't heard of before or ones you never even knew could exist, to spread awareness of the beautiful natural diversity on our Earth.</p>
+          <p>Outside of Force of Nature Press, I like to explore the forest, visit museums, play video games like Animal Crossing and The Sims, play bass guitar, and hang out with my one-eyed tuxedo cat, Muppet.</p>
+          <p>Force of Nature Press is a one-person show run out of my home studio in Seattle. I make and ship everything myself, from stickers to lino prints to buttons to earrings to games to even the website you're reading this on. I am also open to freelance work and collaborations; please email me at <a href={`mailto:${EMAIL}`}>{EMAIL}</a> or fill out my <a href="/contact">contact form</a> if you'd like to explore working together!</p>
+        </>
+      )}
     </div>
     </div>
     </div>

@@ -3,15 +3,20 @@ export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
 import { SHOP_ITEMS, CATEGORY_LABELS, getEtsyUrl } from '../../data/shop';
-import { getAllShopItems } from '../../lib/db';
+import { getAllShopItems, getPageContentMulti } from '../../lib/db';
 import type { ShopCategory } from '../../data/shop';
 
 let shopItems = SHOP_ITEMS;
+let shopHeader = 'Shop';
+let shopSubheader = 'All products ship from the Pacific Northwest. Click any item to purchase on Etsy.';
 try {
   const db = Astro.locals.runtime.env.DB;
   if (db) {
     const dbItems = await getAllShopItems(db);
     if (dbItems.length > 0) shopItems = dbItems;
+    const content = await getPageContentMulti(db, ['shop_header', 'shop_subheader']);
+    if (content.shop_header) shopHeader = content.shop_header;
+    if (content.shop_subheader) shopSubheader = content.shop_subheader;
   }
 } catch (e) {
   console.warn('[shop] D1 unavailable, using static data:', e);
@@ -24,8 +29,8 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
   <div class="shop-header">
     <div class="container">
-      <h1>Shop</h1>
-      <p>All products ship from the Pacific Northwest. Click any item to purchase on Etsy.</p>
+      <h1>{shopHeader}</h1>
+      <p>{shopSubheader}</p>
     </div>
   </div>
 

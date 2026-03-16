@@ -1,6 +1,30 @@
 ---
+export const prerender = false;
+
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
+import { getPageContentMulti } from '../lib/db';
+
+let contactHeader = 'Get in Touch';
+let contactSubheader = 'Questions about an order, a wholesale inquiry, or just want to say hi? Here\'s where to find me.';
+let cardDescriptions: Record<string, string> = {};
+
+try {
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const content = await getPageContentMulti(db, ['contact_header', 'contact_subheader', 'contact_cards']);
+    if (content.contact_header) contactHeader = content.contact_header;
+    if (content.contact_subheader) contactSubheader = content.contact_subheader;
+    if (content.contact_cards) {
+      try {
+        const cards: { key: string; description: string }[] = JSON.parse(content.contact_cards);
+        for (const c of cards) cardDescriptions[c.key] = c.description;
+      } catch {}
+    }
+  }
+} catch (e) {
+  console.warn('[contact] D1 unavailable:', e);
+}
 ---
 
 <Base title="Contact — Force of Nature Press" description="Get in touch with Force of Nature Press — find us on Etsy, Instagram, Pinterest, or send an email." fullWidth>
@@ -8,8 +32,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
   <div class="contact-wrap">
     <div class="contact-header">
       <div class="container">
-        <h1>Get in Touch</h1>
-        <p>Questions about an order, a wholesale inquiry, or just want to say hi? Here's where to find me.</p>
+        <h1>{contactHeader}</h1>
       </div>
     </div>
 
@@ -26,7 +49,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
           </div>
           <div class="contact-info">
             <h2>Email</h2>
-            <p>For wholesale inquiries, freelance opportunities, collabs, projects, or anything else.</p>
+            <p>{cardDescriptions.email ?? 'For wholesale inquiries, freelance opportunities, collabs, projects, or anything else.'}</p>
             <span class="contact-handle">{EMAIL}</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -40,7 +63,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
           </div>
           <div class="contact-info">
             <h2>Instagram</h2>
-            <p>Behind-the-scenes, new releases, and nature photography.</p>
+            <p>{cardDescriptions.instagram ?? 'Behind-the-scenes, new releases, and nature photography.'}</p>
             <span class="contact-handle">@forceofnature.press</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -54,7 +77,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
           </div>
           <div class="contact-info">
             <h2>Pinterest</h2>
-            <p>Nature inspiration boards and artwork collections.</p>
+            <p>{cardDescriptions.pinterest ?? 'Nature inspiration boards and artwork collections.'}</p>
             <span class="contact-handle">pinterest.com/forceofnaturepress</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -66,7 +89,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
           </div>
           <div class="contact-info">
             <h2>Etsy</h2>
-            <p>For questions regarding Etsy orders, please message me on Etsy instead of emailing or filling out the contact form!</p>
+            <p>{cardDescriptions.etsy ?? 'For questions regarding Etsy orders, please message me on Etsy instead of emailing or filling out the contact form!'}</p>
             <span class="contact-handle">forceofnaturepress.etsy.com</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -80,6 +103,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
         method="POST"
         id="contactForm"
       >
+        <h2 class="form-title">Send a Message</h2>
         <div class="form-row">
           <label for="name">Name</label>
           <input type="text" id="name" name="name" required />
@@ -139,12 +163,11 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
     background: rgba(240, 230, 208, 0.88);
     border: 2px solid var(--border);
     border-radius: 14px;
-    padding: 2rem 2rem 1.5rem;
+    padding: 1.5rem 2rem;
     max-width: 1200px;
     margin: 0 auto;
   }
-  .contact-header h1 { margin-bottom: 0.3em; }
-  .contact-header p { color: var(--brown-mid); margin: 0; }
+  .contact-header h1 { margin: 0; }
 
   .contact-body { padding-top: 2rem; padding-bottom: 0; }
 
@@ -167,7 +190,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.2rem;
-    background: var(--cream-light);
+    background: rgba(240, 230, 208, 0.88);
     border: 2px solid var(--border);
     border-radius: 12px;
     text-decoration: none;
@@ -192,11 +215,11 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
   }
   .contact-icon svg { width: 24px; height: 24px; }
 
-  .etsy-icon      { background: #f1641e1a; padding: 8px; }
+  .etsy-icon      { background: #f0d9be; padding: 8px; }
   .etsy-logo-img  { width: 100%; height: 100%; object-fit: contain; display: block; border-radius: 0; }
-  .instagram-icon { background: #e1306c1a; color: #e1306c; }
-  .pinterest-icon { background: #e600231a; color: #e60023; }
-  .email-icon     { background: rgba(200,120,48,0.12); color: var(--orange); }
+  .instagram-icon { background: #eed4c6; color: #e1306c; }
+  .pinterest-icon { background: #efcfbf; color: #e60023; }
+  .email-icon     { background: #ebd9bd; color: var(--orange); }
 
   .contact-info { flex: 1; min-width: 0; }
   .contact-info h2 { font-size: 1rem; margin: 0 0 0.15em 0; }
@@ -221,13 +244,18 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 
   /* Form */
   .contact-form {
-    background: var(--cream-light);
+    background: rgba(240, 230, 208, 0.88);
     border: 2px solid var(--border);
     border-radius: 14px;
     padding: 1.8rem;
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
+  }
+  .form-title {
+    font-size: 1.4rem;
+    margin: 0 0 0.3rem;
+    color: var(--brown);
   }
 
   .form-row {
@@ -246,7 +274,7 @@ import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
     font-family: inherit;
     font-size: 0.95rem;
     color: var(--brown);
-    background: var(--cream);
+    background: var(--cream-light);
     border: 2px solid var(--border);
     border-radius: 8px;
     padding: 0.55em 0.8em;

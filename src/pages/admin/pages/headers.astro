@@ -1,0 +1,127 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContentMulti } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, [
+  'shop_header', 'shop_subheader',
+  'portfolio_header', 'portfolio_subheader',
+  'blog_header', 'blog_subheader',
+]);
+---
+
+<Admin title="Page Headers">
+  <div class="page-header">
+    <h1>Page Headers</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <form id="headersForm">
+    <section class="editor-section">
+      <h2>Shop</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" name="shop_header" value={content.shop_header ?? 'Shop'} />
+        </div>
+        <div class="field">
+          <label>Subtitle</label>
+          <input type="text" name="shop_subheader" value={content.shop_subheader ?? ''} />
+        </div>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <h2>Portfolio</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" name="portfolio_header" value={content.portfolio_header ?? 'Portfolio'} />
+        </div>
+        <div class="field">
+          <label>Subtitle</label>
+          <input type="text" name="portfolio_subheader" value={content.portfolio_subheader ?? ''} />
+        </div>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <h2>Blog</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" name="blog_header" value={content.blog_header ?? 'Blog'} />
+        </div>
+        <div class="field">
+          <label>Subtitle</label>
+          <input type="text" name="blog_subheader" value={content.blog_subheader ?? ''} />
+        </div>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+
+  .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; margin-bottom: 0.3rem; }
+  .field input {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus { border-color: #c87830; outline: none; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+</style>
+
+<script>
+  const form = document.getElementById('headersForm') as HTMLFormElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const saveStatus = document.getElementById('saveStatus')!;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.className = 'save-status';
+
+    const formData = new FormData(form);
+    const updates: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) updates[key] = String(value);
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (res.ok) { saveStatus.textContent = 'Saved!'; saveStatus.className = 'save-status success'; }
+      else throw new Error();
+    } catch { saveStatus.textContent = 'Error saving.'; saveStatus.className = 'save-status error'; }
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+</script>

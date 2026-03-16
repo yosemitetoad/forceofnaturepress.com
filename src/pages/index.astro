@@ -4,16 +4,30 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, SITE_DESCRIPTION } from '../consts';
 import { SHOP_ITEMS, getEtsyUrl } from '../data/shop';
-import { getAllShopItems } from '../lib/db';
+import { getAllShopItems, getPageContentMulti } from '../lib/db';
 
-const featuredSkus = ['4467858004', 'FLYAGRCGLD', 'PSSMKYCHN', 'RACLINO', 'BEECLOVERSTCKR', 'OTTERPRNT', 'SOCKEYEPIN', 'HRBRSLMGNT'];
+const defaultFeaturedSkus = ['4467858004', 'FLYAGRCGLD', 'PSSMKYCHN', 'RACLINO', 'BEECLOVERSTCKR', 'OTTERPRNT', 'SOCKEYEPIN', 'HRBRSLMGNT'];
 
 let allItems = SHOP_ITEMS;
+let introP1 = 'Force of Nature Press is a small, independent art shop based in the Pacific Northwest. We create nature-inspired stickers, linocut prints, keychains, earrings, and other handmade goods celebrating the beauty of the natural world.';
+let introP2 = 'Every piece is designed and produced by hand with care -- from the original illustrations to the final product. Whether you\'re drawn to mossy forests, ocean creatures, or backyard bugs, there\'s something here for you.';
+let featuredSkus = defaultFeaturedSkus;
+let whatsNew = [
+  { title: 'Play Dress Up Beetle!', text: 'Our very first browser game is live! Dress up your own beetle with hats, accessories, and more.', linkText: 'Head over to Games to try it out!', linkUrl: '/games' },
+  { title: 'New Stickers & Prints', text: 'Fresh designs are hitting the shop regularly -- keep an eye out for new nature-themed goodies.', linkText: 'Browse the latest drops.', linkUrl: '/shop' },
+];
+
 try {
   const db = Astro.locals.runtime.env.DB;
   if (db) {
     const dbItems = await getAllShopItems(db);
     if (dbItems.length > 0) allItems = dbItems;
+
+    const content = await getPageContentMulti(db, ['home_intro_p1', 'home_intro_p2', 'home_featured_skus', 'home_whats_new']);
+    if (content.home_intro_p1) introP1 = content.home_intro_p1;
+    if (content.home_intro_p2) introP2 = content.home_intro_p2;
+    if (content.home_featured_skus) featuredSkus = content.home_featured_skus.split(',').map(s => s.trim()).filter(Boolean);
+    if (content.home_whats_new) try { whatsNew = JSON.parse(content.home_whats_new); } catch {}
   }
 } catch (e) {
   console.warn('[home] D1 unavailable, using static data:', e);
@@ -35,12 +49,8 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
           </div>
           <div class="about-text">
             <h1>Force of Nature Press</h1>
-            <p>
-              Force of Nature Press is a small, independent art shop based in the Pacific Northwest. We create nature-inspired stickers, linocut prints, keychains, earrings, and other handmade goods celebrating the beauty of the natural world.
-            </p>
-            <p>
-              Every piece is designed and produced by hand with care -- from the original illustrations to the final product. Whether you're drawn to mossy forests, ocean creatures, or backyard bugs, there's something here for you.
-            </p>
+            <p>{introP1}</p>
+            <p>{introP2}</p>
             <div class="about-links">
               <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Visit the Shop on Etsy</a>
               <a href="/about" class="btn btn-outline">Learn More</a>
@@ -77,20 +87,15 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
       <!-- What's New — full width below -->
       <div class="whats-new">
         <h2>What's New:</h2>
-        <div class="news-item">
-          <h3>Play Dress Up Beetle!</h3>
-          <p>
-            Our very first browser game is live! Dress up your own beetle with hats, accessories, and more.
-            <a href="/games">Head over to Games to try it out!</a>
-          </p>
-        </div>
-        <div class="news-item">
-          <h3>New Stickers & Prints</h3>
-          <p>
-            Fresh designs are hitting the shop regularly -- keep an eye out for new nature-themed goodies.
-            <a href="/shop">Browse the latest drops.</a>
-          </p>
-        </div>
+        {whatsNew.map(item => (
+          <div class="news-item">
+            <h3>{item.title}</h3>
+            <p>
+              {item.text}
+              {item.linkUrl && <a href={item.linkUrl}>{' '}{item.linkText}</a>}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   </div>

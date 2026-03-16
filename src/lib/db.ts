@@ -723,3 +723,159 @@ export async function getItemAllTimeClicks(db: D1Database, sku: string): Promise
     .first<{ total: number }>();
   return row?.total ?? 0;
 }
+
+// ── Page Content ──────────────────────────────────────────────────────────
+
+export async function getPageContent(db: D1Database, key: string): Promise<string | null> {
+  const row = await db
+    .prepare('SELECT value FROM page_content WHERE key = ?')
+    .bind(key)
+    .first<{ value: string }>();
+  return row?.value ?? null;
+}
+
+export async function getPageContentMulti(db: D1Database, keys: string[]): Promise<Record<string, string>> {
+  const placeholders = keys.map(() => '?').join(', ');
+  const { results } = await db
+    .prepare(`SELECT key, value FROM page_content WHERE key IN (${placeholders})`)
+    .bind(...keys)
+    .all<{ key: string; value: string }>();
+  const map: Record<string, string> = {};
+  for (const row of results ?? []) {
+    map[row.key] = row.value;
+  }
+  return map;
+}
+
+export async function setPageContent(db: D1Database, key: string, value: string): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO page_content (key, value, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+    )
+    .bind(key, value)
+    .run();
+}
+
+export async function getAllPageContent(db: D1Database): Promise<Record<string, string>> {
+  const { results } = await db
+    .prepare('SELECT key, value FROM page_content ORDER BY key')
+    .all<{ key: string; value: string }>();
+  const map: Record<string, string> = {};
+  for (const row of results ?? []) {
+    map[row.key] = row.value;
+  }
+  return map;
+}
+
+// ── Game Cards ────────────────────────────────────────────────────────────
+
+export interface GameCard {
+  id: number;
+  title: string;
+  category: string;
+  description: string;
+  image: string;
+  link: string;
+  linkType: string;
+  status: string;
+  sortOrder: number;
+}
+
+interface GameCardRow {
+  id: number;
+  title: string;
+  category: string;
+  description: string;
+  image: string;
+  link: string;
+  link_type: string;
+  status: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToGameCard(row: GameCardRow): GameCard {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    description: row.description,
+    image: row.image,
+    link: row.link,
+    linkType: row.link_type,
+    status: row.status,
+    sortOrder: row.sort_order,
+  };
+}
+
+export async function getAllGameCards(db: D1Database): Promise<GameCard[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM game_cards ORDER BY sort_order ASC')
+    .all<GameCardRow>();
+  return (results ?? []).map(rowToGameCard);
+}
+
+export async function getGameCard(db: D1Database, id: number): Promise<GameCard | null> {
+  const row = await db
+    .prepare('SELECT * FROM game_cards WHERE id = ?')
+    .bind(id)
+    .first<GameCardRow>();
+  return row ? rowToGameCard(row) : null;
+}
+
+export interface GameCardInput {
+  title: string;
+  category: string;
+  description: string;
+  image: string;
+  link?: string;
+  linkType?: string;
+  status?: string;
+  sortOrder?: number;
+}
+
+export async function createGameCard(db: D1Database, card: GameCardInput): Promise<number> {
+  const sortOrder = card.sortOrder ?? ((await db
+    .prepare('SELECT MAX(sort_order) as max_order FROM game_cards')
+    .first<{ max_order: number | null }>())?.max_order ?? 0) + 1;
+  const result = await db
+    .prepare(
+      `INSERT INTO game_cards (title, category, description, image, link, link_type, status, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      card.title, card.category, card.description, card.image,
+      card.link ?? '', card.linkType ?? 'play', card.status ?? 'published', sortOrder
+    )
+    .run();
+  return result.meta.last_row_id as number;
+}
+
+export async function updateGameCard(db: D1Database, id: number, card: Partial<GameCardInput>): Promise<void> {
+  const sets: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (card.title !== undefined) { sets.push('title = ?'); values.push(card.title); }
+  if (card.category !== undefined) { sets.push('category = ?'); values.push(card.category); }
+  if (card.description !== undefined) { sets.push('description = ?'); values.push(card.description); }
+  if (card.image !== undefined) { sets.push('image = ?'); values.push(card.image); }
+  if (card.link !== undefined) { sets.push('link = ?'); values.push(card.link); }
+  if (card.linkType !== undefined) { sets.push('link_type = ?'); values.push(card.linkType); }
+  if (card.status !== undefined) { sets.push('status = ?'); values.push(card.status); }
+  if (card.sortOrder !== undefined) { sets.push('sort_order = ?'); values.push(card.sortOrder); }
+
+  if (sets.length === 0) return;
+
+  sets.push("updated_at = datetime('now')");
+  values.push(id);
+  await db
+    .prepare(`UPDATE game_cards SET ${sets.join(', ')} WHERE id = ?`)
+    .bind(...values)
+    .run();
+}
+
+export async function deleteGameCard(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM game_cards WHERE id = ?').bind(id).run();
+}
