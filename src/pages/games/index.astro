@@ -128,10 +128,18 @@ import Base from '../../layouts/Base.astro';
 
 <style>
   .games-header {
-    background: var(--cream-light);
+    background: url('/plainstarbanner.png') center / cover no-repeat;
     border-bottom: 2px solid var(--border);
     padding: 2.5rem 0 1.5rem;
+    position: relative;
   }
+  .games-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(250, 245, 234, 0.75);
+  }
+  .games-header .container { position: relative; }
   .games-header h1 { margin-bottom: 0.3em; }
   .games-header p { color: var(--brown-mid); margin: 0; }
 

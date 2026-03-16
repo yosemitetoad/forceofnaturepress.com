@@ -220,10 +220,18 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
 <style>
   .shop-header {
-    background: var(--cream-light);
+    background: url('/plainstarbanner.png') center / cover no-repeat;
     border-bottom: 2px solid var(--border);
     padding: 2.5rem 0 1.5rem;
+    position: relative;
   }
+  .shop-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(250, 245, 234, 0.75);
+  }
+  .shop-header .container { position: relative; }
   .shop-header h1 { margin-bottom: 0.3em; }
   .shop-header p { color: var(--brown-mid); margin: 0; }
 
