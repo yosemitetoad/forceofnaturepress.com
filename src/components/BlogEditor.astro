@@ -5,8 +5,6 @@ interface Props {
 const { content = '' } = Astro.props;
 ---
 
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:wght@400;700&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
-
 <div class="editor-wrap">
   <div class="editor-toolbar" id="editorToolbar">
     <!-- Undo / Redo -->
@@ -15,27 +13,29 @@ const { content = '' } = Astro.props;
     <span class="toolbar-sep"></span>
 
     <!-- Font family -->
-    <select id="fontSelect" title="Font">
-      <option value="">Font</option>
-      <option value="Nunito">Nunito</option>
-      <option value="Lora">Lora</option>
-      <option value="Merriweather">Merriweather</option>
-      <option value="Open Sans">Open Sans</option>
-      <option value="Playfair Display">Playfair Display</option>
-      <option value="Roboto">Roboto</option>
-      <option value="Source Serif 4">Source Serif 4</option>
-      <option value="PT Serif">PT Serif</option>
-    </select>
+    <div class="font-picker-wrap">
+      <button type="button" id="fontPickerBtn" class="font-picker-btn" title="Font">
+        <span id="fontPickerLabel">Font</span>
+        <span class="font-arrow">&#9662;</span>
+      </button>
+      <div id="fontPickerDropdown" class="font-picker-dropdown" style="display:none">
+        <div class="font-search-row">
+          <input type="text" id="fontSearchInput" placeholder="Search fonts..." class="font-search" />
+        </div>
+        <div id="fontList" class="font-list"></div>
+        <div class="font-add-row">
+          <button type="button" id="addFontBtn" class="font-add-btn">+ Google Fonts</button>
+          <button type="button" id="addAdobeFontBtn" class="font-add-btn adobe">+ Adobe Fonts</button>
+        </div>
+      </div>
+    </div>
 
-    <!-- Font size -->
-    <select id="sizeSelect" title="Text Size">
-      <option value="">Size</option>
-      <option value="1">Small</option>
-      <option value="3">Normal</option>
-      <option value="4">Large</option>
-      <option value="5">X-Large</option>
-      <option value="6">Huge</option>
-    </select>
+    <!-- Font size (numeric input) -->
+    <div class="size-input-wrap">
+      <button type="button" id="sizeDown" class="size-step" title="Decrease size">&#8722;</button>
+      <input type="text" id="sizeInput" class="size-input" value="16" title="Font size in px" />
+      <button type="button" id="sizeUp" class="size-step" title="Increase size">+</button>
+    </div>
     <span class="toolbar-sep"></span>
 
     <!-- Basic formatting -->
@@ -47,7 +47,8 @@ const { content = '' } = Astro.props;
 
     <!-- Text color -->
     <label class="color-wrap" title="Text Color">
-      <span class="color-label" id="colorLabel" style="color:#2d1f0e">A</span>
+      <span class="color-label" id="colorLabel">A</span>
+      <span class="color-bar" id="colorBar"></span>
       <input type="color" id="textColor" value="#2d1f0e" />
     </label>
     <!-- Highlight -->
@@ -93,6 +94,59 @@ const { content = '' } = Astro.props;
   <div id="editor" class="editor" contenteditable="true" set:html={content}></div>
 </div>
 
+<!-- Google Fonts browser modal -->
+<div id="fontBrowserOverlay" class="font-browser-overlay" style="display:none">
+  <div class="font-browser">
+    <div class="font-browser-header">
+      <h3>Browse Google Fonts</h3>
+      <button type="button" id="fontBrowserClose" class="font-browser-close">&times;</button>
+    </div>
+    <input type="text" id="fontBrowserSearch" placeholder="Search Google Fonts..." class="font-browser-search" />
+    <div id="fontBrowserList" class="font-browser-list"></div>
+  </div>
+</div>
+
+<!-- Adobe Fonts modal -->
+<div id="adobeFontOverlay" class="font-browser-overlay" style="display:none">
+  <div class="font-browser">
+    <div class="font-browser-header">
+      <h3>Adobe Fonts</h3>
+      <button type="button" id="adobeFontClose" class="font-browser-close">&times;</button>
+    </div>
+    <div class="adobe-setup">
+      <div class="adobe-step">
+        <div class="adobe-step-num">1</div>
+        <div class="adobe-step-text">
+          <p>Go to <strong>fonts.adobe.com</strong>, find the fonts you want, and add them to a <strong>Web Project</strong>.</p>
+        </div>
+      </div>
+      <div class="adobe-step">
+        <div class="adobe-step-num">2</div>
+        <div class="adobe-step-text">
+          <p>Paste your Typekit <strong>Project ID</strong> below (it looks like <code>abc1def</code>).</p>
+          <div class="adobe-id-row">
+            <input type="text" id="adobeProjectId" placeholder="e.g. abc1def" class="adobe-id-input" />
+            <button type="button" id="adobeProjectSave" class="adobe-id-save">Save</button>
+          </div>
+          <div id="adobeProjectStatus" class="adobe-status"></div>
+        </div>
+      </div>
+      <div class="adobe-step">
+        <div class="adobe-step-num">3</div>
+        <div class="adobe-step-text">
+          <p>Type the <strong>font name</strong> exactly as shown in your Adobe web project and click Add.</p>
+          <div class="adobe-id-row">
+            <input type="text" id="adobeFontName" placeholder='e.g. Futura PT' class="adobe-id-input" />
+            <button type="button" id="adobeFontAdd" class="adobe-id-save">Add</button>
+          </div>
+          <div id="adobeFontStatus" class="adobe-status"></div>
+        </div>
+      </div>
+      <div id="adobeFontsList" class="adobe-fonts-list"></div>
+    </div>
+  </div>
+</div>
+
 <style>
   .editor-wrap { margin: 0; }
 
@@ -108,16 +162,71 @@ const { content = '' } = Astro.props;
   .editor-toolbar button:hover { background: #6b4a2a; color: #faf5ea; }
   .toolbar-sep { width: 1px; background: #6b4a2a; margin: 0 0.15rem; align-self: stretch; }
 
-  .editor-toolbar select {
-    background: #6b4a2a; color: #e4d3b8; border: none; border-radius: 4px;
-    padding: 0.25em 0.4em; font-family: inherit; font-size: 0.75rem; font-weight: 700;
-    cursor: pointer; max-width: 110px;
+  /* Font picker */
+  .font-picker-wrap { position: relative; }
+  .font-picker-btn {
+    display: flex; align-items: center; gap: 0.3em;
+    background: #6b4a2a !important; border: none; border-radius: 4px;
+    padding: 0.25em 0.5em; color: #e4d3b8; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; max-width: 150px; min-width: 80px;
   }
-  .editor-toolbar select:hover { background: #8b6a3a; }
+  .font-picker-btn:hover { background: #8b6a3a !important; }
+  .font-arrow { font-size: 0.6rem; margin-left: auto; }
+  #fontPickerLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  .font-picker-dropdown {
+    position: absolute; top: 100%; left: 0; z-index: 20; margin-top: 0.3rem;
+    background: #2d1f0e; border: 2px solid #6b4a2a; border-radius: 8px;
+    width: 260px; max-height: 360px; display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .font-search-row { padding: 0.5rem; }
+  .font-search {
+    width: 100%; padding: 0.4em 0.6em; border: 1px solid #6b4a2a; border-radius: 4px;
+    background: #4a3420; color: #faf5ea; font-family: inherit; font-size: 0.8rem;
+    outline: none;
+  }
+  .font-search:focus { border-color: #c87830; }
+  .font-list {
+    flex: 1; overflow-y: auto; padding: 0 0.3rem 0.3rem;
+    max-height: 240px;
+  }
+  .font-list-item {
+    display: block; width: 100%; text-align: left; padding: 0.45em 0.6em;
+    background: transparent; border: none; color: #e4d3b8; border-radius: 4px;
+    font-size: 0.88rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .font-list-item:hover { background: #6b4a2a; color: #faf5ea; }
+  .font-add-row { padding: 0.4rem 0.5rem; border-top: 1px solid #6b4a2a; display: flex; gap: 0.3rem; }
+  .font-add-btn {
+    flex: 1; text-align: center; padding: 0.5em;
+    background: #c87830 !important; color: #faf5ea !important; border: none; border-radius: 4px;
+    font-family: inherit; font-size: 0.75rem; font-weight: 800; cursor: pointer;
+  }
+  .font-add-btn:hover { background: #a05e18 !important; }
+  .font-add-btn.adobe { background: #eb1000 !important; }
+  .font-add-btn.adobe:hover { background: #c00d00 !important; }
+
+  /* Size input */
+  .size-input-wrap {
+    display: flex; align-items: center; gap: 0;
+    background: #6b4a2a; border-radius: 4px; overflow: hidden;
+  }
+  .size-step {
+    background: transparent !important; border: none; color: #e4d3b8; padding: 0.25em 0.4em;
+    font-size: 0.8rem; font-weight: 800; cursor: pointer; line-height: 1;
+  }
+  .size-step:hover { background: #8b6a3a !important; }
+  .size-input {
+    width: 36px; text-align: center; border: none; background: transparent;
+    color: #faf5ea; font-family: inherit; font-size: 0.78rem; font-weight: 700;
+    padding: 0.25em 0; outline: none;
+  }
+
+  /* Text color - visible on dark toolbar */
   .color-wrap {
-    display: flex; align-items: center; cursor: pointer; position: relative;
-    padding: 0.2em 0.4em; border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative;
+    padding: 0.2em 0.4em; border-radius: 4px; gap: 1px;
   }
   .color-wrap:hover { background: #6b4a2a; }
   .color-wrap input[type="color"] {
@@ -126,7 +235,11 @@ const { content = '' } = Astro.props;
   }
   .color-label {
     font-weight: 800; font-size: 0.85rem; pointer-events: none;
-    border-bottom: 3px solid currentColor;
+    color: #e4d3b8;
+  }
+  .color-bar {
+    width: 14px; height: 3px; pointer-events: none;
+    background: #e4d3b8; border-radius: 1px;
   }
   .highlight-label {
     font-weight: 800; font-size: 0.85rem; pointer-events: none;
@@ -162,10 +275,100 @@ const { content = '' } = Astro.props;
   .editor :global(a) { color: #3d7a6e; }
   .editor :global(img) { max-width: 100%; border-radius: 6px; margin: 0.5em 0; }
   .editor :global(ul), .editor :global(ol) { margin: 0.3em 0; padding-left: 1.5em; }
+
+  /* Google Fonts browser modal */
+  .font-browser-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .font-browser {
+    background: #faf5ea; border-radius: 12px; width: 520px; max-width: 90vw;
+    max-height: 80vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3); overflow: hidden;
+  }
+  .font-browser-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.2rem; border-bottom: 2px solid #d4b896;
+  }
+  .font-browser-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #2d1f0e; }
+  .font-browser-close {
+    background: none; border: none; font-size: 1.5rem; color: #8b7355;
+    cursor: pointer; padding: 0; line-height: 1;
+  }
+  .font-browser-close:hover { color: #2d1f0e; }
+  .font-browser-search {
+    margin: 0.8rem 1.2rem; padding: 0.6em 0.8em; border: 2px solid #d4b896;
+    border-radius: 8px; font-family: inherit; font-size: 0.9rem; background: #fff;
+    outline: none;
+  }
+  .font-browser-search:focus { border-color: #c87830; }
+  .font-browser-list {
+    flex: 1; overflow-y: auto; padding: 0 0.8rem 0.8rem;
+  }
+  .font-browser-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6em 0.8em; border-radius: 6px; cursor: pointer;
+    transition: background 0.1s;
+  }
+  .font-browser-item:hover { background: #e8d5b7; }
+  .font-browser-item-name { font-size: 1rem; color: #2d1f0e; }
+  .font-browser-item-preview { font-size: 0.85rem; color: #8b7355; }
+  .font-browser-item-add {
+    background: #5b7b6d; color: #faf5ea; border: none; padding: 0.3em 0.8em;
+    border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.78rem;
+    cursor: pointer; white-space: nowrap;
+  }
+  .font-browser-item-add:hover { background: #3d5a4e; }
+  .font-browser-item-add.added {
+    background: #d4b896; color: #6b4a2a; cursor: default;
+  }
+
+  /* Adobe Fonts modal */
+  .adobe-setup { padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+  .adobe-step { display: flex; gap: 0.8rem; }
+  .adobe-step-num {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: #5b7b6d; color: #faf5ea; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.85rem; margin-top: 0.1rem;
+  }
+  .adobe-step-text { flex: 1; }
+  .adobe-step-text p { margin: 0 0 0.5rem; font-size: 0.88rem; line-height: 1.5; color: #2d1f0e; }
+  .adobe-step-text code {
+    background: #e8d5b7; padding: 0.1em 0.4em; border-radius: 4px;
+    font-size: 0.85em; color: #6b4a2a;
+  }
+  .adobe-id-row { display: flex; gap: 0.4rem; }
+  .adobe-id-input {
+    flex: 1; padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 6px;
+    font-family: inherit; font-size: 0.88rem; background: #fff; outline: none;
+  }
+  .adobe-id-input:focus { border-color: #c87830; }
+  .adobe-id-save {
+    background: #5b7b6d; color: #faf5ea; border: none; padding: 0.5em 1em;
+    border-radius: 6px; font-family: inherit; font-weight: 800; font-size: 0.85rem;
+    cursor: pointer; white-space: nowrap;
+  }
+  .adobe-id-save:hover { background: #3d5a4e; }
+  .adobe-status { font-size: 0.82rem; margin-top: 0.4rem; font-weight: 700; }
+  .adobe-status.ok { color: #5b7b6d; }
+  .adobe-status.err { color: #b44; }
+  .adobe-fonts-list { display: flex; flex-wrap: wrap; gap: 0.4rem; padding-top: 0.5rem; }
+  .adobe-font-tag {
+    display: flex; align-items: center; gap: 0.3rem;
+    background: #e8d5b7; border-radius: 16px; padding: 0.3em 0.5em 0.3em 0.8em;
+    font-size: 0.82rem; font-weight: 700; color: #2d1f0e;
+  }
+  .adobe-font-remove {
+    background: none; border: none; color: #8b7355; cursor: pointer;
+    font-size: 1rem; line-height: 1; padding: 0 0.2em;
+  }
+  .adobe-font-remove:hover { color: #b44; }
 </style>
 
 <script>
-  // Upload helper
+  // ── Upload helper ──
   async function uploadFile(file: File): Promise<string> {
     const form = new FormData();
     form.append('file', file);
@@ -180,7 +383,32 @@ const { content = '' } = Astro.props;
 
   const editor = document.getElementById('editor')!;
 
-  // Simple command buttons
+  // ── Prevent toolbar from stealing editor focus/selection ──
+  const toolbar = document.getElementById('editorToolbar')!;
+  toolbar.addEventListener('mousedown', (e) => {
+    // Allow focus only on actual text inputs (search, size input)
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    e.preventDefault();
+  });
+
+  // ── Save/restore selection for dropdowns that need it ──
+  let savedRange: Range | null = null;
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+  function restoreSelection() {
+    if (savedRange) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedRange);
+    }
+  }
+
+  // ── Simple command buttons ──
   document.querySelectorAll('#editorToolbar button[data-cmd]').forEach(btn => {
     btn.addEventListener('click', () => {
       const cmd = (btn as HTMLElement).dataset.cmd!;
@@ -190,34 +418,441 @@ const { content = '' } = Astro.props;
     });
   });
 
-  // Font family
-  document.getElementById('fontSelect')!.addEventListener('change', (e) => {
-    const font = (e.target as HTMLSelectElement).value;
-    if (font) {
-      document.execCommand('fontName', false, font);
-      editor.focus();
+  // ── Font system ──
+  const DEFAULT_FONTS = [
+    'Nunito', 'Lora', 'Merriweather', 'Open Sans',
+    'Playfair Display', 'Roboto', 'Source Serif 4', 'PT Serif'
+  ];
+
+  // Load saved custom fonts from localStorage
+  function getSavedFonts(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem('blogEditorFonts') || '[]');
+    } catch { return []; }
+  }
+  function saveFonts(fonts: string[]) {
+    localStorage.setItem('blogEditorFonts', JSON.stringify(fonts));
+  }
+
+  let customFonts = getSavedFonts();
+  let allFonts = [...DEFAULT_FONTS, ...customFonts];
+  const loadedFontUrls = new Set<string>();
+
+  // Load a Google Font dynamically
+  function loadGoogleFont(fontName: string) {
+    const family = fontName.replace(/ /g, '+');
+    const url = `https://fonts.googleapis.com/css2?family=${family}:ital,wght@0,400;0,700;1,400&display=swap`;
+    if (loadedFontUrls.has(url)) return;
+    loadedFontUrls.add(url);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = url;
+    document.head.appendChild(link);
+  }
+
+  // Load all current fonts
+  allFonts.forEach(f => loadGoogleFont(f));
+
+  // Font picker dropdown
+  const fontPickerBtn = document.getElementById('fontPickerBtn')!;
+  const fontPickerLabel = document.getElementById('fontPickerLabel')!;
+  const fontPickerDropdown = document.getElementById('fontPickerDropdown')!;
+  const fontSearchInput = document.getElementById('fontSearchInput') as HTMLInputElement;
+  const fontList = document.getElementById('fontList')!;
+
+  function renderFontList(filter = '') {
+    fontList.innerHTML = '';
+    const q = filter.toLowerCase();
+    const filtered = allFonts.filter(f => !q || f.toLowerCase().includes(q));
+    for (const font of filtered) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'font-list-item';
+      btn.textContent = font;
+      btn.style.fontFamily = `'${font}', sans-serif`;
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', () => {
+        restoreSelection();
+        document.execCommand('fontName', false, font);
+        fontPickerLabel.textContent = font;
+        fontPickerLabel.style.fontFamily = `'${font}', sans-serif`;
+        fontPickerDropdown.style.display = 'none';
+      });
+      fontList.appendChild(btn);
+    }
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:0.6em;color:#8b7355;font-size:0.8rem;text-align:center;';
+      empty.textContent = 'No matching fonts';
+      fontList.appendChild(empty);
+    }
+  }
+  renderFontList();
+
+  fontPickerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = fontPickerDropdown.style.display !== 'none';
+    if (!isOpen) saveSelection();
+    fontPickerDropdown.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) {
+      fontSearchInput.value = '';
+      renderFontList();
+      // Focus search without losing editor selection (mousedown preventDefault handles this)
+      fontSearchInput.focus();
     }
   });
 
-  // Font size
-  document.getElementById('sizeSelect')!.addEventListener('change', (e) => {
-    const size = (e.target as HTMLSelectElement).value;
-    if (size) {
-      document.execCommand('fontSize', false, size);
-      editor.focus();
+  fontSearchInput.addEventListener('input', () => {
+    renderFontList(fontSearchInput.value);
+  });
+  fontSearchInput.addEventListener('click', (e) => e.stopPropagation());
+  fontPickerDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+  function addCustomFont(fontName: string) {
+    if (allFonts.includes(fontName)) return;
+    customFonts.push(fontName);
+    allFonts.push(fontName);
+    saveFonts(customFonts);
+    loadGoogleFont(fontName);
+    renderFontList(fontSearchInput.value);
+  }
+
+  // ── Google Fonts browser ──
+  const overlay = document.getElementById('fontBrowserOverlay')!;
+  const browserSearch = document.getElementById('fontBrowserSearch') as HTMLInputElement;
+  const browserList = document.getElementById('fontBrowserList')!;
+  let googleFontsCache: string[] = [];
+
+  // Popular Google Fonts (sorted by popularity)
+  googleFontsCache = [
+    'Roboto','Open Sans','Noto Sans','Montserrat','Lato','Poppins','Roboto Condensed',
+    'Inter','Oswald','Roboto Mono','Raleway','Nunito','Ubuntu','Roboto Slab','Nunito Sans',
+    'Playfair Display','Merriweather','PT Sans','Rubik','Lora','Noto Sans JP','Mukta',
+    'Work Sans','Fira Sans','Barlow','Quicksand','Mulish','Noto Serif','Titillium Web',
+    'Heebo','DM Sans','Karla','Libre Franklin','Manrope','Josefin Sans','Arimo',
+    'Noto Sans KR','Cabin','Source Code Pro','Dosis','PT Serif','Libre Baskerville',
+    'Bitter','Oxygen','Archivo','Hind Siliguri','EB Garamond','Jost','Overpass',
+    'Cairo','Abel','Dancing Script','Exo 2','Varela Round','Comfortaa','Signika Negative',
+    'Pacifico','Cormorant Garamond','Satisfy','Lobster','Caveat','Permanent Marker',
+    'Shadows Into Light','Indie Flower','Amatic SC','Great Vibes','Sacramento',
+    'Abril Fatface','Righteous','Alfa Slab One','Bungee','Fredoka One','Architects Daughter',
+    'Patrick Hand','Kalam','Yellowtail','Cookie','Courgette','Damion','Handlee',
+    'Homemade Apple','Rock Salt','Special Elite','Reenie Beanie','Covered By Your Grace',
+    'Gloria Hallelujah','Just Another Hand','Nothing You Could Do',
+    'Crimson Text','Alegreya','Spectral','Vollkorn','Cardo','Gentium Book Plus',
+    'Old Standard TT','Sorts Mill Goudy','Cormorant','Fanwood Text','Bodoni Moda',
+    'Playfair Display SC','Cinzel','Forum','Yeseva One','Pridi',
+    'Source Serif 4','PT Serif Caption','Noto Serif Display','Literata',
+    'Zilla Slab','Rokkitt','Arvo','Slab One','Crete Round','Patua One',
+    'Space Mono','Fira Code','JetBrains Mono','IBM Plex Mono','Inconsolata',
+    'Source Code Pro','Anonymous Pro','Cousine','Courier Prime','DM Mono',
+    'Space Grotesk','Syne','Outfit','Plus Jakarta Sans','Figtree','Lexend',
+    'Instrument Sans','Geist','Onest','Bricolage Grotesque','Hanken Grotesk',
+    'Albert Sans','Red Hat Display','Encode Sans','Saira','Barlow Condensed',
+    'Yanone Kaffeesatz','Bebas Neue','Anton','Staatliches','Teko','Russo One',
+    'Passion One','Bungee Shade','Monoton','Unlock','Bakbak One',
+    'Nanum Gothic','Nanum Myeongjo','Noto Sans SC','Noto Sans TC','Noto Sans HK',
+    'IBM Plex Sans','IBM Plex Serif','Asap','Kanit','Prompt','Sarabun',
+    'Maven Pro','Catamaran','Hind','Monda','Philosopher','Didact Gothic',
+    'Assistant','Noto Sans Display','Public Sans','Chivo','Rethink Sans',
+    'Lexend Deca','Atkinson Hyperlegible','Urbanist','Wix Madefor Display',
+    'Gabarito','Schibsted Grotesk','Inclusive Sans',
+    'Merriweather Sans','Cabin Condensed','Archivo Narrow','PT Sans Narrow',
+    'Fjalla One','Pathway Gothic One','Acme','Righteous',
+    'Tangerine','Pinyon Script','Alex Brush','Allura','Parisienne',
+    'Italianno','Rouge Script','Herr Von Muellerhoff','Niconne','Engagement',
+    'Cormorant Infant','Cormorant SC','Cormorant Upright',
+    'Rajdhani','Orbitron','Audiowide','Press Start 2P','Silkscreen','VT323',
+    'Pixelify Sans','DotGothic16','Share Tech Mono',
+    'Macondo','MedievalSharp','UnifrakturMaguntia','Pirata One','Almendra',
+    'Charmonman','Charm','Sriracha','Mali','Chakra Petch',
+    'Cinzel Decorative','Poiret One','Tenor Sans','Marcellus','Gilda Display',
+    'Vidaloka','Oranienbaum','Lustria',
+    'Bangers','Bowlby One SC','Bungee Inline','Rampart One','Faster One',
+    'Noto Color Emoji','Noto Emoji'
+  ];
+
+  document.getElementById('addFontBtn')!.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fontPickerDropdown.style.display = 'none';
+    overlay.style.display = 'flex';
+    browserSearch.value = '';
+    browserSearch.focus();
+    renderBrowserList('');
+  });
+
+  document.getElementById('fontBrowserClose')!.addEventListener('click', () => {
+    overlay.style.display = 'none';
+  });
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.style.display = 'none';
+  });
+
+  browserSearch.addEventListener('input', () => {
+    renderBrowserList(browserSearch.value);
+  });
+
+  function renderBrowserList(filter: string) {
+    browserList.innerHTML = '';
+    const q = filter.toLowerCase();
+    const filtered = googleFontsCache.filter(f => !q || f.toLowerCase().includes(q)).slice(0, 80);
+
+    for (const fontName of filtered) {
+      const row = document.createElement('div');
+      row.className = 'font-browser-item';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'font-browser-item-name';
+      nameSpan.textContent = fontName;
+
+      // Lazy-load font for preview on hover
+      let fontLoaded = false;
+      row.addEventListener('mouseenter', () => {
+        if (!fontLoaded) {
+          loadGoogleFont(fontName);
+          fontLoaded = true;
+        }
+        nameSpan.style.fontFamily = `'${fontName}', sans-serif`;
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      const isAdded = allFonts.includes(fontName);
+      addBtn.className = 'font-browser-item-add' + (isAdded ? ' added' : '');
+      addBtn.textContent = isAdded ? 'Added' : 'Add';
+
+      if (!isAdded) {
+        addBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          addCustomFont(fontName);
+          addBtn.textContent = 'Added';
+          addBtn.classList.add('added');
+        });
+      }
+
+      row.appendChild(nameSpan);
+      row.appendChild(addBtn);
+      browserList.appendChild(row);
+    }
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:1rem;text-align:center;color:#8b7355;';
+      empty.textContent = 'No fonts found';
+      browserList.appendChild(empty);
+    }
+  }
+
+  // ── Adobe Fonts ──
+  const adobeOverlay = document.getElementById('adobeFontOverlay')!;
+  const adobeProjectInput = document.getElementById('adobeProjectId') as HTMLInputElement;
+  const adobeProjectStatus = document.getElementById('adobeProjectStatus')!;
+  const adobeFontNameInput = document.getElementById('adobeFontName') as HTMLInputElement;
+  const adobeFontStatus = document.getElementById('adobeFontStatus')!;
+  const adobeFontsList = document.getElementById('adobeFontsList')!;
+
+  // Load saved Adobe project ID and fonts
+  function getAdobeProjectId(): string { return localStorage.getItem('adobeProjectId') || ''; }
+  function getAdobeFonts(): string[] {
+    try { return JSON.parse(localStorage.getItem('adobeFonts') || '[]'); } catch { return []; }
+  }
+  function saveAdobeFonts(fonts: string[]) { localStorage.setItem('adobeFonts', JSON.stringify(fonts)); }
+
+  let adobeFonts = getAdobeFonts();
+  let currentAdobeProjectId = getAdobeProjectId();
+
+  // Load the Typekit CSS if we have a project ID
+  function loadTypekitCSS(projectId: string) {
+    if (!projectId) return;
+    const existingLink = document.querySelector(`link[href*="use.typekit.net/${projectId}"]`);
+    if (existingLink) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://use.typekit.net/${projectId}.css`;
+    document.head.appendChild(link);
+  }
+
+  if (currentAdobeProjectId) {
+    loadTypekitCSS(currentAdobeProjectId);
+  }
+
+  // Add saved Adobe fonts to the font list
+  adobeFonts.forEach(f => {
+    if (!allFonts.includes(f)) {
+      allFonts.push(f);
+    }
+  });
+  renderFontList();
+
+  function renderAdobeFontTags() {
+    adobeFontsList.innerHTML = '';
+    for (const font of adobeFonts) {
+      const tag = document.createElement('span');
+      tag.className = 'adobe-font-tag';
+      tag.innerHTML = `<span style="font-family:'${font}',sans-serif">${font}</span>`;
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'adobe-font-remove';
+      removeBtn.innerHTML = '&times;';
+      removeBtn.addEventListener('click', () => {
+        adobeFonts = adobeFonts.filter(f => f !== font);
+        allFonts = allFonts.filter(f => f !== font);
+        saveAdobeFonts(adobeFonts);
+        renderAdobeFontTags();
+        renderFontList();
+      });
+      tag.appendChild(removeBtn);
+      adobeFontsList.appendChild(tag);
+    }
+  }
+
+  document.getElementById('addAdobeFontBtn')!.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fontPickerDropdown.style.display = 'none';
+    adobeOverlay.style.display = 'flex';
+    adobeProjectInput.value = currentAdobeProjectId;
+    adobeProjectStatus.textContent = currentAdobeProjectId ? 'Project loaded.' : '';
+    adobeProjectStatus.className = currentAdobeProjectId ? 'adobe-status ok' : 'adobe-status';
+    adobeFontStatus.textContent = '';
+    renderAdobeFontTags();
+  });
+
+  document.getElementById('adobeFontClose')!.addEventListener('click', () => {
+    adobeOverlay.style.display = 'none';
+  });
+  adobeOverlay.addEventListener('click', (e) => {
+    if (e.target === adobeOverlay) adobeOverlay.style.display = 'none';
+  });
+
+  document.getElementById('adobeProjectSave')!.addEventListener('click', () => {
+    const id = adobeProjectInput.value.trim();
+    if (!id) {
+      adobeProjectStatus.textContent = 'Please enter a project ID.';
+      adobeProjectStatus.className = 'adobe-status err';
+      return;
+    }
+    currentAdobeProjectId = id;
+    localStorage.setItem('adobeProjectId', id);
+    loadTypekitCSS(id);
+    adobeProjectStatus.textContent = 'Project saved and loaded!';
+    adobeProjectStatus.className = 'adobe-status ok';
+  });
+
+  document.getElementById('adobeFontAdd')!.addEventListener('click', () => {
+    const name = adobeFontNameInput.value.trim();
+    if (!name) {
+      adobeFontStatus.textContent = 'Please enter a font name.';
+      adobeFontStatus.className = 'adobe-status err';
+      return;
+    }
+    if (!currentAdobeProjectId) {
+      adobeFontStatus.textContent = 'Save your project ID first (step 2).';
+      adobeFontStatus.className = 'adobe-status err';
+      return;
+    }
+    if (adobeFonts.includes(name)) {
+      adobeFontStatus.textContent = `${name} is already added.`;
+      adobeFontStatus.className = 'adobe-status err';
+      return;
+    }
+    adobeFonts.push(name);
+    saveAdobeFonts(adobeFonts);
+    if (!allFonts.includes(name)) {
+      allFonts.push(name);
+    }
+    renderFontList();
+    renderAdobeFontTags();
+    adobeFontNameInput.value = '';
+    adobeFontStatus.textContent = `${name} added!`;
+    adobeFontStatus.className = 'adobe-status ok';
+  });
+
+  adobeFontNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (document.getElementById('adobeFontAdd') as HTMLElement).click();
     }
   });
 
-  // Text color
+  // ── Font size (numeric, px-based) ──
+  const sizeInput = document.getElementById('sizeInput') as HTMLInputElement;
+
+  function applyFontSize(px: number) {
+    px = Math.max(8, Math.min(144, px));
+    sizeInput.value = String(px);
+    restoreSelection();
+    // Use fontSize 7 as a marker, then replace the generated <font> tag with a span
+    document.execCommand('fontSize', false, '7');
+    const fontEls = editor.querySelectorAll('font[size="7"]');
+    const newSpans: HTMLElement[] = [];
+    fontEls.forEach(el => {
+      const span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      span.innerHTML = el.innerHTML;
+      el.replaceWith(span);
+      newSpans.push(span);
+    });
+    // Re-select the replaced content so subsequent changes still work
+    if (newSpans.length > 0) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        const range = document.createRange();
+        range.setStartBefore(newSpans[0]);
+        range.setEndAfter(newSpans[newSpans.length - 1]);
+        sel.addRange(range);
+        savedRange = range.cloneRange();
+      }
+    }
+  }
+
+  // When the size input is focused via click, save the editor selection first
+  sizeInput.addEventListener('mousedown', () => { saveSelection(); });
+  sizeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = parseInt(sizeInput.value, 10);
+      if (!isNaN(val)) applyFontSize(val);
+    }
+    if (e.key === 'ArrowUp') { e.preventDefault(); applyFontSize((parseInt(sizeInput.value,10)||16)+1); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); applyFontSize((parseInt(sizeInput.value,10)||16)-1); }
+  });
+  sizeInput.addEventListener('blur', () => {
+    // Don't auto-apply on blur -- user may just be clicking elsewhere
+  });
+  document.getElementById('sizeDown')!.addEventListener('click', () => {
+    applyFontSize((parseInt(sizeInput.value,10)||16) - 2);
+  });
+  document.getElementById('sizeUp')!.addEventListener('click', () => {
+    applyFontSize((parseInt(sizeInput.value,10)||16) + 2);
+  });
+
+  // Update size input when cursor moves
+  editor.addEventListener('keyup', updateSizeFromSelection);
+  editor.addEventListener('mouseup', updateSizeFromSelection);
+  function updateSizeFromSelection() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    let node = sel.anchorNode;
+    if (node?.nodeType === 3) node = node.parentElement;
+    if (node && editor.contains(node)) {
+      const computed = window.getComputedStyle(node as Element);
+      const px = Math.round(parseFloat(computed.fontSize));
+      if (px) sizeInput.value = String(px);
+    }
+  }
+
+  // ── Text color ──
   const textColorInput = document.getElementById('textColor') as HTMLInputElement;
-  const colorLabel = document.getElementById('colorLabel') as HTMLElement;
+  const colorBar = document.getElementById('colorBar') as HTMLElement;
+  colorBar.style.background = textColorInput.value;
   textColorInput.addEventListener('input', () => {
     document.execCommand('foreColor', false, textColorInput.value);
-    colorLabel.style.color = textColorInput.value;
+    colorBar.style.background = textColorInput.value;
     editor.focus();
   });
 
-  // Highlight color
+  // ── Highlight color ──
   const highlightInput = document.getElementById('highlightColor') as HTMLInputElement;
   const highlightLabel = document.getElementById('highlightLabel') as HTMLElement;
   highlightInput.addEventListener('input', () => {
@@ -226,7 +861,7 @@ const { content = '' } = Astro.props;
     editor.focus();
   });
 
-  // Link button
+  // ── Link button ──
   document.getElementById('linkBtn')!.addEventListener('click', () => {
     const url = prompt('Enter URL:');
     if (url) {
@@ -235,13 +870,12 @@ const { content = '' } = Astro.props;
     }
   });
 
-  // Image button — dropdown menu
+  // ── Image button — dropdown menu ──
   const imgMenu = document.getElementById('imgMenu') as HTMLElement;
   document.getElementById('imgBtn')!.addEventListener('click', (e) => {
     e.stopPropagation();
     imgMenu.style.display = imgMenu.style.display === 'none' ? 'block' : 'none';
   });
-  document.addEventListener('click', () => { imgMenu.style.display = 'none'; });
 
   document.getElementById('imgUploadChoice')!.addEventListener('click', () => {
     imgMenu.style.display = 'none';
@@ -269,5 +903,11 @@ const { content = '' } = Astro.props;
       document.execCommand('insertImage', false, url);
       editor.focus();
     }
+  });
+
+  // ── Close dropdowns on outside click ──
+  document.addEventListener('click', () => {
+    imgMenu.style.display = 'none';
+    fontPickerDropdown.style.display = 'none';
   });
 </script>

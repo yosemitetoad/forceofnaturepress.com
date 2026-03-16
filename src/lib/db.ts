@@ -483,6 +483,7 @@ export interface BlogPost {
   published: boolean;
   tags: string;
   commentsEnabled: boolean;
+  author: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -497,6 +498,7 @@ interface BlogRow {
   published: number;
   tags: string;
   comments_enabled: number;
+  author: string;
   created_at: string;
   updated_at: string;
 }
@@ -512,6 +514,7 @@ function rowToBlogPost(row: BlogRow): BlogPost {
     published: row.published === 1,
     tags: row.tags ?? '',
     commentsEnabled: (row.comments_enabled ?? 1) === 1,
+    author: row.author ?? 'Riley',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -550,19 +553,21 @@ export interface BlogPostInput {
   published?: boolean;
   tags?: string[];
   commentsEnabled?: boolean;
+  author?: string;
 }
 
 export async function createBlogPost(db: D1Database, post: BlogPostInput): Promise<number> {
   const tags = (post.tags ?? []).join(', ');
   const result = await db
     .prepare(
-      `INSERT INTO blog_posts (slug, title, content, excerpt, cover_image, published, tags, comments_enabled)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO blog_posts (slug, title, content, excerpt, cover_image, published, tags, comments_enabled, author)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       post.slug, post.title, post.content, post.excerpt,
       post.coverImage ?? null, post.published ? 1 : 0,
-      tags, post.commentsEnabled !== false ? 1 : 0
+      tags, post.commentsEnabled !== false ? 1 : 0,
+      post.author || 'Riley'
     )
     .run();
   return result.meta.last_row_id as number;
@@ -580,6 +585,7 @@ export async function updateBlogPost(db: D1Database, id: number, post: Partial<B
   if (post.published !== undefined) { sets.push('published = ?'); values.push(post.published ? 1 : 0); }
   if (post.tags !== undefined) { sets.push('tags = ?'); values.push(post.tags.join(', ')); }
   if (post.commentsEnabled !== undefined) { sets.push('comments_enabled = ?'); values.push(post.commentsEnabled ? 1 : 0); }
+  if (post.author !== undefined) { sets.push('author = ?'); values.push(post.author); }
 
   if (sets.length === 0) return;
 
@@ -681,6 +687,17 @@ export async function getPendingCommentCount(db: D1Database): Promise<number> {
     .prepare('SELECT COUNT(*) as total FROM blog_comments WHERE approved = 0')
     .first<{ total: number }>();
   return row?.total ?? 0;
+}
+
+export async function getPendingCommentCountsByPost(db: D1Database): Promise<Map<number, number>> {
+  const { results } = await db
+    .prepare('SELECT post_id, COUNT(*) as total FROM blog_comments WHERE approved = 0 GROUP BY post_id')
+    .all<{ post_id: number; total: number }>();
+  const map = new Map<number, number>();
+  for (const row of results ?? []) {
+    map.set(row.post_id, row.total);
+  }
+  return map;
 }
 
 export async function createComment(db: D1Database, postId: number, authorName: string, content: string): Promise<number> {

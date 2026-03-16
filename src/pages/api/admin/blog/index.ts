@@ -24,6 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       published: body.published ?? false,
       tags: body.tags,
       commentsEnabled: body.commentsEnabled,
+      author: body.author,
     });
     return new Response(JSON.stringify({ id }), {
       headers: { 'Content-Type': 'application/json' },

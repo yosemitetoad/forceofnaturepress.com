@@ -2,16 +2,20 @@
 export const prerender = false;
 
 import Admin from '../../../layouts/Admin.astro';
-import { getAllBlogPosts } from '../../../lib/db';
+import { getAllBlogPosts, getPendingCommentCountsByPost } from '../../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 const posts = await getAllBlogPosts(db, true);
+const pendingCounts = await getPendingCommentCountsByPost(db);
 ---
 
 <Admin title="Blog Posts">
   <div class="page-header">
     <h1>Blog Posts</h1>
-    <a href="/admin/blog/new" class="new-btn">New Post</a>
+    <div class="header-actions">
+      <a href="/admin/comments" class="comments-link">Manage Comments</a>
+      <a href="/admin/blog/new" class="new-btn">New Post</a>
+    </div>
   </div>
 
   {posts.length === 0 ? (
@@ -21,21 +25,31 @@ const posts = await getAllBlogPosts(db, true);
     </div>
   ) : (
     <div class="post-list">
-      {posts.map((post) => (
-        <a href={`/admin/blog/${post.id}`} class="post-card">
-          {post.coverImage && <img src={post.coverImage} alt="" class="post-cover" />}
-          <div class="post-info">
-            <div class="post-title-row">
-              <span class="post-title">{post.title}</span>
-              <span class={`post-status ${post.published ? 'published' : 'draft'}`}>
-                {post.published ? 'Published' : 'Draft'}
-              </span>
-            </div>
-            {post.excerpt && <p class="post-excerpt">{post.excerpt}</p>}
-            <span class="post-date">{new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+      {posts.map((post) => {
+        const pending = pendingCounts.get(post.id) ?? 0;
+        return (
+          <div class="post-card-wrap">
+            <a href={`/admin/blog/${post.id}`} class="post-card">
+              {post.coverImage && <img src={post.coverImage} alt="" class="post-cover" />}
+              <div class="post-info">
+                <div class="post-title-row">
+                  <span class="post-title">{post.title}</span>
+                  <span class={`post-status ${post.published ? 'published' : 'draft'}`}>
+                    {post.published ? 'Published' : 'Draft'}
+                  </span>
+                </div>
+                {post.excerpt && <p class="post-excerpt">{post.excerpt}</p>}
+                <span class="post-date">{new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+            </a>
+            {pending > 0 && (
+              <a href={`/admin/comments?post=${post.id}`} class="pending-alert">
+                {pending} comment{pending !== 1 ? 's' : ''} awaiting approval
+              </a>
+            )}
           </div>
-        </a>
-      ))}
+        );
+      })}
     </div>
   )}
 </Admin>
@@ -48,11 +62,18 @@ const posts = await getAllBlogPosts(db, true);
     border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem;
   }
   .new-btn:hover { background: #3d5a4e; }
+  .header-actions { display: flex; align-items: center; gap: 0.8rem; }
+  .comments-link {
+    display: inline-block; background: #c87830; color: #faf5ea; padding: 0.5em 1.2em;
+    border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem;
+  }
+  .comments-link:hover { background: #a05e18; }
 
   .empty { text-align: center; padding: 3rem; background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; }
   .empty p { font-size: 1.1rem; color: #6b4a2a; margin-bottom: 1rem; }
 
   .post-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .post-card-wrap { display: flex; flex-direction: column; }
   .post-card {
     display: flex; gap: 1rem; padding: 1rem; background: #faf5ea; border: 2px solid #d4b896;
     border-radius: 10px; text-decoration: none; color: inherit; transition: border-color 0.15s;
@@ -69,4 +90,13 @@ const posts = await getAllBlogPosts(db, true);
   .post-status.draft { background: #d4b896; color: #2d1f0e; }
   .post-excerpt { font-size: 0.85rem; color: #6b4a2a; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .post-date { font-size: 0.75rem; color: #8b7355; }
+
+  .pending-alert {
+    display: block; margin-top: -2px; padding: 0.5rem 1rem;
+    background: #fff3e0; border: 2px solid #c87830; border-top: none;
+    border-radius: 0 0 10px 10px; text-decoration: none;
+    color: #c87830; font-weight: 800; font-size: 0.82rem;
+    transition: background 0.15s;
+  }
+  .pending-alert:hover { background: #ffe8cc; }
 </style>

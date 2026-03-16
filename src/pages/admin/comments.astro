@@ -5,14 +5,25 @@ import Admin from '../../layouts/Admin.astro';
 import { getAllComments } from '../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
-const comments = await getAllComments(db);
+const filterPostId = Astro.url.searchParams.get('post');
+const allComments = await getAllComments(db);
+const comments = filterPostId
+  ? allComments.filter(c => c.postId === Number(filterPostId))
+  : allComments;
+const filterPostTitle = filterPostId && comments.length > 0 ? comments[0].postTitle : null;
 ---
 
 <Admin title="Comment Moderation">
   <div class="page-header">
     <h1>Comments</h1>
-    <span class="count">{comments.length} total</span>
+    <div class="header-right">
+      {filterPostTitle && (
+        <span class="filter-label">for <strong>{filterPostTitle}</strong> &mdash; <a href="/admin/comments">View all</a></span>
+      )}
+      <span class="count">{comments.length} {filterPostId ? 'for this post' : 'total'}</span>
+    </div>
   </div>
+  <a href="/admin/blog" class="back-link">Back to Blog Posts</a>
 
   {comments.length === 0 ? (
     <p class="empty">No comments yet.</p>
@@ -42,9 +53,13 @@ const comments = await getAllComments(db);
 </Admin>
 
 <style>
-  .page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
   h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .header-right { display: flex; align-items: center; gap: 1rem; }
   .count { color: #8b7355; font-size: 0.9rem; }
+  .filter-label { font-size: 0.9rem; color: #6b4a2a; }
+  .filter-label a { color: #3d7a6e; font-weight: 700; }
+  .back-link { display: inline-block; color: #3d7a6e; font-weight: 700; font-size: 0.9rem; margin-bottom: 1.5rem; }
 
   .empty { color: #8b7355; font-style: italic; }
 

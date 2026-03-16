@@ -18,6 +18,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       published: body.published,
       tags: body.tags,
       commentsEnabled: body.commentsEnabled,
+      author: body.author,
     });
     return new Response(JSON.stringify({ ok: true }), {
       headers: { 'Content-Type': 'application/json' },

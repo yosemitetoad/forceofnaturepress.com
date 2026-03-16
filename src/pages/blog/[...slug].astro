@@ -41,6 +41,7 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
               )}
             </div>
             <h1>{post.title}</h1>
+            {post.author && <p class="author">by {post.author}</p>}
             <hr />
           </div>
           <div class="post-content" set:html={post.content}></div>
@@ -123,7 +124,8 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
     margin-bottom: 0.5rem;
   }
   .last-updated { font-style: italic; }
-  .prose h1 { margin-bottom: 0.5rem; }
+  .prose h1 { margin-bottom: 0.3rem; }
+  .author { font-size: 1rem; color: var(--brown-mid); margin: 0 0 0.5rem; font-style: italic; }
   .prose hr { margin: 1.5rem 0; border-color: var(--border); }
 
   .post-content :global(h2) { font-size: 1.4rem; margin: 1.5em 0 0.5em; }
@@ -188,6 +190,12 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
   .comment-msg { margin-top: 0.8rem; font-size: 0.9rem; font-weight: 700; }
   .comment-msg.success { color: var(--green, #5b7b6d); }
   .comment-msg.error { color: #b44; }
+  .comment-success-banner {
+    background: var(--cream-light, #faf5ea); border: 2px solid var(--green, #5b7b6d);
+    border-radius: 10px; padding: 1.2rem 1.5rem; text-align: center;
+    font-size: 0.95rem; line-height: 1.6; color: var(--brown, #2d1f0e);
+  }
+  .comment-success-banner strong { color: var(--green, #5b7b6d); font-size: 1.05rem; }
 </style>
 
 <script define:vars={{ postId: post.id }}>
@@ -214,7 +222,9 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to post comment');
 
-        msg.textContent = 'Comment submitted! It will appear after review.';
+        // Show prominent success banner
+        form.style.display = 'none';
+        msg.innerHTML = '<div class="comment-success-banner"><strong>Thanks for your comment!</strong><br>Your comment has been submitted and will appear once it has been reviewed. Check back soon!</div>';
         msg.className = 'comment-msg success';
         msg.style.display = 'block';
         form.reset();
@@ -229,4 +239,10 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
       }
     });
   }
+
+  // Disable right-click on images
+  document.querySelectorAll('article img').forEach(img => {
+    img.addEventListener('contextmenu', (e) => e.preventDefault());
+    img.setAttribute('draggable', 'false');
+  });
 </script>

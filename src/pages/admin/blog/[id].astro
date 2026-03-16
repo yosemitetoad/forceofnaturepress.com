@@ -36,6 +36,11 @@ if (!post) {
     </div>
 
     <div class="form-row">
+      <label for="author">Author</label>
+      <input type="text" id="author" name="author" value={post.author ?? 'Riley'} placeholder="Author name" />
+    </div>
+
+    <div class="form-row">
       <label for="coverImage">Cover Image <span class="optional">(optional)</span></label>
       <div class="upload-row">
         <input type="url" id="coverImage" name="coverImage" value={post.coverImage ?? ''} placeholder="Image URL or upload below" style="flex:1" />
@@ -78,11 +83,23 @@ if (!post) {
         </label>
       </div>
       <div class="action-buttons">
+        <button type="button" id="previewBtn" class="preview-btn">Preview</button>
         <button type="button" id="deleteBtn" class="delete-btn">Delete</button>
         <button type="submit" class="save-btn" id="saveBtn">Save Changes</button>
       </div>
     </div>
   </form>
+
+  <!-- Preview modal -->
+  <div id="previewOverlay" class="preview-overlay" style="display:none">
+    <div class="preview-modal">
+      <div class="preview-header">
+        <span>Preview</span>
+        <button type="button" id="previewClose" class="preview-close">&times;</button>
+      </div>
+      <div class="preview-body" id="previewBody"></div>
+    </div>
+  </div>
 
   <div class="post-meta">
     <span>Created: {new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
@@ -139,6 +156,55 @@ if (!post) {
     border-radius: 8px; font-family: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer;
   }
   .delete-btn:hover { background: #833; }
+  .preview-btn {
+    background: #c87830; color: #faf5ea; border: none; padding: 0.6em 1.2em;
+    border-radius: 8px; font-family: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer;
+  }
+  .preview-btn:hover { background: #a05e18; }
+
+  .preview-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 2rem; overflow-y: auto;
+  }
+  .preview-modal {
+    background: #faf5ea; border-radius: 12px; width: 780px; max-width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3); overflow: hidden;
+  }
+  .preview-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.8rem 1.2rem; background: #2d1f0e; color: #faf5ea;
+    font-weight: 800; font-size: 0.95rem;
+  }
+  .preview-close {
+    background: none; border: none; color: #e4d3b8; font-size: 1.5rem;
+    cursor: pointer; line-height: 1;
+  }
+  .preview-close:hover { color: #faf5ea; }
+  .preview-body {
+    padding: 2rem 2.5rem; line-height: 1.7; font-size: 0.95rem;
+  }
+  .preview-body .preview-title { font-size: 1.8rem; font-weight: 800; margin: 0 0 0.2rem; }
+  .preview-body .preview-author { font-size: 1rem; color: #8b7355; margin: 0 0 0.3rem; font-style: italic; }
+  .preview-body .preview-date { font-size: 0.85rem; color: #8b7355; margin-bottom: 1rem; }
+  .preview-body .preview-cover { max-width: 100%; border-radius: 10px; margin-bottom: 1.5rem; }
+  .preview-body .preview-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 1rem; }
+  .preview-body .preview-tag {
+    font-size: 0.75rem; background: #e8d5b7; padding: 0.2em 0.6em;
+    border-radius: 10px; font-weight: 700; color: #6b4a2a;
+  }
+  .preview-body hr { border: none; border-top: 1px solid #d4b896; margin: 1rem 0; }
+  .preview-body .preview-content h2 { font-size: 1.4rem; margin: 1.5em 0 0.5em; }
+  .preview-body .preview-content h3 { font-size: 1.15rem; margin: 1.2em 0 0.4em; }
+  .preview-body .preview-content p { margin: 0 0 1em; line-height: 1.7; }
+  .preview-body .preview-content blockquote {
+    border-left: 4px solid #c87830; margin: 1em 0; padding: 0.5em 1.2em;
+    background: rgba(200,120,48,0.06); color: #6b4a2a; font-style: italic;
+  }
+  .preview-body .preview-content img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+  .preview-body .preview-content a { color: #3d7a6e; }
+  .preview-body .preview-content ul, .preview-body .preview-content ol { margin: 0.5em 0; padding-left: 1.5em; }
 
   .post-meta {
     display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.75rem; color: #8b7355;
@@ -201,6 +267,7 @@ if (!post) {
       published: document.getElementById('published').checked,
       commentsEnabled: document.getElementById('commentsEnabled').checked,
       tags,
+      author: document.getElementById('author').value || 'Riley',
     };
 
     try {
@@ -229,5 +296,37 @@ if (!post) {
     } catch (err) {
       alert(err.message);
     }
+  });
+
+  // Preview
+  const previewOverlay = document.getElementById('previewOverlay');
+  const previewBody = document.getElementById('previewBody');
+
+  document.getElementById('previewBtn').addEventListener('click', () => {
+    const title = document.getElementById('title').value || 'Untitled Post';
+    const coverImage = coverInput.value;
+    const content = document.getElementById('editor').innerHTML;
+    const tagsRaw = document.getElementById('tags').value;
+    const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    var author = document.getElementById('author').value;
+    let html = '<h1 class="preview-title">' + title + '</h1>';
+    if (author) html += '<p class="preview-author">by ' + author + '</p>';
+    html += '<div class="preview-date">' + today + '</div>';
+    if (coverImage) html += '<img class="preview-cover" src="' + coverImage + '" alt="" />';
+    if (tags.length) html += '<div class="preview-tags">' + tags.map(t => '<span class="preview-tag">' + t + '</span>').join('') + '</div>';
+    html += '<hr>';
+    html += '<div class="preview-content">' + content + '</div>';
+
+    previewBody.innerHTML = html;
+    previewOverlay.style.display = 'flex';
+  });
+
+  document.getElementById('previewClose').addEventListener('click', () => {
+    previewOverlay.style.display = 'none';
+  });
+  previewOverlay.addEventListener('click', (e) => {
+    if (e.target === previewOverlay) previewOverlay.style.display = 'none';
   });
 </script>
