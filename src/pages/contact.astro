@@ -30,12 +30,6 @@ try {
 <Base title="Contact — Force of Nature Press" description="Get in touch with Force of Nature Press — find us on Etsy, Instagram, Pinterest, or send an email." fullWidth>
 
   <div class="contact-wrap">
-    <div class="contact-header">
-      <div class="container">
-        <h1>{contactHeader}</h1>
-      </div>
-    </div>
-
     <div class="container contact-body">
       <div class="contact-layout">
 
@@ -155,27 +149,17 @@ try {
   .contact-wrap {
     background: url('/plainstarbanner.webp') center / cover no-repeat;
     min-height: calc(100vh - 72px - 120px);
-    padding: 2.5rem 0 4rem;
+    padding: 1.5rem 0 2rem;
     margin-bottom: -4rem;
   }
 
-  .contact-header {
-    background: rgba(240, 230, 208, 0.88);
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    padding: 1.5rem 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  .contact-header h1 { margin: 0; }
-
-  .contact-body { padding-top: 2rem; padding-bottom: 0; }
+  .contact-body { padding-top: 0; padding-bottom: 0; }
 
   .contact-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2.5rem;
-    align-items: start;
+    align-items: stretch;
   }
 
   /* Cards */
@@ -184,6 +168,8 @@ try {
     flex-direction: column;
     gap: 1rem;
   }
+
+  .contact-card { flex: 1; }
 
   .contact-card {
     display: flex;
