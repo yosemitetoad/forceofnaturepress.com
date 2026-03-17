@@ -27,6 +27,7 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
     <!-- Intro Text -->
     <section class="editor-section">
       <h2>Intro Box</h2>
+      <p class="help-text">Supports basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
       <div class="field">
         <label for="intro_p1">Paragraph 1</label>
         <textarea id="intro_p1" name="home_intro_p1" rows="3">{introP1}</textarea>
@@ -69,6 +70,7 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
     <!-- What's New -->
     <section class="editor-section">
       <h2>What's New</h2>
+      <p class="help-text">Supports basic markdown in the text field: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
       <div id="whatsNewItems">
         {whatsNew.map((item, i) => (
           <div class="news-editor" data-index={i}>
@@ -142,7 +144,8 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
 
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 0.8rem; }
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 0.8rem; line-height: 1.5; }
+  .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
 
   /* Featured products */
   .featured-selected { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; min-height: 40px; }

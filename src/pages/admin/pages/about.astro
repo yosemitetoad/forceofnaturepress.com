@@ -20,7 +20,7 @@ try { paragraphs = JSON.parse(bioRaw ?? '[]'); } catch {}
     <section class="editor-section">
       <h2>Bio Paragraphs</h2>
       <p class="help-text">
-        Edit your bio text. Use <code>{`{EMAIL}`}</code> to insert your email link and <code>{`{CONTACT_FORM}`}</code> to insert a contact form link.
+        Supports basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>. Use <code>{`{EMAIL}`}</code> to insert your email link and <code>{`{CONTACT_FORM}`}</code> to insert a contact form link.
       </p>
       <div id="paragraphContainer">
         {paragraphs.map((p, i) => (

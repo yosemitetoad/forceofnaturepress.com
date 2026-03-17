@@ -5,6 +5,7 @@ import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, SITE_DESCRIPTION } from '../consts';
 import { SHOP_ITEMS, getEtsyUrl } from '../data/shop';
 import { getAllShopItems, getPageContentMulti } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 const defaultFeaturedSkus = ['4467858004', 'FLYAGRCGLD', 'PSSMKYCHN', 'RACLINO', 'BEECLOVERSTCKR', 'OTTERPRNT', 'SOCKEYEPIN', 'HRBRSLMGNT'];
 
@@ -34,6 +35,13 @@ try {
 }
 
 const featured = allItems.filter(i => featuredSkus.includes(i.sku));
+
+const introP1Html = await mdInline(introP1);
+const introP2Html = await mdInline(introP2);
+const whatsNewHtml = await Promise.all(whatsNew.map(async item => ({
+  ...item,
+  textHtml: await mdInline(item.text),
+})));
 ---
 
 <Base title="Force of Nature Press" description={SITE_DESCRIPTION} fullWidth>
@@ -49,8 +57,8 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
           </div>
           <div class="about-text">
             <h1>Force of Nature Press</h1>
-            <p>{introP1}</p>
-            <p>{introP2}</p>
+            <p><Fragment set:html={introP1Html} /></p>
+            <p><Fragment set:html={introP2Html} /></p>
             <div class="about-links">
               <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" class="btn btn-primary">Visit the Shop on Etsy</a>
               <a href="/about" class="btn btn-outline">Learn More</a>
@@ -87,11 +95,11 @@ const featured = allItems.filter(i => featuredSkus.includes(i.sku));
       <!-- What's New — full width below -->
       <div class="whats-new">
         <h2>What's New:</h2>
-        {whatsNew.map(item => (
+        {whatsNewHtml.map(item => (
           <div class="news-item">
             <h3>{item.title}</h3>
             <p>
-              {item.text}
+              <Fragment set:html={item.textHtml} />
               {item.linkUrl && <a href={item.linkUrl}>{' '}{item.linkText}</a>}
             </p>
           </div>

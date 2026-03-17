@@ -5,44 +5,39 @@ import Admin from '../../../layouts/Admin.astro';
 import { getPageContentMulti } from '../../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
-const content = await getPageContentMulti(db, ['contact_header', 'contact_subheader', 'contact_cards']);
+const content = await getPageContentMulti(db, ['privacy_content', 'terms_content']);
 
-const header = content.contact_header ?? 'Get in Touch';
-const subheader = content.contact_subheader ?? '';
-let cards: { key: string; description: string }[] = [];
-try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
+const privacy = content.privacy_content ?? '';
+const terms = content.terms_content ?? '';
 ---
 
-<Admin title="Contact Page">
+<Admin title="Legal Pages">
   <div class="page-header">
-    <h1>Contact Page</h1>
+    <h1>Legal Pages</h1>
     <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
   </div>
 
-  <form id="contactForm">
+  <form id="legalForm">
     <section class="editor-section">
-      <h2>Page Header</h2>
-      <div class="field">
-        <label for="contact_header">Title</label>
-        <input type="text" id="contact_header" name="contact_header" value={header} />
+      <div class="section-header">
+        <h2>Privacy Policy</h2>
+        <a href="/privacy" target="_blank" class="btn-sm btn-view">View Page</a>
       </div>
+      <p class="help-text">Edit using Markdown. Use <code>{`{EMAIL_LINK}`}</code> to insert your email as a clickable link. <code>## Heading</code>, <code>**bold**</code>, <code>- list item</code>, and <code>[link text](url)</code> all work. The page title and "Last updated" line are added automatically.</p>
       <div class="field">
-        <label for="contact_subheader">Subtitle</label>
-        <input type="text" id="contact_subheader" name="contact_subheader" value={subheader} />
+        <textarea id="privacyContent" name="privacy_content" rows="16">{privacy}</textarea>
       </div>
     </section>
 
     <section class="editor-section">
-      <h2>Contact Cards</h2>
-      <p class="help-text">Edit the description text on each contact card. Supports basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>. The card titles, icons, and links are managed in site config.</p>
-      {cards.map(card => (
-        <div class="card-field" data-key={card.key}>
-          <div class="field">
-            <label>{card.key.charAt(0).toUpperCase() + card.key.slice(1)} — Description</label>
-            <textarea class="card-desc" rows="2">{card.description}</textarea>
-          </div>
-        </div>
-      ))}
+      <div class="section-header">
+        <h2>Terms of Service</h2>
+        <a href="/terms" target="_blank" class="btn-sm btn-view">View Page</a>
+      </div>
+      <p class="help-text">Edit using Markdown. Use <code>{`{EMAIL_LINK}`}</code> to insert your email as a clickable link.</p>
+      <div class="field">
+        <textarea id="termsContent" name="terms_content" rows="16">{terms}</textarea>
+      </div>
     </section>
 
     <div class="form-actions">
@@ -55,29 +50,29 @@ try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
 <style>
   .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
   h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
-  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0; color: #2d1f0e; }
 
   .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
   .btn-primary { background: #c87830; color: #faf5ea; }
   .btn-primary:hover { background: #a05e18; }
   .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
   .btn-outline:hover { background: #e4d3b8; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-view { background: #3d7a6e; color: #faf5ea; }
+  .btn-view:hover { background: #2a5a50; }
 
   .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
   .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 1rem; line-height: 1.5; }
   .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
 
-  .field { margin-bottom: 1rem; }
-  .field:last-child { margin-bottom: 0; }
-  .field label { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; margin-bottom: 0.3rem; }
-  .field input, .field textarea {
+  .field { margin-bottom: 0; }
+  .field textarea {
     width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
-    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+    font-family: 'Atkinson', monospace; font-size: 0.85rem; background: #f0e6d0; color: #2d1f0e;
+    box-sizing: border-box; resize: vertical; line-height: 1.6;
   }
-  .field input:focus, .field textarea:focus { border-color: #c87830; outline: none; }
-  .field textarea { resize: vertical; }
-
-  .card-field { background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px; padding: 1rem; margin-bottom: 0.8rem; }
+  .field textarea:focus { border-color: #c87830; outline: none; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
@@ -86,7 +81,7 @@ try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
 </style>
 
 <script>
-  const form = document.getElementById('contactForm') as HTMLFormElement;
+  const form = document.getElementById('legalForm') as HTMLFormElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   const saveStatus = document.getElementById('saveStatus')!;
 
@@ -98,19 +93,7 @@ try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
 
     const formData = new FormData(form);
     const updates: Record<string, string> = {};
-    for (const [key, value] of formData.entries()) {
-      updates[key] = String(value);
-    }
-
-    // Collect card descriptions
-    const cards: { key: string; description: string }[] = [];
-    document.querySelectorAll('.card-field').forEach(el => {
-      cards.push({
-        key: (el as HTMLElement).dataset.key!,
-        description: (el.querySelector('.card-desc') as HTMLTextAreaElement).value,
-      });
-    });
-    updates.contact_cards = JSON.stringify(cards);
+    for (const [key, value] of formData.entries()) updates[key] = String(value);
 
     try {
       const res = await fetch('/api/admin/pages', {

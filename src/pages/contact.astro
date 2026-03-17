@@ -4,10 +4,12 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 import { getPageContentMulti } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 let contactHeader = 'Get in Touch';
 let contactSubheader = 'Questions about an order, a wholesale inquiry, or just want to say hi? Here\'s where to find me.';
 let cardDescriptions: Record<string, string> = {};
+let cardHtml: Record<string, string> = {};
 
 try {
   const db = Astro.locals.runtime.env.DB;
@@ -24,6 +26,10 @@ try {
   }
 } catch (e) {
   console.warn('[contact] D1 unavailable:', e);
+}
+
+for (const [key, val] of Object.entries(cardDescriptions)) {
+  cardHtml[key] = await mdInline(val);
 }
 ---
 
@@ -43,7 +49,7 @@ try {
           </div>
           <div class="contact-info">
             <h2>Email</h2>
-            <p>{cardDescriptions.email ?? 'For wholesale inquiries, freelance opportunities, collabs, projects, or anything else.'}</p>
+            <p><Fragment set:html={cardHtml.email ?? 'For wholesale inquiries, freelance opportunities, collabs, projects, or anything else.'} /></p>
             <span class="contact-handle">{EMAIL}</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -57,7 +63,7 @@ try {
           </div>
           <div class="contact-info">
             <h2>Instagram</h2>
-            <p>{cardDescriptions.instagram ?? 'Behind-the-scenes, new releases, and nature photography.'}</p>
+            <p><Fragment set:html={cardHtml.instagram ?? 'Behind-the-scenes, new releases, and nature photography.'} /></p>
             <span class="contact-handle">@forceofnature.press</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -71,7 +77,7 @@ try {
           </div>
           <div class="contact-info">
             <h2>Pinterest</h2>
-            <p>{cardDescriptions.pinterest ?? 'Nature inspiration boards and artwork collections.'}</p>
+            <p><Fragment set:html={cardHtml.pinterest ?? 'Nature inspiration boards and artwork collections.'} /></p>
             <span class="contact-handle">pinterest.com/forceofnaturepress</span>
           </div>
           <span class="contact-arrow">→</span>
@@ -83,7 +89,7 @@ try {
           </div>
           <div class="contact-info">
             <h2>Etsy</h2>
-            <p>{cardDescriptions.etsy ?? 'For questions regarding Etsy orders, please message me on Etsy instead of emailing or filling out the contact form!'}</p>
+            <p><Fragment set:html={cardHtml.etsy ?? 'For questions regarding Etsy orders, please message me on Etsy instead of emailing or filling out the contact form!'} /></p>
             <span class="contact-handle">forceofnaturepress.etsy.com</span>
           </div>
           <span class="contact-arrow">→</span>

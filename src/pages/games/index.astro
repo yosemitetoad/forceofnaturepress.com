@@ -4,6 +4,7 @@ export const prerender = false;
 import Base from '../../layouts/Base.astro';
 import { getPageContentMulti, getAllGameCards } from '../../lib/db';
 import type { GameCard } from '../../lib/db';
+import { mdInline } from '../../lib/markdown';
 
 let gamesHeader = 'Games';
 let gamesSubheader = 'Interactive projects and browser games — click to play right here in your browser.';
@@ -20,6 +21,11 @@ try {
 } catch (e) {
   console.warn('[games] D1 unavailable:', e);
 }
+
+const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
+  ...card,
+  descriptionHtml: await mdInline(card.description),
+})));
 ---
 
 <Base title="Games — Force of Nature Press" description="Play Dress Up Beetle! and other interactive projects by Force of Nature Press." fullWidth>
@@ -34,7 +40,7 @@ try {
   <div class="container games-body">
     <div class="games-grid">
 
-      {gameCards.map(card => (
+      {gameCardsHtml.map(card => (
         <div class={`game-card ${card.status === 'in_development' ? 'game-card--in-dev' : ''}`}>
           <div class="game-preview-col">
             <div class="game-preview">
@@ -51,7 +57,7 @@ try {
           <div class="game-info">
             <h2>{card.title}</h2>
             <p class="game-meta">{card.category}</p>
-            <p>{card.description}</p>
+            <p><Fragment set:html={card.descriptionHtml} /></p>
           </div>
         </div>
       ))}

@@ -4,6 +4,7 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, INSTAGRAM_URL, PINTEREST_URL, EMAIL } from '../consts';
 import { getPageContent } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 let bioParagraphs: string[] | null = null;
 try {
@@ -40,18 +41,13 @@ try {
       <h1>About Me</h1>
 
       {bioParagraphs ? (
-        bioParagraphs.map(p => {
-          const parts = p.split(/(\{EMAIL\}|\{CONTACT_FORM\})/);
-          return (
-            <p>
-              {parts.map(part =>
-                part === '{EMAIL}' ? <a href={`mailto:${EMAIL}`}>{EMAIL}</a> :
-                part === '{CONTACT_FORM}' ? <a href="/contact">contact form</a> :
-                part
-              )}
-            </p>
-          );
-        })
+        await Promise.all(bioParagraphs.map(async (p: string) => {
+          const withLinks = p
+            .replace(/\{EMAIL\}/g, `[${EMAIL}](mailto:${EMAIL})`)
+            .replace(/\{CONTACT_FORM\}/g, '[contact form](/contact)');
+          const html = await mdInline(withLinks);
+          return <p><Fragment set:html={html} /></p>;
+        }))
       ) : (
         <>
           <p>Hello there! I'm Riley. I wear many hats, but you could call me an artist, designer, printmaker, and ecologist. I was born and raised in the heart of the Pacific Northwest, Seattle, WA, where I still live today, though I've also lived in Cornwall in the UK as well.</p>

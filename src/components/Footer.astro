@@ -3,20 +3,50 @@ const year = new Date().getFullYear();
 ---
 
 <footer>
-  <p>&copy; {year} Riley Briggs / Force of Nature Press. All rights reserved.</p>
+  <div class="footer-inner">
+    <p class="footer-copy">&copy; {year} Riley Briggs / Force of Nature Press. All rights reserved.</p>
+    <nav class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+    </nav>
+  </div>
 </footer>
 
-<style>
+<style is:global>
   footer {
     background: var(--brown);
     margin-top: 4rem;
     border-top: 1px solid rgba(228, 211, 184, 0.2);
-    text-align: center;
     padding: 0.8rem 1.5rem;
   }
-  footer p {
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-copy {
     margin: 0;
     font-size: 0.8rem;
     color: rgba(228, 211, 184, 0.6);
+  }
+  .footer-links {
+    display: flex;
+    gap: 1.2rem;
+  }
+  .footer-links a {
+    font-size: 0.8rem;
+    color: rgba(228, 211, 184, 0.6);
+    text-decoration: none;
+  }
+  .footer-links a:hover {
+    color: rgba(228, 211, 184, 0.9);
+  }
+  @media (max-width: 600px) {
+    .footer-inner {
+      flex-direction: column;
+      gap: 0.4rem;
+    }
   }
 </style>

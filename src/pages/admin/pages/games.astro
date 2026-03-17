@@ -43,6 +43,7 @@ const subheader = content.games_subheader ?? '';
       <h2>Game Cards ({gameCards.length})</h2>
       <button type="button" id="addCardBtn" class="btn btn-primary">+ Add Card</button>
     </div>
+    <p class="help-text">Description fields support basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
 
     <div id="cardsContainer">
       {gameCards.map(card => (
@@ -169,6 +170,8 @@ const subheader = content.games_subheader ?? '';
 
   .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
   .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 0.8rem; line-height: 1.5; }
+  .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
   .section-header h2 { margin: 0; }
 
   .field { margin-bottom: 1rem; }
