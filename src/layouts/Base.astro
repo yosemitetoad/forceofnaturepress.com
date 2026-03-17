@@ -30,5 +30,14 @@ const {
     </main>
     <Footer />
     <A11yWidget />
+    <script>
+      function blockImageContext() {
+        document.addEventListener('contextmenu', (e) => {
+          if (e.target instanceof HTMLImageElement) e.preventDefault();
+        });
+      }
+      blockImageContext();
+      document.addEventListener('astro:after-swap', blockImageContext);
+    </script>
   </body>
 </html>

@@ -240,9 +240,4 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
     });
   }
 
-  // Disable right-click on images
-  document.querySelectorAll('article img').forEach(img => {
-    img.addEventListener('contextmenu', (e) => e.preventDefault());
-    img.setAttribute('draggable', 'false');
-  });
 </script>

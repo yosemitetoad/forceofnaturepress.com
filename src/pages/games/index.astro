@@ -83,10 +83,6 @@ const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
 
   const overlayTitle = document.getElementById('overlayTitle')!;
 
-  document.querySelectorAll<HTMLImageElement>('.game-thumb').forEach(img => {
-    img.addEventListener('contextmenu', e => e.preventDefault());
-  });
-
   document.querySelectorAll<HTMLButtonElement>('.game-play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const src = btn.dataset.game ?? '';
