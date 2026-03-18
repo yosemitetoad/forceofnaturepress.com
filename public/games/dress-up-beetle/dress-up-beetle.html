@@ -288,6 +288,20 @@ body {
 #intro-popup-inner p:last-of-type { margin-bottom: 0; }
 #got-it-btn { margin-top: 22px; background: #5b7b6d; border-color: #3d5a4e; }
 #got-it-btn:hover { background: #6e9080; }
+
+@media (max-width: 720px) {
+  #beetle-doll { width: 240px; height: 315px; margin-top: 60px; }
+  #toolbar { gap: 5px; bottom: 8px; flex-wrap: wrap; justify-content: center; max-width: 95vw; }
+  .tool-btn { font-size: 10px; padding: 5px 10px; border-width: 2px; }
+  .ctrl-btn { width: 26px; height: 26px; font-size: 13px; }
+  .item-controls { top: -30px; gap: 4px; }
+  .clothing-item { width: 80px; height: 72px; }
+  #sidebar { width: 180px; }
+  .category-header { font-size: calc(13px * var(--text-scale, 1)); padding: 8px 10px 4px; }
+  #intro-popup { width: 90vw; }
+  #intro-popup-inner { padding: 24px 20px 20px; }
+  #intro-popup-inner p { font-size: 14px; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
