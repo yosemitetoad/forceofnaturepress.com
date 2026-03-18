@@ -164,7 +164,7 @@ body {
 #toolbar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 95; }
 
 #zoom-controls {
-  display: none; position: absolute; top: 10px; right: 10px; z-index: 96;
+  display: none; position: fixed; top: 10px; right: 10px; z-index: 200;
   flex-direction: column; gap: 6px;
 }
 #zoom-controls button {
@@ -348,11 +348,6 @@ body {
         <img id="beetle-pincherR"    src="images/beetle_pincherR.png">
       </div>
     </div>
-    <div id="zoom-controls">
-      <button id="zoom-in" title="Zoom in">+</button>
-      <button id="zoom-out" title="Zoom out">−</button>
-      <button id="zoom-reset" title="Reset zoom">1:1</button>
-    </div>
     <div id="toolbar">
       <button class="tool-btn" id="undo-btn" disabled>Undo</button>
       <button class="tool-btn" id="clear-btn">Clear All</button>
@@ -377,6 +372,11 @@ body {
       <button class="tool-btn" id="photo-btn"><img src="images/camera_symbol.png" class="camera-icon" alt="Save/Share"></button>
     </div>
   </div>
+</div>
+<div id="zoom-controls">
+  <button id="zoom-in" title="Zoom in">+</button>
+  <button id="zoom-out" title="Zoom out">−</button>
+  <button id="zoom-reset" title="Reset zoom">1:1</button>
 </div>
 <div id="sel-toolbar">
   <span id="sel-count">0 selected</span>
@@ -1968,31 +1968,32 @@ document.getElementById('howtoplay-btn').addEventListener('click', function() {
 
 // --- Mobile zoom controls ---
 (function() {
-  const stage = document.getElementById('stage');
+  const container = document.getElementById('game-container');
   const zoomIn = document.getElementById('zoom-in');
   const zoomOut = document.getElementById('zoom-out');
   const zoomReset = document.getElementById('zoom-reset');
-  if (!stage || !zoomIn || !zoomOut || !zoomReset) return;
+  if (!container || !zoomIn || !zoomOut || !zoomReset) return;
 
   let zoomLevel = 1;
   const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 2.0;
-  const STEP = 0.15;
+  const MAX_ZOOM = 1.5;
+  const STEP = 0.1;
 
   function applyZoom() {
-    stage.style.transform = 'scale(' + zoomLevel + ')';
-    stage.style.transformOrigin = 'center center';
+    container.style.zoom = zoomLevel;
+    container.style.height = (100 / zoomLevel) + 'vh';
+    container.style.width = (100 / zoomLevel) + 'vw';
   }
 
   zoomIn.addEventListener('click', function(e) {
     e.stopPropagation();
-    zoomLevel = Math.min(MAX_ZOOM, zoomLevel + STEP);
+    zoomLevel = Math.min(MAX_ZOOM, +(zoomLevel + STEP).toFixed(2));
     applyZoom();
   });
 
   zoomOut.addEventListener('click', function(e) {
     e.stopPropagation();
-    zoomLevel = Math.max(MIN_ZOOM, zoomLevel - STEP);
+    zoomLevel = Math.max(MIN_ZOOM, +(zoomLevel - STEP).toFixed(2));
     applyZoom();
   });
 
