@@ -39,9 +39,9 @@ const { content = '' } = Astro.props;
     <span class="toolbar-sep"></span>
 
     <!-- Basic formatting -->
-    <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-    <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-    <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+    <button type="button" data-cmd="bold" title="Bold (⌘B)"><b>B</b></button>
+    <button type="button" data-cmd="italic" title="Italic (⌘I)"><i>I</i></button>
+    <button type="button" data-cmd="underline" title="Underline (⌘U)"><u>U</u></button>
     <button type="button" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
     <span class="toolbar-sep"></span>
 
@@ -76,7 +76,7 @@ const { content = '' } = Astro.props;
     <span class="toolbar-sep"></span>
 
     <!-- Link -->
-    <button type="button" id="linkBtn" title="Insert Link">Link</button>
+    <button type="button" id="linkBtn" title="Insert Link (⌘K)">Link</button>
     <!-- Image -->
     <span class="img-menu-wrap">
       <button type="button" id="imgBtn" title="Insert Image">Image</button>
@@ -416,6 +416,40 @@ const { content = '' } = Astro.props;
       document.execCommand(cmd, false, val);
       editor.focus();
     });
+  });
+
+  // ── Keyboard shortcuts ──
+  editor.addEventListener('keydown', (e) => {
+    const mod = e.metaKey || e.ctrlKey;
+
+    // Cmd/Ctrl+B = Bold
+    if (mod && e.key === 'b') { e.preventDefault(); document.execCommand('bold'); return; }
+    // Cmd/Ctrl+I = Italic
+    if (mod && e.key === 'i') { e.preventDefault(); document.execCommand('italic'); return; }
+    // Cmd/Ctrl+U = Underline
+    if (mod && e.key === 'u') { e.preventDefault(); document.execCommand('underline'); return; }
+    // Cmd/Ctrl+K = Insert link
+    if (mod && e.key === 'k') {
+      e.preventDefault();
+      const url = prompt('Enter URL:');
+      if (url) document.execCommand('createLink', false, url);
+      return;
+    }
+
+    // Exit lists: Enter on an empty list item converts it to a paragraph
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const li = (sel.anchorNode?.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode as Element)?.closest('li');
+      if (li && (li.textContent?.trim() === '')) {
+        e.preventDefault();
+        const list = li.closest('ul, ol');
+        li.remove();
+        // If the list is now empty, remove it too
+        if (list && list.children.length === 0) list.remove();
+        document.execCommand('formatBlock', false, 'p');
+      }
+    }
   });
 
   // ── Font system ──
