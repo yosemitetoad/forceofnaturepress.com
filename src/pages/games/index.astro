@@ -92,7 +92,9 @@ const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
       overlay.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
       const a11y = document.getElementById('a11yWidget');
+      const a11yRestore = document.getElementById('a11yRestore');
       if (a11y) a11y.style.display = 'none';
+      if (a11yRestore) a11yRestore.style.display = 'none';
     });
   });
 
@@ -102,7 +104,9 @@ const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
     frame.src = '';
     document.body.style.overflow = '';
     const a11y = document.getElementById('a11yWidget');
+    const a11yRestore = document.getElementById('a11yRestore');
     if (a11y) a11y.style.display = '';
+    if (a11yRestore) a11yRestore.style.display = '';
   }
 
   closeBtn.addEventListener('click', closeOverlay);
