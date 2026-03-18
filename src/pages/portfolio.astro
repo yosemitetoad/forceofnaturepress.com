@@ -3,11 +3,20 @@ export const prerender = false;
 
 import Base from '../layouts/Base.astro';
 import { getAllPortfolioItems, getPortfolioCategories, getPortfolioProjects, getPageContentMulti } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 const db = Astro.locals.runtime.env.DB;
 const items = await getAllPortfolioItems(db);
 const categories = await getPortfolioCategories(db);
 const projects = await getPortfolioProjects(db);
+
+// Pre-render markdown in descriptions
+const descHtml: Record<number, string> = {};
+for (const item of items) {
+  if (item.description) {
+    descHtml[item.id] = await mdInline(item.description);
+  }
+}
 
 const content = await getPageContentMulti(db, ['portfolio_header', 'portfolio_subheader']);
 const portfolioHeader = content.portfolio_header ?? 'Portfolio';
@@ -52,9 +61,9 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
           data-image={item.image ?? ''}
           data-medium={item.medium ?? ''}
           data-year={item.year ?? ''}
-          data-description={item.description ?? ''}
           data-link={item.link ?? ''}
         >
+          {descHtml[item.id] && <template class="desc-html"><Fragment set:html={descHtml[item.id]} /></template>}
           <div class="artwork-img-wrap">
             {item.image
               ? <img src={item.image} alt={item.title ?? ''} loading="lazy" width="500" height="500" />
@@ -116,20 +125,24 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   const lightboxClose = document.getElementById('lightboxClose')!;
 
   function openLightbox(card: HTMLElement) {
-    const { title, image, medium, year, description, link, project } = card.dataset;
+    const { title, image, medium, year, link, project } = card.dataset;
     if (!image) return;
 
     lightboxImg.src = image;
     lightboxImg.alt = title || '';
 
+    // Get pre-rendered description HTML from template element
+    const tpl = card.querySelector('template.desc-html');
+    const descHtml = tpl ? tpl.innerHTML : '';
+
     let html = '';
     if (title) html += `<h2 class="lb-title">${title}</h2>`;
-    if (project) html += `<span class="lb-project">${project}</span>`;
+    if (project) html += `<span class="lb-project">Project: ${project}</span>`;
     const meta: string[] = [];
     if (medium) meta.push(medium);
     if (year) meta.push(year);
     if (meta.length) html += `<p class="lb-meta">${meta.join(' · ')}</p>`;
-    if (description) html += `<p class="lb-desc">${description}</p>`;
+    if (descHtml) html += `<div class="lb-desc">${descHtml}</div>`;
     if (link) html += `<a href="${link}" target="_blank" rel="noopener noreferrer" class="lb-link">View project &rarr;</a>`;
 
     lightboxInfo.innerHTML = html;
@@ -356,6 +369,12 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     line-height: 1.5;
     margin: 0.5rem 0 0;
   }
+  .lb-desc a {
+    color: var(--orange);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .lb-desc a:hover { text-decoration: underline; }
   .lb-link {
     display: inline-block;
     margin-top: 0.8rem;
