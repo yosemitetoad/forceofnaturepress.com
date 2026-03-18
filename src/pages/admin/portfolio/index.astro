@@ -26,6 +26,7 @@ const items = await getAllPortfolioItems(db);
           <th>Image</th>
           <th>Title</th>
           <th>Category</th>
+          <th>Project</th>
           <th>Medium</th>
           <th>Year</th>
           <th>Actions</th>
@@ -42,6 +43,7 @@ const items = await getAllPortfolioItems(db);
             </td>
             <td class="title-cell">{item.title ?? '(untitled)'}</td>
             <td>{item.category ?? '--'}</td>
+            <td>{item.project ?? '--'}</td>
             <td>{item.medium ?? '--'}</td>
             <td>{item.year ?? '--'}</td>
             <td class="actions-cell">

@@ -355,6 +355,7 @@ export interface PortfolioItem {
   title: string | null;
   image: string | null;
   category: string | null;
+  project: string | null;
   medium: string | null;
   year: string | null;
   description: string | null;
@@ -367,6 +368,7 @@ interface PortfolioRow {
   title: string | null;
   image: string | null;
   category: string | null;
+  project: string | null;
   medium: string | null;
   year: string | null;
   description: string | null;
@@ -381,6 +383,7 @@ function rowToPortfolioItem(row: PortfolioRow): PortfolioItem {
     title: row.title,
     image: row.image,
     category: row.category,
+    project: row.project,
     medium: row.medium,
     year: row.year,
     description: row.description,
@@ -411,6 +414,13 @@ export async function getPortfolioCategories(db: D1Database): Promise<string[]> 
   return (results ?? []).map(r => r.category);
 }
 
+export async function getPortfolioProjects(db: D1Database): Promise<string[]> {
+  const { results } = await db
+    .prepare('SELECT DISTINCT project FROM portfolio_items WHERE project IS NOT NULL ORDER BY project')
+    .all<{ project: string }>();
+  return (results ?? []).map(r => r.project);
+}
+
 export async function getNextPortfolioSortOrder(db: D1Database): Promise<number> {
   const row = await db
     .prepare('SELECT MAX(sort_order) as max_order FROM portfolio_items')
@@ -422,6 +432,7 @@ export interface PortfolioItemInput {
   title?: string;
   image?: string;
   category?: string;
+  project?: string;
   medium?: string;
   year?: string;
   description?: string;
@@ -433,13 +444,13 @@ export async function createPortfolioItem(db: D1Database, item: PortfolioItemInp
   const sortOrder = item.sortOrder ?? await getNextPortfolioSortOrder(db);
   const result = await db
     .prepare(
-      `INSERT INTO portfolio_items (title, image, category, medium, year, description, link, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO portfolio_items (title, image, category, project, medium, year, description, link, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       item.title ?? null, item.image ?? null, item.category ?? null,
-      item.medium ?? null, item.year ?? null, item.description ?? null,
-      item.link ?? null, sortOrder
+      item.project ?? null, item.medium ?? null, item.year ?? null,
+      item.description ?? null, item.link ?? null, sortOrder
     )
     .run();
   return result.meta.last_row_id as number;
@@ -452,6 +463,7 @@ export async function updatePortfolioItem(db: D1Database, id: number, item: Port
   if (item.title !== undefined) { sets.push('title = ?'); values.push(item.title ?? null); }
   if (item.image !== undefined) { sets.push('image = ?'); values.push(item.image ?? null); }
   if (item.category !== undefined) { sets.push('category = ?'); values.push(item.category ?? null); }
+  if (item.project !== undefined) { sets.push('project = ?'); values.push(item.project ?? null); }
   if (item.medium !== undefined) { sets.push('medium = ?'); values.push(item.medium ?? null); }
   if (item.year !== undefined) { sets.push('year = ?'); values.push(item.year ?? null); }
   if (item.description !== undefined) { sets.push('description = ?'); values.push(item.description ?? null); }

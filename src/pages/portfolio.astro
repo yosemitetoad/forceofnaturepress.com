@@ -2,11 +2,12 @@
 export const prerender = false;
 
 import Base from '../layouts/Base.astro';
-import { getAllPortfolioItems, getPortfolioCategories, getPageContentMulti } from '../lib/db';
+import { getAllPortfolioItems, getPortfolioCategories, getPortfolioProjects, getPageContentMulti } from '../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 const items = await getAllPortfolioItems(db);
 const categories = await getPortfolioCategories(db);
+const projects = await getPortfolioProjects(db);
 
 const content = await getPageContentMulti(db, ['portfolio_header', 'portfolio_subheader']);
 const portfolioHeader = content.portfolio_header ?? 'Portfolio';
@@ -28,11 +29,15 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 
   <div class="container portfolio-body">
 
-    {categories.length > 0 && (
+    {(categories.length > 0 || projects.length > 0) && (
       <div class="filter-bar">
         <button class="filter-btn active" data-cat="all">All Work</button>
         {categories.map(cat => (
           <button class="filter-btn" data-cat={cat}>{cat}</button>
+        ))}
+        {projects.length > 0 && categories.length > 0 && <span class="filter-divider"></span>}
+        {projects.map(proj => (
+          <button class="filter-btn filter-project" data-project={proj}>{proj}</button>
         ))}
       </div>
     )}
@@ -41,14 +46,15 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
       {items.map(item => {
         const hasInfo = item.medium || item.year || item.description;
         const inner = (
-          <div class="artwork-card" data-category={item.category ?? ''}>
+          <div class="artwork-card" data-category={item.category ?? ''} data-project={item.project ?? ''}>
             <div class="artwork-img-wrap">
               {item.image
                 ? <img src={item.image} alt={item.title ?? ''} loading="lazy" width="500" height="500" />
                 : <div class="artwork-placeholder"></div>
               }
-              {hasInfo && (
+              {(hasInfo || item.project) && (
                 <div class="artwork-overlay">
+                  {item.project && <span class="overlay-project">{item.project}</span>}
                   {item.medium && <span class="overlay-medium">{item.medium}</span>}
                   {item.year && <span class="overlay-year">{item.year}</span>}
                   {item.description && <p class="overlay-desc">{item.description}</p>}
@@ -81,12 +87,16 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   btns.forEach(btn => {
     btn.addEventListener('click', () => {
       const cat = btn.dataset.cat;
+      const proj = btn.dataset.project;
       btns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       cards.forEach(card => {
         const el = card.closest('.artwork-link') as HTMLElement | null;
         const target = el ?? card;
-        const show = cat === 'all' || card.dataset.category === cat;
+        let show = false;
+        if (cat === 'all') show = true;
+        else if (proj) show = card.dataset.project === proj;
+        else if (cat) show = card.dataset.category === cat;
         target.style.display = show ? '' : 'none';
       });
     });
@@ -130,6 +140,7 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
+  .filter-divider { width: 2px; height: 1.5em; background: var(--border); align-self: center; }
   .filter-btn:hover { border-color: var(--orange); }
   .filter-btn.active {
     background: var(--orange);
@@ -191,6 +202,7 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     text-align: center;
     gap: 0.25rem;
   }
+  .overlay-project { font-weight: 800; font-size: 0.8rem; color: var(--orange); text-transform: uppercase; letter-spacing: 0.04em; }
   .overlay-medium { font-weight: 800; font-size: 0.9rem; }
   .overlay-year { font-size: 0.85rem; color: var(--brown-mid); }
   .overlay-desc {
