@@ -45,6 +45,10 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   font-family: 'Nunito', 'Atkinson', sans-serif;
   margin: 0;
