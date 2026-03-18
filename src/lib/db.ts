@@ -409,14 +409,14 @@ export async function getPortfolioItem(db: D1Database, id: number): Promise<Port
 
 export async function getPortfolioCategories(db: D1Database): Promise<string[]> {
   const { results } = await db
-    .prepare('SELECT DISTINCT category FROM portfolio_items WHERE category IS NOT NULL ORDER BY category')
+    .prepare("SELECT DISTINCT category FROM portfolio_items WHERE category IS NOT NULL AND category != '' ORDER BY category")
     .all<{ category: string }>();
   return (results ?? []).map(r => r.category);
 }
 
 export async function getPortfolioProjects(db: D1Database): Promise<string[]> {
   const { results } = await db
-    .prepare('SELECT DISTINCT project FROM portfolio_items WHERE project IS NOT NULL ORDER BY project')
+    .prepare("SELECT DISTINCT project FROM portfolio_items WHERE project IS NOT NULL AND project != '' ORDER BY project")
     .all<{ project: string }>();
   return (results ?? []).map(r => r.project);
 }

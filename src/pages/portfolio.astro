@@ -41,10 +41,11 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     {(categories.length > 0 || projects.length > 0) && (
       <div class="filter-bar">
         <button class="filter-btn active" data-filter="all">All</button>
+        {categories.length > 0 && <span class="filter-label">Category:</span>}
         {categories.map(cat => (
           <button class="filter-btn" data-filter={`cat:${cat}`}>{cat}</button>
         ))}
-        {projects.length > 0 && categories.length > 0 && <span class="filter-divider"></span>}
+        {projects.length > 0 && <span class="filter-label">Project:</span>}
         {projects.map(proj => (
           <button class="filter-btn" data-filter={`proj:${proj}`}>{proj}</button>
         ))}
@@ -213,7 +214,13 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     border-color: var(--orange);
     color: var(--cream-light);
   }
-  .filter-divider { width: 2px; height: 1.5em; background: var(--border); }
+  .filter-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--brown-mid);
+    align-self: center;
+    margin-left: 0.3rem;
+  }
 
   .portfolio-grid {
     columns: 4 220px;
