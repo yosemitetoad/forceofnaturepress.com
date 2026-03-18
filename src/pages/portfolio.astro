@@ -40,7 +40,6 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 
     {(categories.length > 0 || projects.length > 0) && (
       <div class="filter-bar">
-        <button class="filter-btn active" data-filter="all">All</button>
         {categories.length > 0 && <span class="filter-label">Category:</span>}
         {categories.map(cat => (
           <button class="filter-btn" data-filter={`cat:${cat}`}>{cat}</button>
@@ -104,17 +103,22 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 
   btns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter!;
+      const wasActive = btn.classList.contains('active');
       btns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      cards.forEach(card => {
-        let show = true;
-        if (filter !== 'all') {
+
+      if (wasActive) {
+        // Deselect: show all
+        cards.forEach(card => { card.style.display = ''; });
+      } else {
+        btn.classList.add('active');
+        const filter = btn.dataset.filter!;
+        cards.forEach(card => {
+          let show = true;
           if (filter.startsWith('cat:')) show = card.dataset.category === filter.slice(4);
           else if (filter.startsWith('proj:')) show = card.dataset.project === filter.slice(5);
-        }
-        card.style.display = show ? '' : 'none';
-      });
+          card.style.display = show ? '' : 'none';
+        });
+      }
     });
   });
 

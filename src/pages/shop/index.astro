@@ -39,7 +39,6 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
     <!-- CONTROLS ROW -->
     <div class="controls-row">
       <div class="filter-bar" role="tablist" aria-label="Filter by category">
-        <button class="filter-btn active" data-cat="all" role="tab" aria-selected="true">All</button>
         {categories.map(([cat, label]) => (
           <button class="filter-btn" data-cat={cat} role="tab" aria-selected="false">{label}</button>
         ))}
@@ -188,10 +187,16 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      activeCat = btn.dataset.cat!;
+      const wasActive = btn.classList.contains('active');
       filterBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
-      btn.classList.add('active');
-      btn.setAttribute('aria-selected', 'true');
+
+      if (wasActive) {
+        activeCat = 'all';
+      } else {
+        activeCat = btn.dataset.cat!;
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+      }
       applyFilters();
     });
   });
