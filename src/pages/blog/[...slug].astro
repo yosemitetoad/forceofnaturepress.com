@@ -25,91 +25,110 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
   </head>
   <body>
     <Header />
-    <main>
-      <article>
-        {post.coverImage && (
-          <div class="hero-image">
-            <img src={post.coverImage} alt="" />
-          </div>
-        )}
-        <div class="prose">
-          <div class="post-header">
-            <div class="date">
-              {new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              {post.updatedAt !== post.createdAt && (
-                <span class="last-updated"> · Updated {new Date(post.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              )}
-            </div>
-            <h1>{post.title}</h1>
-            {post.author && <p class="author">by {post.author}</p>}
-            <hr />
-          </div>
-          <div class="post-content" set:html={post.content}></div>
-
-          {tags.length > 0 && (
-            <div class="post-tags">
-              {tags.map(tag => (
-                <a href={`/blog?tag=${encodeURIComponent(tag)}`} class="post-tag">{tag}</a>
-              ))}
+    <main class="blog-post-main">
+      <div class="blog-post-container">
+        <article>
+          {post.coverImage && (
+            <div class="hero-image">
+              <img src={post.coverImage} alt="" />
             </div>
           )}
-        </div>
+          <div class="post-card">
+            <div class="prose">
+              <div class="post-header">
+                <div class="date">
+                  {new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {post.updatedAt !== post.createdAt && (
+                    <span class="last-updated"> · Updated {new Date(post.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  )}
+                </div>
+                <h1>{post.title}</h1>
+                {post.author && <p class="author">by {post.author}</p>}
+                <hr />
+              </div>
+              <div class="post-content" set:html={post.content}></div>
 
-        {post.commentsEnabled && (
-          <div class="comments-section">
-            <h2 class="comments-heading">Comments {comments.length > 0 && <span class="comment-count">({comments.length})</span>}</h2>
-
-            {comments.length > 0 && (
-              <div class="comments-list">
-                {comments.map(c => (
-                  <div class="comment">
-                    <div class="comment-header">
-                      <span class="comment-author">{c.authorName}</span>
-                      <span class="comment-date">{new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                    </div>
-                    <p class="comment-body">{c.content}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <form id="commentForm" class="comment-form">
-              <h3>Leave a comment</h3>
-              <div class="form-row">
-                <label for="authorName">Name</label>
-                <input type="text" id="authorName" name="authorName" required maxlength="100" placeholder="Your name" />
-              </div>
-              <div class="form-row">
-                <label for="commentContent">Comment</label>
-                <textarea id="commentContent" name="content" required maxlength="5000" rows="4" placeholder="Write your comment..."></textarea>
-              </div>
-              <div class="form-actions">
-                <button type="submit" id="commentBtn" class="comment-submit">Post Comment</button>
-                <span class="comment-note">Comments are reviewed before appearing.</span>
-              </div>
-              <div id="commentMsg" class="comment-msg" style="display:none"></div>
-            </form>
+              {tags.length > 0 && (
+                <div class="post-tags">
+                  {tags.map(tag => (
+                    <a href={`/blog?tag=${encodeURIComponent(tag)}`} class="post-tag">{tag}</a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </article>
+
+          {post.commentsEnabled && (
+            <div class="comments-card">
+              <h2 class="comments-heading">Comments {comments.length > 0 && <span class="comment-count">({comments.length})</span>}</h2>
+
+              {comments.length > 0 && (
+                <div class="comments-list">
+                  {comments.map(c => (
+                    <div class="comment">
+                      <div class="comment-header">
+                        <span class="comment-author">{c.authorName}</span>
+                        <span class="comment-date">{new Date(c.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
+                      <p class="comment-body">{c.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form id="commentForm" class="comment-form">
+                <h3>Leave a comment</h3>
+                <div class="form-row">
+                  <label for="authorName">Name</label>
+                  <input type="text" id="authorName" name="authorName" required maxlength="100" placeholder="Your name" />
+                </div>
+                <div class="form-row">
+                  <label for="commentContent">Comment</label>
+                  <textarea id="commentContent" name="content" required maxlength="5000" rows="4" placeholder="Write your comment..."></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" id="commentBtn" class="comment-submit">Post Comment</button>
+                  <span class="comment-note">Comments are reviewed before appearing.</span>
+                </div>
+                <div id="commentMsg" class="comment-msg" style="display:none"></div>
+              </form>
+            </div>
+          )}
+        </article>
+      </div>
     </main>
     <Footer />
   </body>
 </html>
 
 <style>
-  main {
+  .blog-post-main {
+    background: url('/plainstarbanner.webp') center top / cover no-repeat fixed;
+    min-height: 100vh;
     padding: 2rem 1rem 5rem;
   }
-  .hero-image {
+
+  .blog-post-container {
     max-width: 900px;
-    margin: 0 auto 2rem;
+    margin: 0 auto;
+  }
+
+  .hero-image {
+    margin-bottom: 2rem;
   }
   .hero-image img {
     width: 100%;
     border-radius: 12px;
     box-shadow: var(--box-shadow);
   }
+
+  .post-card {
+    background: rgba(240, 230, 208, 0.88);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 2.5rem 3rem;
+  }
+
   .prose {
     max-width: 720px;
     margin: 0 auto;
@@ -146,22 +165,25 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
 
   .post-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
   .post-tag {
-    font-size: 0.8rem; background: var(--cream-light); border: 2px solid var(--border);
+    font-size: 0.8rem; background: rgba(250, 245, 234, 0.7); border: 2px solid var(--border);
     padding: 0.25em 0.8em; border-radius: 20px; font-weight: 700; color: var(--brown-mid);
     text-decoration: none; transition: all 0.15s;
   }
   .post-tag:hover { border-color: var(--orange); color: var(--brown); }
 
-  .comments-section {
-    max-width: 720px; margin: 3rem auto 0; padding-top: 2rem;
-    border-top: 2px solid var(--border);
+  .comments-card {
+    background: rgba(240, 230, 208, 0.88);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 3rem;
+    margin-top: 1.5rem;
   }
   .comments-heading { font-size: 1.3rem; margin-bottom: 1.5rem; }
   .comment-count { font-weight: 400; color: var(--brown-mid); font-size: 0.9em; }
 
   .comments-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem; }
   .comment {
-    background: var(--cream-light); border: 2px solid var(--border);
+    background: rgba(250, 245, 234, 0.7); border: 2px solid var(--border);
     border-radius: 10px; padding: 1rem 1.2rem;
   }
   .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
@@ -175,7 +197,7 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
   .comment-form label { font-weight: 700; font-size: 0.85rem; }
   .comment-form input, .comment-form textarea {
     font-family: inherit; font-size: 0.92rem; padding: 0.6em 0.8em;
-    border: 2px solid var(--border); border-radius: 8px; background: var(--cream-light);
+    border: 2px solid var(--border); border-radius: 8px; background: rgba(255, 255, 255, 0.6);
   }
   .comment-form input:focus, .comment-form textarea:focus { outline: none; border-color: var(--orange); }
   .form-actions { display: flex; align-items: center; gap: 1rem; }
@@ -191,11 +213,16 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
   .comment-msg.success { color: var(--green, #5b7b6d); }
   .comment-msg.error { color: #b44; }
   .comment-success-banner {
-    background: var(--cream-light, #faf5ea); border: 2px solid var(--green, #5b7b6d);
+    background: rgba(250, 245, 234, 0.7); border: 2px solid var(--green, #5b7b6d);
     border-radius: 10px; padding: 1.2rem 1.5rem; text-align: center;
     font-size: 0.95rem; line-height: 1.6; color: var(--brown, #2d1f0e);
   }
   .comment-success-banner strong { color: var(--green, #5b7b6d); font-size: 1.05rem; }
+
+  @media (max-width: 600px) {
+    .post-card { padding: 1.5rem 1.2rem; }
+    .comments-card { padding: 1.5rem 1.2rem; }
+  }
 </style>
 
 <script define:vars={{ postId: post.id }}>
