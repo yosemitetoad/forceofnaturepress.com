@@ -43,33 +43,41 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     )}
 
     <div class="portfolio-grid" id="portfolioGrid">
-      {items.map(item => {
-        const hasInfo = item.medium || item.year || item.description;
-        const inner = (
-          <div class="artwork-card" data-category={item.category ?? ''} data-project={item.project ?? ''}>
-            <div class="artwork-img-wrap">
-              {item.image
-                ? <img src={item.image} alt={item.title ?? ''} loading="lazy" width="500" height="500" />
-                : <div class="artwork-placeholder"></div>
-              }
-              {(hasInfo || item.project) && (
-                <div class="artwork-overlay">
-                  {item.project && <span class="overlay-project">{item.project}</span>}
-                  {item.medium && <span class="overlay-medium">{item.medium}</span>}
-                  {item.year && <span class="overlay-year">{item.year}</span>}
-                  {item.description && <p class="overlay-desc">{item.description}</p>}
-                  {item.link && <span class="overlay-link-hint">View project</span>}
-                </div>
-              )}
+      {items.map(item => (
+        <div
+          class="artwork-card"
+          data-category={item.category ?? ''}
+          data-project={item.project ?? ''}
+          data-title={item.title ?? ''}
+          data-image={item.image ?? ''}
+          data-medium={item.medium ?? ''}
+          data-year={item.year ?? ''}
+          data-description={item.description ?? ''}
+          data-link={item.link ?? ''}
+        >
+          <div class="artwork-img-wrap">
+            {item.image
+              ? <img src={item.image} alt={item.title ?? ''} loading="lazy" width="500" height="500" />
+              : <div class="artwork-placeholder"></div>
+            }
+            <div class="artwork-overlay">
+              <span class="overlay-hint">Click to view</span>
             </div>
-            {item.title && <p class="artwork-title">{item.title}</p>}
           </div>
-        );
+          {item.title && <p class="artwork-title">{item.title}</p>}
+        </div>
+      ))}
+    </div>
 
-        return item.link
-          ? <a href={item.link} target="_blank" rel="noopener noreferrer" class="artwork-link">{inner}</a>
-          : inner;
-      })}
+    <!-- Lightbox modal -->
+    <div class="lightbox" id="lightbox">
+      <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+      <div class="lightbox-content">
+        <div class="lightbox-img-wrap">
+          <img id="lightboxImg" src="" alt="" />
+        </div>
+        <div class="lightbox-info" id="lightboxInfo"></div>
+      </div>
     </div>
 
     {items.length === 0 && (
@@ -84,6 +92,7 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   const btns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
   const cards = document.querySelectorAll<HTMLElement>('.artwork-card');
 
+  // Filtering
   btns.forEach(btn => {
     btn.addEventListener('click', () => {
       const cat = btn.dataset.cat;
@@ -91,15 +100,60 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
       btns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       cards.forEach(card => {
-        const el = card.closest('.artwork-link') as HTMLElement | null;
-        const target = el ?? card;
         let show = false;
         if (cat === 'all') show = true;
         else if (proj) show = card.dataset.project === proj;
         else if (cat) show = card.dataset.category === cat;
-        target.style.display = show ? '' : 'none';
+        card.style.display = show ? '' : 'none';
       });
     });
+  });
+
+  // Lightbox
+  const lightbox = document.getElementById('lightbox')!;
+  const lightboxImg = document.getElementById('lightboxImg') as HTMLImageElement;
+  const lightboxInfo = document.getElementById('lightboxInfo')!;
+  const lightboxClose = document.getElementById('lightboxClose')!;
+
+  function openLightbox(card: HTMLElement) {
+    const { title, image, medium, year, description, link, project } = card.dataset;
+    if (!image) return;
+
+    lightboxImg.src = image;
+    lightboxImg.alt = title || '';
+
+    let html = '';
+    if (title) html += `<h2 class="lb-title">${title}</h2>`;
+    if (project) html += `<span class="lb-project">${project}</span>`;
+    const meta: string[] = [];
+    if (medium) meta.push(medium);
+    if (year) meta.push(year);
+    if (meta.length) html += `<p class="lb-meta">${meta.join(' · ')}</p>`;
+    if (description) html += `<p class="lb-desc">${description}</p>`;
+    if (link) html += `<a href="${link}" target="_blank" rel="noopener noreferrer" class="lb-link">View project &rarr;</a>`;
+
+    lightboxInfo.innerHTML = html;
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+    lightboxImg.src = '';
+  }
+
+  cards.forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => openLightbox(card));
+  });
+
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
   });
 </script>
 
@@ -154,15 +208,10 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     gap: 1.2rem;
   }
 
-  .artwork-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-  }
-
   .artwork-card {
     display: block;
     color: var(--brown);
+    cursor: pointer;
   }
 
   .artwork-img-wrap {
@@ -190,38 +239,25 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   .artwork-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(245, 230, 200, 0.92);
+    background: rgba(45, 31, 14, 0.45);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transition: opacity 0.25s;
-    color: var(--brown);
-    padding: 1.2rem;
-    text-align: center;
-    gap: 0.25rem;
   }
-  .overlay-project { font-weight: 800; font-size: 0.8rem; color: var(--orange); text-transform: uppercase; letter-spacing: 0.04em; }
-  .overlay-medium { font-weight: 800; font-size: 0.9rem; }
-  .overlay-year { font-size: 0.85rem; color: var(--brown-mid); }
-  .overlay-desc {
-    font-size: 0.8rem;
-    margin: 0.4rem 0 0;
-    line-height: 1.4;
-    color: var(--brown-mid);
-  }
-  .overlay-link-hint {
-    margin-top: 0.6rem;
-    font-size: 0.8rem;
+  .overlay-hint {
+    color: var(--cream-light);
     font-weight: 700;
-    color: var(--orange);
+    font-size: 0.9rem;
+    background: rgba(45, 31, 14, 0.6);
+    padding: 0.4em 1em;
+    border-radius: 999px;
   }
 
   .artwork-card:hover .artwork-overlay { opacity: 1; }
   .artwork-card:hover .artwork-img-wrap img { transform: scale(1.04); }
-  .artwork-card:hover .artwork-img-wrap,
-  .artwork-link:hover .artwork-img-wrap { border-color: var(--orange); }
+  .artwork-card:hover .artwork-img-wrap { border-color: var(--orange); }
 
   .artwork-title {
     margin: 0.5rem 0 0 0;
@@ -230,6 +266,105 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
     color: var(--brown-mid);
     line-height: 1.3;
   }
+
+  /* Lightbox */
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(45, 31, 14, 0.7);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+    padding: 2rem;
+  }
+  .lightbox.open { display: flex; align-items: center; justify-content: center; }
+
+  .lightbox-close {
+    position: fixed;
+    top: 1rem;
+    right: 1.2rem;
+    z-index: 1001;
+    background: none;
+    border: none;
+    color: var(--cream-light);
+    font-size: 2.2rem;
+    cursor: pointer;
+    line-height: 1;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s;
+  }
+  .lightbox-close:hover { background: rgba(255,255,255,0.15); }
+
+  .lightbox-content {
+    background: var(--cream-light);
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    max-width: 900px;
+    width: 100%;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  }
+
+  .lightbox-img-wrap {
+    background: var(--cream-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox-img-wrap img {
+    width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    display: block;
+  }
+
+  .lightbox-info {
+    padding: 1.5rem 2rem;
+  }
+  .lightbox-info:empty { display: none; }
+
+  .lb-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0 0 0.3rem;
+    color: var(--brown);
+  }
+  .lb-project {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--orange);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+  }
+  .lb-meta {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--brown-mid);
+    margin: 0.3rem 0;
+  }
+  .lb-desc {
+    font-size: 0.9rem;
+    color: var(--brown-mid);
+    line-height: 1.5;
+    margin: 0.5rem 0 0;
+  }
+  .lb-link {
+    display: inline-block;
+    margin-top: 0.8rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--orange);
+    text-decoration: none;
+  }
+  .lb-link:hover { text-decoration: underline; }
 
   .empty-msg {
     text-align: center;
@@ -240,5 +375,8 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 
   @media (max-width: 600px) {
     .portfolio-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+    .lightbox { padding: 1rem; }
+    .lightbox-info { padding: 1.2rem; }
+    .lb-title { font-size: 1.2rem; }
   }
 </style>
