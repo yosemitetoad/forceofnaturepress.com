@@ -128,7 +128,16 @@
     function loadPrefs() {
       try {
         const saved = localStorage.getItem('a11y-prefs');
-        if (!saved) return;
+        if (!saved) {
+          // Auto-collapse on mobile for first-time visitors
+          if (window.innerWidth <= 720) {
+            widget.classList.add('dismissed');
+            widget.setAttribute('aria-hidden', 'true');
+            restore.classList.add('visible');
+            restore.setAttribute('aria-hidden', 'false');
+          }
+          return;
+        }
         const prefs = JSON.parse(saved);
 
         for (const key of TOGGLES) {
