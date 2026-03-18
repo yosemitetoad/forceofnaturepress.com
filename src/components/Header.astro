@@ -47,6 +47,17 @@ const isActive = (path: string) =>
     btn.setAttribute('aria-expanded', String(open));
     nav?.setAttribute('aria-hidden', String(!open));
   });
+
+  // Update active nav link after View Transitions navigation
+  function updateActiveNav() {
+    const path = window.location.pathname;
+    document.querySelectorAll('.nav-link, .mobile-link').forEach(link => {
+      const href = link.getAttribute('href') || '';
+      const isActive = href === '/' ? path === '/' : path.startsWith(href);
+      link.classList.toggle('active', isActive);
+    });
+  }
+  document.addEventListener('astro:after-swap', updateActiveNav);
 </script>
 
 <style>
