@@ -163,22 +163,7 @@ body {
 
 #toolbar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 95; }
 
-#zoom-controls {
-  display: none; position: fixed; top: 10px; right: 10px; z-index: 200;
-  flex-direction: column; gap: 6px;
-}
-#zoom-controls button {
-  width: 40px; height: 40px; border-radius: 50%; border: 3px solid #3d5a4e;
-  background: #5b7b6d; color: #f5e6c8; font-family: 'Fredoka One', cursive;
-  font-size: 20px; cursor: pointer; display: flex; align-items: center;
-  justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  transition: transform 0.15s;
-}
-#zoom-controls button:hover { transform: scale(1.1); }
-#zoom-reset { font-size: 12px !important; }
-@media (max-width: 720px) {
-  #zoom-controls { display: flex; }
-}
+
 .tool-btn {
   font-family: 'Fredoka One', cursive; font-size: 13px; padding: 8px 18px;
   border: 3px solid #3d5a4e; border-radius: 25px; cursor: pointer;
@@ -372,11 +357,6 @@ body {
       <button class="tool-btn" id="photo-btn"><img src="images/camera_symbol.png" class="camera-icon" alt="Save/Share"></button>
     </div>
   </div>
-</div>
-<div id="zoom-controls">
-  <button id="zoom-in" title="Zoom in">+</button>
-  <button id="zoom-out" title="Zoom out">−</button>
-  <button id="zoom-reset" title="Reset zoom">1:1</button>
 </div>
 <div id="sel-toolbar">
   <span id="sel-count">0 selected</span>
@@ -1966,43 +1946,6 @@ document.getElementById('howtoplay-btn').addEventListener('click', function() {
   });
 })();
 
-// --- Mobile zoom controls ---
-(function() {
-  const container = document.getElementById('game-container');
-  const zoomIn = document.getElementById('zoom-in');
-  const zoomOut = document.getElementById('zoom-out');
-  const zoomReset = document.getElementById('zoom-reset');
-  if (!container || !zoomIn || !zoomOut || !zoomReset) return;
-
-  let zoomLevel = 1;
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 1.5;
-  const STEP = 0.1;
-
-  function applyZoom() {
-    container.style.zoom = zoomLevel;
-    container.style.height = (100 / zoomLevel) + 'vh';
-    container.style.width = (100 / zoomLevel) + 'vw';
-  }
-
-  zoomIn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    zoomLevel = Math.min(MAX_ZOOM, +(zoomLevel + STEP).toFixed(2));
-    applyZoom();
-  });
-
-  zoomOut.addEventListener('click', function(e) {
-    e.stopPropagation();
-    zoomLevel = Math.max(MIN_ZOOM, +(zoomLevel - STEP).toFixed(2));
-    applyZoom();
-  });
-
-  zoomReset.addEventListener('click', function(e) {
-    e.stopPropagation();
-    zoomLevel = 1;
-    applyZoom();
-  });
-})();
 </script>
 </body>
 </html>
