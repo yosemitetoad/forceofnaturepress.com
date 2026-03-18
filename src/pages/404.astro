@@ -1,0 +1,93 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Page Not Found — Force of Nature Press" fullWidth>
+  <div class="not-found">
+    <div class="not-found-content">
+      <h1>404</h1>
+      <p class="subtitle">This page wandered off into the woods.</p>
+      <p class="message">The page you're looking for doesn't exist or may have been moved.</p>
+      <div class="actions">
+        <a href="/" class="btn btn-primary">Back to Home</a>
+        <a href="/shop" class="btn btn-outline">Visit the Shop</a>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .not-found {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .not-found-content {
+    background: rgba(240, 230, 208, 0.88);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 3rem 4rem;
+    text-align: center;
+    max-width: 520px;
+  }
+
+  h1 {
+    font-size: 4rem;
+    color: var(--orange);
+    margin: 0 0 0.3rem;
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--brown);
+    margin: 0 0 0.8rem;
+  }
+
+  .message {
+    font-size: 0.95rem;
+    color: var(--brown-mid);
+    margin: 0 0 2rem;
+    line-height: 1.5;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.6em 1.5em;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-primary {
+    background: var(--orange);
+    color: var(--cream-light);
+    border: 2px solid var(--orange);
+  }
+  .btn-primary:hover { background: var(--orange-dark); border-color: var(--orange-dark); }
+  .btn-outline {
+    background: none;
+    color: var(--brown);
+    border: 2px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--orange); }
+
+  @media (max-width: 600px) {
+    .not-found-content { padding: 2rem 1.5rem; }
+    h1 { font-size: 3rem; }
+  }
+</style>
