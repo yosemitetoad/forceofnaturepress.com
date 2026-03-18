@@ -40,22 +40,14 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 
     {(categories.length > 0 || projects.length > 0) && (
       <div class="filter-bar">
-        {categories.length > 0 && (
-          <select class="filter-select" id="filterCategory">
-            <option value="">All Categories</option>
-            {categories.map(cat => (
-              <option value={cat}>{cat}</option>
-            ))}
-          </select>
-        )}
-        {projects.length > 0 && (
-          <select class="filter-select" id="filterProject">
-            <option value="">All Projects</option>
-            {projects.map(proj => (
-              <option value={proj}>{proj}</option>
-            ))}
-          </select>
-        )}
+        <button class="filter-btn active" data-filter="all">All</button>
+        {categories.map(cat => (
+          <button class="filter-btn" data-filter={`cat:${cat}`}>{cat}</button>
+        ))}
+        {projects.length > 0 && categories.length > 0 && <span class="filter-divider"></span>}
+        {projects.map(proj => (
+          <button class="filter-btn" data-filter={`proj:${proj}`}>{proj}</button>
+        ))}
       </div>
     )}
 
@@ -74,7 +66,7 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
           {descHtml[item.id] && <template class="desc-html"><Fragment set:html={descHtml[item.id]} /></template>}
           <div class="artwork-img-wrap">
             {item.image
-              ? <img src={item.image} alt={item.title ?? ''} loading="lazy" width="500" height="500" />
+              ? <img src={item.image} alt={item.title ?? ''} loading="lazy" />
               : <div class="artwork-placeholder"></div>
             }
             <div class="artwork-overlay">
@@ -107,21 +99,23 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 
 <script>
   const cards = document.querySelectorAll<HTMLElement>('.artwork-card');
-  const catSelect = document.getElementById('filterCategory') as HTMLSelectElement | null;
-  const projSelect = document.getElementById('filterProject') as HTMLSelectElement | null;
+  const btns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
 
-  function applyFilters() {
-    const cat = catSelect?.value || '';
-    const proj = projSelect?.value || '';
-    cards.forEach(card => {
-      const matchCat = !cat || card.dataset.category === cat;
-      const matchProj = !proj || card.dataset.project === proj;
-      card.style.display = (matchCat && matchProj) ? '' : 'none';
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter!;
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      cards.forEach(card => {
+        let show = true;
+        if (filter !== 'all') {
+          if (filter.startsWith('cat:')) show = card.dataset.category === filter.slice(4);
+          else if (filter.startsWith('proj:')) show = card.dataset.project === filter.slice(5);
+        }
+        card.style.display = show ? '' : 'none';
+      });
     });
-  }
-
-  catSelect?.addEventListener('change', applyFilters);
-  projSelect?.addEventListener('change', applyFilters);
+  });
 
   // Lightbox
   const lightbox = document.getElementById('lightbox')!;
@@ -197,45 +191,46 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.8rem;
+    gap: 0.5rem;
     margin-bottom: 2rem;
+    align-items: center;
   }
-  .filter-select {
-    padding: 0.5em 2em 0.5em 0.9em;
+  .filter-btn {
+    padding: 0.45em 1.2em;
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 999px;
     background: var(--cream-light);
     color: var(--brown);
     font-family: inherit;
     font-size: 0.9rem;
     font-weight: 700;
     cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b4a2a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.7em center;
-    transition: border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
-  .filter-select:hover, .filter-select:focus {
+  .filter-btn:hover { border-color: var(--orange); }
+  .filter-btn.active {
+    background: var(--orange);
     border-color: var(--orange);
-    outline: none;
+    color: var(--cream-light);
   }
+  .filter-divider { width: 2px; height: 1.5em; background: var(--border); }
 
   .portfolio-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1.2rem;
+    columns: 4 220px;
+    column-gap: 1.2rem;
   }
 
   .artwork-card {
-    display: block;
+    display: inline-block;
+    width: 100%;
     color: var(--brown);
     cursor: pointer;
+    margin-bottom: 1.2rem;
+    break-inside: avoid;
   }
 
   .artwork-img-wrap {
     position: relative;
-    aspect-ratio: 1;
     overflow: hidden;
     border-radius: 10px;
     border: 2px solid var(--border);
@@ -243,15 +238,13 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   }
   .artwork-img-wrap img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    display: block;
     border-radius: 0;
     transition: transform 0.25s;
-    display: block;
   }
   .artwork-placeholder {
     width: 100%;
-    height: 100%;
+    padding-bottom: 100%;
     background: var(--cream-dark);
   }
 
@@ -399,7 +392,8 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   }
 
   @media (max-width: 600px) {
-    .portfolio-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
+    .portfolio-grid { columns: 2; column-gap: 0.8rem; }
+    .artwork-card { margin-bottom: 0.8rem; }
     .lightbox { padding: 1rem; }
     .lightbox-info { padding: 1.2rem; }
     .lb-title { font-size: 1.2rem; }
