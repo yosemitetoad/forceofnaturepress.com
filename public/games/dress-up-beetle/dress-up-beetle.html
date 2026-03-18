@@ -1968,11 +1968,11 @@ document.getElementById('howtoplay-btn').addEventListener('click', function() {
 
 // --- Mobile zoom controls ---
 (function() {
-  const dollArea = document.getElementById('doll-area');
+  const stage = document.getElementById('stage');
   const zoomIn = document.getElementById('zoom-in');
   const zoomOut = document.getElementById('zoom-out');
   const zoomReset = document.getElementById('zoom-reset');
-  if (!dollArea || !zoomIn || !zoomOut || !zoomReset) return;
+  if (!stage || !zoomIn || !zoomOut || !zoomReset) return;
 
   let zoomLevel = 1;
   const MIN_ZOOM = 0.5;
@@ -1980,8 +1980,8 @@ document.getElementById('howtoplay-btn').addEventListener('click', function() {
   const STEP = 0.15;
 
   function applyZoom() {
-    dollArea.style.transform = 'scale(' + zoomLevel + ')';
-    dollArea.style.transformOrigin = 'center center';
+    stage.style.transform = 'scale(' + zoomLevel + ')';
+    stage.style.transformOrigin = 'center center';
   }
 
   zoomIn.addEventListener('click', function(e) {
