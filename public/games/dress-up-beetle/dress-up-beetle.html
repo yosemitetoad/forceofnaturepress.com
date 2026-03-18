@@ -1678,9 +1678,10 @@ const TITLE_CHARS = [
 function createTitleLetters() {
   const visible = TITLE_CHARS.filter(Boolean);
   if (!visible.length) return;
-  const targetH = 65;
-  const subtitleH = 19;
-  const gap = 6;
+  const isMobile = window.innerWidth <= 720;
+  const targetH = isMobile ? 40 : 65;
+  const subtitleH = isMobile ? 12 : 19;
+  const gap = isMobile ? 3 : 6;
   let loadedCount = 0;
   const items = visible.map(src => ({ src, w: 0, skip: false }));
   const subtitleItem = { src: 'images/subtitle.png', w: 0, displayH: subtitleH, skip: false };
