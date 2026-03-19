@@ -131,8 +131,10 @@ for (const [key, val] of Object.entries(cardDescriptions)) {
 </Base>
 
 <script>
-  const form = document.getElementById('contactForm') as HTMLFormElement;
-  const success = document.getElementById('formSuccess')!;
+function initContact() {
+  const form = document.getElementById('contactForm') as HTMLFormElement | null;
+  const success = document.getElementById('formSuccess');
+  if (!form || !success) return;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -149,6 +151,9 @@ for (const [key, val] of Object.entries(cardDescriptions)) {
       setTimeout(() => { success.classList.remove('visible', 'fading'); }, 8000);
     }
   });
+}
+initContact();
+document.addEventListener('astro:after-swap', initContact);
 </script>
 
 <style>

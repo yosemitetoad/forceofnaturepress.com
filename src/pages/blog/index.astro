@@ -201,6 +201,7 @@ try {
 </style>
 
 <script>
+function initBlog() {
   const searchInput = document.getElementById('blogSearch') as HTMLInputElement | null;
   const postList = document.getElementById('postList');
   const noResults = document.getElementById('noResults');
@@ -246,4 +247,7 @@ try {
       });
     });
   }
+}
+initBlog();
+document.addEventListener('astro:after-swap', initBlog);
 </script>

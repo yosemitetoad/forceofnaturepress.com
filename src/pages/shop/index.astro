@@ -106,12 +106,14 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 </Base>
 
 <script>
-  const grid = document.getElementById('productGrid')!;
-  const noResults = document.getElementById('noResults')!;
-  const paginationEl = document.getElementById('pagination')!;
-  const searchInput = document.getElementById('shopSearch') as HTMLInputElement;
-  const sortSelect = document.getElementById('shopSort') as HTMLSelectElement;
-  const perPageSelect = document.getElementById('shopPerPage') as HTMLSelectElement;
+function initShop() {
+  const grid = document.getElementById('productGrid');
+  const noResults = document.getElementById('noResults');
+  const paginationEl = document.getElementById('pagination');
+  const searchInput = document.getElementById('shopSearch') as HTMLInputElement | null;
+  const sortSelect = document.getElementById('shopSort') as HTMLSelectElement | null;
+  const perPageSelect = document.getElementById('shopPerPage') as HTMLSelectElement | null;
+  if (!grid || !noResults || !paginationEl || !searchInput || !sortSelect || !perPageSelect) return;
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
 
   let activeCat = 'all';
@@ -226,6 +228,9 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
       track('click', card.dataset.sku);
     }
   });
+}
+initShop();
+document.addEventListener('astro:after-swap', initShop);
 </script>
 
 <style>

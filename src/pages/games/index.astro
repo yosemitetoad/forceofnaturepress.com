@@ -77,11 +77,12 @@ const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
 </Base>
 
 <script>
-  const overlay = document.getElementById('gameOverlay')!;
-  const frame = document.getElementById('gameFrame') as HTMLIFrameElement;
-  const closeBtn = document.getElementById('overlayClose')!;
-
-  const overlayTitle = document.getElementById('overlayTitle')!;
+function initGames() {
+  const overlay = document.getElementById('gameOverlay');
+  const frame = document.getElementById('gameFrame') as HTMLIFrameElement | null;
+  const closeBtn = document.getElementById('overlayClose');
+  const overlayTitle = document.getElementById('overlayTitle');
+  if (!overlay || !frame || !closeBtn || !overlayTitle) return;
 
   document.querySelectorAll<HTMLButtonElement>('.game-play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -116,6 +117,9 @@ const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeOverlay();
   });
+}
+initGames();
+document.addEventListener('astro:after-swap', initGames);
 </script>
 
 <style>

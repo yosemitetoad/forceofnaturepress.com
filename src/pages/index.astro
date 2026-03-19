@@ -144,8 +144,8 @@ const whatsNewHtml = await Promise.all(whatsNew.map(async item => ({
     resetAuto();
   }
 
+function initHome() {
   initCarousel();
-  document.addEventListener('astro:after-swap', initCarousel);
 
   // ── Analytics tracking ──
   function track(type: string, sku?: string) {
@@ -162,6 +162,9 @@ const whatsNewHtml = await Promise.all(whatsNew.map(async item => ({
     const slide = (e.target as HTMLElement).closest('.carousel-slide') as HTMLElement | null;
     if (slide?.dataset.sku) track('click', slide.dataset.sku);
   });
+}
+initHome();
+document.addEventListener('astro:after-swap', initHome);
 </script>
 
 <style>

@@ -98,6 +98,7 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
 </Base>
 
 <script>
+function initPortfolio() {
   const cards = document.querySelectorAll<HTMLElement>('.artwork-card');
   const btns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
 
@@ -172,6 +173,9 @@ const portfolioSubheader = content.portfolio_subheader ?? 'Original nature illus
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
   });
+}
+initPortfolio();
+document.addEventListener('astro:after-swap', initPortfolio);
 </script>
 
 <style>
