@@ -107,6 +107,9 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
     min-height: 100vh;
     padding: 2rem 1rem 5rem;
   }
+  :global(footer) {
+    margin-top: 0 !important;
+  }
 
   .blog-post-container {
     max-width: 900px;
