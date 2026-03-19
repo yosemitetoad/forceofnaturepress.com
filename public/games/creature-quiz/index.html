@@ -368,6 +368,10 @@ body {
   margin: 0 auto 32px;
 }
 
+#share-area {
+  padding: 12px 0 8px;
+}
+
 #share-btn {
   font-family: 'Fredoka One', cursive;
   font-size: 17px;
@@ -614,13 +618,15 @@ body {
   <div id="result-screen">
     <div id="result-card">
       <div id="float-stage"></div>
-      <div id="result-img" role="img" aria-label=""></div>
-      <div id="result-reveal-label"></div>
-      <div id="result-you-got">You got...</div>
-      <div id="result-name"></div>
-      <div id="result-title"></div>
-      <hr id="result-divider">
-      <p id="result-desc"></p>
+      <div id="share-area">
+        <div id="result-img" role="img" aria-label=""></div>
+        <div id="result-reveal-label"></div>
+        <div id="result-you-got">You got...</div>
+        <div id="result-name"></div>
+        <div id="result-title"></div>
+        <hr id="result-divider">
+        <p id="result-desc"></p>
+      </div>
       <div id="result-btns">
         <a id="shop-btn" href="" target="_blank" rel="noopener">Shop merch of your match!</a>
         <button id="share-btn">Share my result!</button>
@@ -952,8 +958,8 @@ function shareResult(c) {
   btn.textContent = 'Saving...';
   btn.disabled = true;
 
-  const card = document.getElementById('result-card');
-  html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+  const shareArea = document.getElementById('share-area');
+  html2canvas(shareArea, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
     canvas.toBlob(blob => {
       // Mobile: try sharing the image file directly via native share sheet
       if (navigator.share) {
