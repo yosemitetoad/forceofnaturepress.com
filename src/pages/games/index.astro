@@ -76,7 +76,7 @@ const gameCardsHtml = await Promise.all(gameCards.map(async card => ({
 
 </Base>
 
-<script>
+<script data-astro-rerun>
   const overlay = document.getElementById('gameOverlay')!;
   const frame = document.getElementById('gameFrame') as HTMLIFrameElement;
   const closeBtn = document.getElementById('overlayClose')!;
