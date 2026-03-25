@@ -3,12 +3,12 @@ export const prerender = false;
 
 import Base from '../../layouts/Base.astro';
 import { SHOP_ITEMS, CATEGORY_LABELS, getEtsyUrl } from '../../data/shop';
-import { getAllShopItems, getPageContentMulti } from '../../lib/db';
-import type { ShopCategory } from '../../data/shop';
+import { getAllShopItems, getPageContentMulti, getShopCategories } from '../../lib/db';
 
 let shopItems = SHOP_ITEMS;
 let shopHeader = 'Shop';
 let shopSubheader = 'All products ship from the Pacific Northwest. Click any item to purchase on Etsy.';
+let categories: {slug: string, label: string}[] = Object.entries(CATEGORY_LABELS).map(([slug, label]) => ({ slug, label }));
 try {
   const db = Astro.locals.runtime.env.DB;
   if (db) {
@@ -17,12 +17,12 @@ try {
     const content = await getPageContentMulti(db, ['shop_header', 'shop_subheader']);
     if (content.shop_header) shopHeader = content.shop_header;
     if (content.shop_subheader) shopSubheader = content.shop_subheader;
+    const dbCats = await getShopCategories(db);
+    if (dbCats.length > 0) categories = dbCats;
   }
 } catch (e) {
   console.warn('[shop] D1 unavailable, using static data:', e);
 }
-
-const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
 ---
 
 <Base title="Shop — Force of Nature Press" description="Nature-themed stickers, keychains, earrings, linocut prints, and more. Handmade in the Pacific Northwest." fullWidth>
@@ -39,8 +39,8 @@ const categories = Object.entries(CATEGORY_LABELS) as [ShopCategory, string][];
     <!-- CONTROLS ROW -->
     <div class="controls-row">
       <div class="filter-bar" role="tablist" aria-label="Filter by category">
-        {categories.map(([cat, label]) => (
-          <button class="filter-btn" data-cat={cat} role="tab" aria-selected="false">{label}</button>
+        {categories.map(({ slug, label }) => (
+          <button class="filter-btn" data-cat={slug} role="tab" aria-selected="false">{label}</button>
         ))}
       </div>
 

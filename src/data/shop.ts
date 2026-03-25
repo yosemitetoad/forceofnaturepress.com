@@ -3,17 +3,9 @@
 // from the Etsy URL (e.g., etsy.com/listing/1234567890/...) to etsyListingId.
 // Without it, clicking will search the shop for that product name.
 
-export type ShopCategory =
-  | 'stickers'
-  | 'sticker-sheets'
-  | 'keychains'
-  | 'earrings'
-  | 'buttons'
-  | 'magnets'
-  | 'prints'
-  | 'gift-sets';
+export type ShopCategory = string;
 
-export const CATEGORY_LABELS: Record<ShopCategory, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   stickers: 'Stickers',
   'sticker-sheets': 'Sticker Sheets',
   keychains: 'Keychains',

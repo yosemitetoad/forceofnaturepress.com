@@ -3,8 +3,21 @@ export const prerender = false;
 
 import Admin from '../../../layouts/Admin.astro';
 import { CATEGORY_LABELS } from '../../../data/shop';
+import { getShopCategories } from '../../../lib/db';
 
-const categories = Object.entries(CATEGORY_LABELS);
+let categories: {slug: string, label: string}[] = Object.entries(CATEGORY_LABELS).map(([slug, label]) => ({ slug, label }));
+try {
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const dbCats = await getShopCategories(db);
+    if (dbCats.length > 0) {
+      // Merge: use DB categories, add any from CATEGORY_LABELS not already present
+      const slugs = new Set(dbCats.map((c: {slug: string}) => c.slug));
+      const extra = categories.filter((c: {slug: string}) => !slugs.has(c.slug));
+      categories = [...dbCats, ...extra];
+    }
+  }
+} catch {};
 ---
 
 <Admin title="Add Shop Item">
@@ -22,10 +35,13 @@ const categories = Object.entries(CATEGORY_LABELS);
       <div class="form-group">
         <label for="category">Category *</label>
         <select id="category" name="category" required>
-          {categories.map(([value, label]) => (
-            <option value={value}>{label}</option>
+          {categories.map(({ slug, label }) => (
+            <option value={slug}>{label}</option>
           ))}
+          <option value="__new__">+ Add new category...</option>
         </select>
+        <input type="text" id="newCategory" name="newCategory" placeholder="e.g. tattoo-tickets" style="display:none; margin-top: 0.4rem;" />
+        <span class="field-hint" id="newCatHint" style="display:none">Use lowercase with dashes (e.g. tattoo-tickets)</span>
       </div>
     </div>
 
@@ -111,6 +127,16 @@ const categories = Object.entries(CATEGORY_LABELS);
   const status = document.getElementById('form-status')!;
   const imageInput = document.getElementById('image') as HTMLInputElement;
   const preview = document.getElementById('image-preview') as HTMLImageElement;
+  const catSelect = document.getElementById('category') as HTMLSelectElement;
+  const newCatInput = document.getElementById('newCategory') as HTMLInputElement;
+  const newCatHint = document.getElementById('newCatHint')!;
+
+  catSelect.addEventListener('change', () => {
+    const isNew = catSelect.value === '__new__';
+    newCatInput.style.display = isNew ? '' : 'none';
+    newCatHint.style.display = isNew ? '' : 'none';
+    if (isNew) newCatInput.focus();
+  });
 
   imageInput.addEventListener('input', () => {
     if (imageInput.value) {
@@ -149,8 +175,14 @@ const categories = Object.entries(CATEGORY_LABELS);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
-    data.price = Number(data.price) as any;
+    const data = Object.fromEntries(new FormData(form)) as any;
+    data.price = Number(data.price);
+    if (data.category === '__new__') {
+      const slug = (data.newCategory || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      if (!slug) { status.textContent = 'Please enter a category name.'; status.style.color = '#b44'; return; }
+      data.category = slug;
+    }
+    delete data.newCategory;
 
     const res = await fetch('/api/admin/shop', {
       method: 'POST',

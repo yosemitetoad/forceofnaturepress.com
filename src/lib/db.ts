@@ -49,6 +49,16 @@ export async function getShopItemsByCategory(db: D1Database, category: ShopCateg
   return (results ?? []).map(rowToItem);
 }
 
+export async function getShopCategories(db: D1Database): Promise<{slug: string, label: string}[]> {
+  const { results } = await db
+    .prepare("SELECT DISTINCT category FROM shop_items WHERE category IS NOT NULL AND category != '' ORDER BY category")
+    .all<{ category: string }>();
+  return (results ?? []).map((r: { category: string }) => ({
+    slug: r.category,
+    label: r.category.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+  }));
+}
+
 export async function getNextSortOrder(db: D1Database): Promise<number> {
   const row = await db
     .prepare('SELECT MAX(sort_order) as max_order FROM shop_items')
