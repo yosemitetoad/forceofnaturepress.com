@@ -2,13 +2,17 @@
 export const prerender = false;
 
 import Admin from '../../../layouts/Admin.astro';
-import { getAllShopItems } from '../../../lib/db';
+import { getAllShopItems, getShopCategories } from '../../../lib/db';
 import { CATEGORY_LABELS, getEtsyUrl } from '../../../data/shop';
 
 const db = Astro.locals.runtime.env.DB;
 const items = await getAllShopItems(db);
 
-const categories = Object.entries(CATEGORY_LABELS);
+let categories: {slug: string, label: string}[] = Object.entries(CATEGORY_LABELS).map(([slug, label]) => ({ slug, label }));
+try {
+  const dbCats = await getShopCategories(db);
+  if (dbCats.length > 0) categories = dbCats;
+} catch {};
 const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
 ---
 
@@ -22,8 +26,8 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
     <input type="search" id="search" placeholder="Search items..." class="search-input" />
     <select id="category-filter" class="control-select">
       <option value="all" selected={activeCategory === 'all'}>All Categories</option>
-      {categories.map(([value, label]) => (
-        <option value={value} selected={value === activeCategory}>{label}</option>
+      {categories.map(({ slug, label }) => (
+        <option value={slug} selected={slug === activeCategory}>{label}</option>
       ))}
     </select>
     <select id="sort-select" class="control-select">
@@ -55,7 +59,7 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
             <td><img src={item.image} alt="" class="thumb" /></td>
             <td class="title-cell">{item.title}</td>
             <td><code>{item.sku}</code></td>
-            <td>{CATEGORY_LABELS[item.category] ?? item.category}</td>
+            <td>{categories.find(c => c.slug === item.category)?.label ?? item.category}</td>
             <td>${item.price.toFixed(2)}</td>
             <td class="actions-cell">
               <a href={`/admin/shop/${item.sku}`} class="btn-sm btn-edit">Edit</a>
