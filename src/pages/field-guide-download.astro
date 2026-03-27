@@ -8,7 +8,7 @@ import Base from '../layouts/Base.astro';
     <div class="container download-body">
       <div class="download-card">
         <h1>Your download should start automatically...</h1>
-        <p>If it doesn't, <a id="manual-link" href="/minifieldguide_vol1_fonp.pdf" download="Mini Field Guide Vol 1 - Force of Nature Press.pdf">click here to download</a>.</p>
+        <p>If it doesn't, <a id="manual-link" href="/downloads/minifieldguide_vol1_fonp.pdf" download="Mini Field Guide Vol 1 - Force of Nature Press.pdf">click here to download</a>.</p>
       </div>
     </div>
   </div>
@@ -18,7 +18,7 @@ import Base from '../layouts/Base.astro';
 <script>
 function triggerDownload() {
   const a = document.createElement('a');
-  a.href = '/minifieldguide_vol1_fonp.pdf';
+  a.href = '/downloads/minifieldguide_vol1_fonp.pdf';
   a.download = 'Mini Field Guide Vol 1 - Force of Nature Press.pdf';
   document.body.appendChild(a);
   a.click();
