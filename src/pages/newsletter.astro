@@ -29,7 +29,7 @@ import Base from '../layouts/Base.astro';
                       </div>
                     </div>
                     <div class="ml-form-recaptcha ml-validate-required" style="float: left;">
-                      <script src="https://www.google.com/recaptcha/api.js"></script>
+                      <script is:inline src="https://www.google.com/recaptcha/api.js"></script>
                       <div class="g-recaptcha" data-sitekey="6Lf1KHQUAAAAAFNKEX1hdSWCS3mRMv4FlFaNslaD"></div>
                     </div>
                     <input type="hidden" name="ml-submit" value="1">
@@ -58,15 +58,15 @@ import Base from '../layouts/Base.astro';
 
 </Base>
 
-<script>
+<script is:inline>
   function ml_webform_success_38936232() {
     var $ = ml_jQuery || jQuery;
     $('.ml-subscribe-form-38936232 .row-success').show();
     $('.ml-subscribe-form-38936232 .row-form').hide();
   }
 </script>
-<script src="https://groot.mailerlite.com/js/w/webforms.min.js?v95037e5bac78f29ed026832ca21a7c7b" type="text/javascript"></script>
-<script>
+<script is:inline src="https://groot.mailerlite.com/js/w/webforms.min.js?v95037e5bac78f29ed026832ca21a7c7b" type="text/javascript"></script>
+<script is:inline>
   fetch("https://assets.mailerlite.com/jsonp/2216294/forms/182854136374494712/takel")
 </script>
 
