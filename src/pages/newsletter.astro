@@ -88,9 +88,10 @@ import Base from '../layouts/Base.astro';
     background: rgba(240, 230, 208, 0.92);
     border: 2px solid var(--border);
     border-radius: 14px;
-    padding: 2rem;
+    padding: 3rem;
     width: 100%;
-    max-width: 600px;
+    max-width: 900px;
+    text-align: center;
   }
 
   /* MailerLite form style overrides */
@@ -110,26 +111,38 @@ import Base from '../layouts/Base.astro';
     padding: 0 !important;
   }
 
+  #mlb2-38936232 .ml-form-embedContent {
+    text-align: center !important;
+  }
+
   #mlb2-38936232 .ml-form-embedContent h4 {
-    font-family: var(--font-heading, 'Roboto Slab', serif) !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
     color: var(--brown) !important;
-    font-size: 1.3rem !important;
+    font-size: 1.6rem !important;
+    text-align: center !important;
   }
 
   #mlb2-38936232 .ml-form-embedContent p {
     color: var(--brown-mid) !important;
-    font-family: inherit !important;
-    font-size: 0.9rem !important;
-    line-height: 1.5 !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+    text-align: center !important;
+  }
+
+  #mlb2-38936232 .ml-form-formContent {
+    max-width: 400px;
+    margin: 0 auto;
   }
 
   #mlb2-38936232 .ml-form-fieldRow input {
-    font-family: inherit !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
     border: 2px solid var(--border) !important;
     border-radius: 8px !important;
     background: var(--cream-light) !important;
     color: var(--brown) !important;
-    padding: 0.6em 0.8em !important;
+    padding: 0.7em 1em !important;
+    font-size: 1rem !important;
   }
 
   #mlb2-38936232 .ml-form-fieldRow input:focus {
@@ -137,14 +150,25 @@ import Base from '../layouts/Base.astro';
     outline: none !important;
   }
 
+  #mlb2-38936232 .ml-form-recaptcha {
+    display: flex !important;
+    justify-content: center !important;
+    float: none !important;
+  }
+
+  #mlb2-38936232 .ml-form-embedSubmit {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
   #mlb2-38936232 .ml-form-embedSubmit button.primary {
     background-color: var(--orange, #c87830) !important;
     border: none !important;
     border-radius: 8px !important;
-    font-family: var(--font-heading, 'Roboto Slab', serif) !important;
-    font-size: 1rem !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
+    font-size: 1.05rem !important;
     font-weight: 700 !important;
-    padding: 0.65em 1.2em !important;
+    padding: 0.7em 1.5em !important;
     cursor: pointer;
     transition: background-color 0.15s;
   }
@@ -153,19 +177,27 @@ import Base from '../layouts/Base.astro';
     background-color: var(--orange-dark, #8b5520) !important;
   }
 
+  #mlb2-38936232 .ml-form-embedPermissions {
+    text-align: center !important;
+  }
+
   #mlb2-38936232 .ml-form-embedPermissions p {
-    font-size: 0.78rem !important;
+    font-size: 0.82rem !important;
     color: var(--brown-mid) !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
+    text-align: center !important;
   }
 
   #mlb2-38936232 .ml-form-successContent h4 {
-    font-family: var(--font-heading, 'Roboto Slab', serif) !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
     color: var(--brown) !important;
+    text-align: center !important;
   }
 
   #mlb2-38936232 .ml-form-successContent p {
     color: var(--brown-mid) !important;
-    font-family: inherit !important;
+    font-family: 'Nunito', 'Atkinson', sans-serif !important;
+    text-align: center !important;
   }
 
   /* Loader */
@@ -203,6 +235,7 @@ import Base from '../layouts/Base.astro';
 
   .g-recaptcha {
     margin-bottom: 20px;
+    display: inline-block;
   }
 
   @media (max-width: 480px) {
@@ -214,6 +247,6 @@ import Base from '../layouts/Base.astro';
   }
 
   @media (max-width: 600px) {
-    .newsletter-form-wrap { padding: 1.2rem; }
+    .newsletter-form-wrap { padding: 1.5rem; }
   }
 </style>
