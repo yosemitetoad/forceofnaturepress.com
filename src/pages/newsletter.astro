@@ -5,16 +5,8 @@ import Base from '../layouts/Base.astro';
 <Base title="Newsletter — Force of Nature Press" description="Sign up for Field Notes from Force of Nature Press and get a free digital field guide.">
 
   <div class="newsletter-wrap">
-    <div class="container newsletter-body">
-      <div class="newsletter-layout">
-
-        <div class="newsletter-intro">
-          <h1>Field Notes from Force of Nature Press</h1>
-          <p>Sign up to receive a free digital field guide + periodical updates in your inbox, including new art, shop drops, market dates, site updates, and more.</p>
-        </div>
-
-        <div class="newsletter-form-wrap">
-          <!-- MailerLite Embedded Form -->
+    <div class="newsletter-form-wrap">
+      <!-- MailerLite Embedded Form -->
           <div id="mlb2-38936232" class="ml-form-embedContainer ml-subscribe-form ml-subscribe-form-38936232">
             <div class="ml-form-align-center">
               <div class="ml-form-embedWrapper embedForm">
@@ -60,10 +52,7 @@ import Base from '../layouts/Base.astro';
               </div>
             </div>
           </div>
-          <!-- /MailerLite Embedded Form -->
-        </div>
-
-      </div>
+      <!-- /MailerLite Embedded Form -->
     </div>
   </div>
 
@@ -87,46 +76,21 @@ import Base from '../layouts/Base.astro';
 
   .newsletter-wrap {
     background: url('/plainstarbanner.webp') center / cover no-repeat;
-    min-height: calc(100vh - 72px - 120px);
-    padding: 3rem 0;
+    min-height: calc(100vh - 80px);
+    padding: 3rem 1.5rem;
     margin-bottom: -4rem;
     display: flex;
     align-items: center;
-  }
-
-  .newsletter-body {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .newsletter-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .newsletter-intro {
-    text-align: center;
-  }
-
-  .newsletter-intro h1 {
-    font-size: 1.8rem;
-    color: var(--brown);
-    margin: 0 0 0.6rem;
-  }
-
-  .newsletter-intro p {
-    color: var(--brown-mid);
-    font-size: 1rem;
-    line-height: 1.6;
-    margin: 0;
+    justify-content: center;
   }
 
   .newsletter-form-wrap {
     background: rgba(240, 230, 208, 0.92);
     border: 2px solid var(--border);
     border-radius: 14px;
-    padding: 1.5rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 480px;
   }
 
   /* MailerLite form style overrides */
@@ -250,7 +214,6 @@ import Base from '../layouts/Base.astro';
   }
 
   @media (max-width: 600px) {
-    .newsletter-intro h1 { font-size: 1.4rem; }
-    .newsletter-form-wrap { padding: 1rem; }
+    .newsletter-form-wrap { padding: 1.2rem; }
   }
 </style>
