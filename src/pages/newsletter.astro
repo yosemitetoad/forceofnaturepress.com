@@ -45,8 +45,9 @@ import Base from '../layouts/Base.astro';
                 </div>
                 <div class="ml-form-successBody row-success" style="display: none">
                   <div class="ml-form-successContent">
-                    <h4>Welcome to the Crew!</h4>
-                    <p>Check your inbox for your free download. We'll be in touch with new art drops, market dates, and shop news!</p>
+                    <h4>Thank you for subscribing to Field Notes!</h4>
+                    <p>Check your inbox for your free field guide download. We'll be in touch soon with all new things for Force of Nature Press!</p>
+                    <p><a href="/" class="back-home-link">Back to the homepage</a></p>
                   </div>
                 </div>
               </div>
@@ -198,6 +199,16 @@ import Base from '../layouts/Base.astro';
     color: var(--brown-mid) !important;
     font-family: 'Nunito', 'Atkinson', sans-serif !important;
     text-align: center !important;
+  }
+
+  .back-home-link {
+    color: var(--orange, #c87830) !important;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .back-home-link:hover {
+    color: var(--orange-dark, #8b5520) !important;
   }
 
   /* Loader */
