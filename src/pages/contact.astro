@@ -55,6 +55,20 @@ for (const [key, val] of Object.entries(cardDescriptions)) {
           <span class="contact-arrow">→</span>
         </a>
 
+        <a href="/newsletter" class="contact-card">
+          <div class="contact-icon newsletter-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6c-.55 0-1-.45-1-1V8l6.5 4.5L18 8v10c0 .55-.45 1-1 1zM12.5 11L6 6.5h12L12.5 11z"/>
+            </svg>
+          </div>
+          <div class="contact-info">
+            <h2>Newsletter</h2>
+            <p><Fragment set:html={cardHtml.newsletter ?? 'Sign up for Field Notes from Force of Nature Press and get a free digital field guide + updates on new art, shop drops, and more.'} /></p>
+            <span class="contact-handle">Field Notes from Force of Nature Press</span>
+          </div>
+          <span class="contact-arrow">&rarr;</span>
+        </a>
+
         <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" class="contact-card">
           <div class="contact-icon instagram-icon">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -217,6 +231,7 @@ document.addEventListener('astro:after-swap', initContact);
   .instagram-icon { background: #eed4c6; color: #e1306c; }
   .pinterest-icon { background: #efcfbf; color: #e60023; }
   .email-icon     { background: #ebd9bd; color: var(--orange); }
+  .newsletter-icon { background: #d9e6df; color: var(--teal, #5b7b6d); }
 
   .contact-info { flex: 1; min-width: 0; }
   .contact-info h2 { font-size: 1rem; margin: 0 0 0.15em 0; }

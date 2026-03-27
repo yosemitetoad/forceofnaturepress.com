@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Downloading Field Guide — Force of Nature Press" description="Your free digital field guide from Force of Nature Press.">
+
+  <div class="download-wrap">
+    <div class="container download-body">
+      <div class="download-card">
+        <h1>Your download should start automatically...</h1>
+        <p>If it doesn't, <a id="manual-link" href="/minifieldguide_vol1_fonp.pdf" download="Mini Field Guide Vol 1 - Force of Nature Press.pdf">click here to download</a>.</p>
+      </div>
+    </div>
+  </div>
+
+</Base>
+
+<script>
+function triggerDownload() {
+  const a = document.createElement('a');
+  a.href = '/minifieldguide_vol1_fonp.pdf';
+  a.download = 'Mini Field Guide Vol 1 - Force of Nature Press.pdf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+triggerDownload();
+document.addEventListener('astro:after-swap', triggerDownload);
+</script>
+
+<style>
+  .download-wrap {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    min-height: calc(100vh - 72px - 120px);
+    padding: 3rem 0;
+    margin-bottom: -4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .download-body {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .download-card {
+    background: rgba(240, 230, 208, 0.92);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+
+  .download-card h1 {
+    font-size: 1.4rem;
+    color: var(--brown);
+    margin: 0 0 1rem;
+  }
+
+  .download-card p {
+    color: var(--brown-mid);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .download-card a {
+    color: var(--orange);
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .download-card a:hover {
+    color: var(--orange-dark);
+  }
+</style>
