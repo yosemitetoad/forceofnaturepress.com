@@ -34,7 +34,7 @@ try {
   console.warn('[home] D1 unavailable, using static data:', e);
 }
 
-const featured = allItems.filter(i => featuredSkus.includes(i.sku));
+const featured = featuredSkus.map(sku => allItems.find(i => i.sku === sku)).filter(Boolean);
 
 const introP1Html = await mdInline(introP1);
 const introP2Html = await mdInline(introP2);
