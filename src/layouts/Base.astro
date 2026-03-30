@@ -35,9 +35,19 @@ const {
         document.addEventListener('contextmenu', (e) => {
           if (e.target instanceof HTMLImageElement) e.preventDefault();
         });
+        document.addEventListener('touchstart', (e) => {
+          if (e.target instanceof HTMLImageElement) e.preventDefault();
+        }, { passive: false });
       }
       blockImageContext();
       document.addEventListener('astro:after-swap', blockImageContext);
     </script>
+    <style is:global>
+      img {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    </style>
   </body>
 </html>
