@@ -194,7 +194,7 @@ for (const item of portfolioItems) {
         status!.style.color = '#3d7a6e';
       } else {
         const data = await res.json();
-        status!.textContent = data.error || 'Publish failed.';
+        status!.textContent = (data.error || 'Publish failed.') + (data.detail ? ': ' + data.detail : '');
         status!.style.color = '#b44';
       }
     } catch {
