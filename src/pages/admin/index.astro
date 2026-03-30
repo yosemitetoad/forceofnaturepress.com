@@ -25,11 +25,6 @@ for (const item of portfolioItems) {
 <Admin title="Dashboard">
   <h1>Dashboard</h1>
 
-  <div class="actions-top">
-    <button id="publish-btn" class="btn btn-publish">Publish Changes</button>
-  </div>
-  <div id="publish-status" class="publish-status"></div>
-
   <div class="sections">
     <div class="section">
       <h2>Shop</h2>
@@ -123,9 +118,6 @@ for (const item of portfolioItems) {
   h2 { font-size: 1.4rem; font-weight: 800; margin: 0 0 1rem; }
   h3 { font-size: 1rem; font-weight: 800; margin: 1.2rem 0 0.6rem; color: #6b4a2a; }
 
-  .actions-top { margin-bottom: 0.5rem; }
-  .publish-status { min-height: 1.5em; font-size: 0.9rem; font-weight: 700; margin-bottom: 1.5rem; }
-
   .sections { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
   @media (max-width: 960px) { .sections { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 640px) { .sections { grid-template-columns: 1fr; } }
@@ -153,9 +145,6 @@ for (const item of portfolioItems) {
   .btn-primary:hover { background: #a05e18; }
   .btn-secondary { background: #3d7a6e; color: #faf5ea; }
   .btn-secondary:hover { background: #2a5a50; }
-  .btn-publish { background: #5b5b9e; color: #faf5ea; }
-  .btn-publish:hover { background: #3d3d7a; }
-
   .category-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .cat-card {
     background: white; border: 1px solid #e4d3b8; border-radius: 8px;
@@ -181,27 +170,3 @@ for (const item of portfolioItems) {
   .pending-alert a:hover { text-decoration: underline; }
 </style>
 
-<script>
-  const btn = document.getElementById('publish-btn');
-  const status = document.getElementById('publish-status');
-  btn?.addEventListener('click', async () => {
-    btn.textContent = 'Publishing...';
-    btn.setAttribute('disabled', '');
-    try {
-      const res = await fetch('/api/admin/publish', { method: 'POST' });
-      if (res.ok) {
-        status!.textContent = 'Deploy triggered! Site will rebuild in ~60 seconds.';
-        status!.style.color = '#3d7a6e';
-      } else {
-        const data = await res.json();
-        status!.textContent = (data.error || 'Publish failed.') + (data.detail ? ': ' + data.detail : '');
-        status!.style.color = '#b44';
-      }
-    } catch {
-      status!.textContent = 'Network error.';
-      status!.style.color = '#b44';
-    }
-    btn.textContent = 'Publish Changes';
-    btn.removeAttribute('disabled');
-  });
-</script>
