@@ -1,5 +1,28 @@
 ---
+export const prerender = false;
+
 import Base from '../layouts/Base.astro';
+import { getPageContentMulti } from '../lib/db';
+
+let title = 'Get Field Notes from Force of Nature Press';
+let body = 'Sign up to receive\u00a0a free digital field guide + periodical\u00a0updates on Force of Nature Press in your inbox, including new art, shop drops, market dates,\u00a0site updates, and more!';
+let successTitle = 'Thank you for subscribing to Field Notes!';
+let successBody = "Check your inbox for your free field guide download. We'll be in touch soon with all new things for Force of Nature Press!";
+
+try {
+  const db = Astro.locals.runtime.env.DB;
+  if (db) {
+    const content = await getPageContentMulti(db, [
+      'newsletter_title', 'newsletter_body', 'newsletter_success_title', 'newsletter_success_body'
+    ]);
+    if (content.newsletter_title) title = content.newsletter_title;
+    if (content.newsletter_body) body = content.newsletter_body;
+    if (content.newsletter_success_title) successTitle = content.newsletter_success_title;
+    if (content.newsletter_success_body) successBody = content.newsletter_success_body;
+  }
+} catch (e) {
+  console.warn('[newsletter] D1 unavailable:', e);
+}
 ---
 
 <Base title="Newsletter — Force of Nature Press" description="Sign up for Field Notes from Force of Nature Press and get a free digital field guide." fullWidth>
@@ -12,8 +35,8 @@ import Base from '../layouts/Base.astro';
               <div class="ml-form-embedWrapper embedForm">
                 <div class="ml-form-embedBody ml-form-embedBodyDefault row-form">
                   <div class="ml-form-embedContent" style="">
-                    <h4>Get Field Notes from Force of Nature Press</h4>
-                    <p>Sign up to receive&nbsp;a free digital field guide + periodical&nbsp;updates on Force of Nature Press in your inbox, including new art, shop drops, market dates,&nbsp;site updates, and more!</p>
+                    <h4>{title}</h4>
+                    <p>{body}</p>
                   </div>
                   <form class="ml-block-form" action="https://assets.mailerlite.com/jsonp/2216294/forms/182854136374494712/subscribe" data-code="" method="post" target="_blank">
                     <div class="ml-form-formContent">
@@ -45,8 +68,8 @@ import Base from '../layouts/Base.astro';
                 </div>
                 <div class="ml-form-successBody row-success" style="display: none">
                   <div class="ml-form-successContent">
-                    <h4>Thank you for subscribing to Field Notes!</h4>
-                    <p>Check your inbox for your free field guide download. We'll be in touch soon with all new things for Force of Nature Press!</p>
+                    <h4>{successTitle}</h4>
+                    <p>{successBody}</p>
                     <p><a href="/" class="back-home-link">Back to the homepage</a></p>
                   </div>
                 </div>

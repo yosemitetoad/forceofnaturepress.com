@@ -1,0 +1,130 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContentMulti } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, [
+  'newsletter_title', 'newsletter_body', 'newsletter_success_title', 'newsletter_success_body'
+]);
+
+const title = content.newsletter_title ?? 'Get Field Notes from Force of Nature Press';
+const body = content.newsletter_body ?? 'Sign up to receive\u00a0a free digital field guide + periodical\u00a0updates on Force of Nature Press in your inbox, including new art, shop drops, market dates,\u00a0site updates, and more!';
+const successTitle = content.newsletter_success_title ?? 'Thank you for subscribing to Field Notes!';
+const successBody = content.newsletter_success_body ?? "Check your inbox for your free field guide download. We'll be in touch soon with all new things for Force of Nature Press!";
+---
+
+<Admin title="Newsletter Page Content">
+  <div class="page-header">
+    <h1>Newsletter Page</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <form id="newsletterForm">
+    <section class="editor-section">
+      <h2>Sign-Up Box</h2>
+      <div class="field">
+        <label for="newsletter_title">Heading</label>
+        <input type="text" id="newsletter_title" name="newsletter_title" value={title} />
+      </div>
+      <div class="field">
+        <label for="newsletter_body">Description</label>
+        <textarea id="newsletter_body" name="newsletter_body" rows="3">{body}</textarea>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <h2>Success Message</h2>
+      <p class="help-text">Shown after someone successfully subscribes.</p>
+      <div class="field">
+        <label for="newsletter_success_title">Success Heading</label>
+        <input type="text" id="newsletter_success_title" name="newsletter_success_title" value={successTitle} />
+      </div>
+      <div class="field">
+        <label for="newsletter_success_body">Success Text</label>
+        <textarea id="newsletter_success_body" name="newsletter_success_body" rows="3">{successBody}</textarea>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+
+  .editor-section {
+    background: #faf5ea;
+    border: 2px solid #d4b896;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; margin-bottom: 0.3rem; }
+  .field input, .field textarea {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus, .field textarea:focus { border-color: #c87830; outline: none; }
+  .field textarea { resize: vertical; }
+
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 0.8rem; line-height: 1.5; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+</style>
+
+<script>
+  const form = document.getElementById('newsletterForm') as HTMLFormElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const saveStatus = document.getElementById('saveStatus')!;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.className = 'save-status';
+
+    const updates: Record<string, string> = {};
+    const formData = new FormData(form);
+    for (const [key, value] of formData.entries()) {
+      updates[key] = String(value);
+    }
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (res.ok) {
+        saveStatus.textContent = 'Saved!';
+        saveStatus.className = 'save-status success';
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch {
+      saveStatus.textContent = 'Error saving. Please try again.';
+      saveStatus.className = 'save-status error';
+    }
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+</script>
