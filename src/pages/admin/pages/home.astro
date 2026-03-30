@@ -73,8 +73,9 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
       <p class="help-text">Supports basic markdown in the text field: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
       <div id="whatsNewItems">
         {whatsNew.map((item, i) => (
-          <div class="news-editor" data-index={i}>
+          <div class="news-editor" data-index={i} draggable="true">
             <div class="news-editor-header">
+              <span class="news-drag-handle" title="Drag to reorder">⠿</span>
               <strong>Item {i + 1}</strong>
               <button type="button" class="btn-sm btn-delete news-remove" data-index={i}>Remove</button>
             </div>
@@ -164,9 +165,12 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
   /* News items */
   .news-editor {
     background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px;
-    padding: 1rem; margin-bottom: 0.8rem;
+    padding: 1rem; margin-bottom: 0.8rem; cursor: default;
   }
+  .news-editor.dragging { opacity: 0.4; }
   .news-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+  .news-drag-handle { cursor: grab; color: #a08060; font-size: 1.1rem; padding: 0 0.4rem; user-select: none; }
+  .news-drag-handle:active { cursor: grabbing; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
@@ -262,14 +266,43 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
     return JSON.stringify(items);
   }
 
+  // ── What's New drag-to-reorder ──
+  const newsContainer = document.getElementById('whatsNewItems')!;
+  let newsDragEl: HTMLElement | null = null;
+
+  newsContainer.addEventListener('dragstart', (e) => {
+    newsDragEl = (e.target as HTMLElement).closest('.news-editor') as HTMLElement;
+    if (newsDragEl) setTimeout(() => newsDragEl!.classList.add('dragging'), 0);
+  });
+  newsContainer.addEventListener('dragend', () => {
+    if (newsDragEl) newsDragEl.classList.remove('dragging');
+    newsDragEl = null;
+  });
+  newsContainer.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const target = (e.target as HTMLElement).closest('.news-editor') as HTMLElement;
+    if (target && target !== newsDragEl) {
+      const rect = target.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (e.clientY < mid) {
+        newsContainer.insertBefore(newsDragEl!, target);
+      } else {
+        target.after(newsDragEl!);
+      }
+    }
+  });
+  newsContainer.addEventListener('drop', (e) => { e.preventDefault(); });
+
   document.getElementById('addNewsItem')?.addEventListener('click', () => {
     const container = document.getElementById('whatsNewItems')!;
     const idx = container.children.length;
     const div = document.createElement('div');
     div.className = 'news-editor';
     div.dataset.index = String(idx);
+    div.draggable = true;
     div.innerHTML = `
       <div class="news-editor-header">
+        <span class="news-drag-handle" title="Drag to reorder">⠿</span>
         <strong>Item ${idx + 1}</strong>
         <button type="button" class="btn-sm btn-delete news-remove">Remove</button>
       </div>
