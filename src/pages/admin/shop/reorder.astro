@@ -171,12 +171,12 @@ try {
       result.push(row.dataset.locked === 'true' ? row : unlocked[ui++]);
     }
 
-    // Re-insert into DOM — find the first visible row's position as anchor
-    const firstVisible = visible[0];
+    // Find the first hidden row as insertion anchor (null = append to end)
+    const allRows = Array.from(list.querySelectorAll<HTMLElement>('.reorder-row'));
+    const insertionPoint = allRows.find(r => !visible.includes(r)) ?? null;
     for (const row of result) {
-      list.insertBefore(row, firstVisible);
+      list.insertBefore(row, insertionPoint);
     }
-    // Move hidden rows (other categories) back — they stay at end, order preserved
   });
 
   // ── Drag-to-reorder ──
