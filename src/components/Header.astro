@@ -10,7 +10,7 @@ const isActive = (path: string) =>
   <div class="header-inner">
     <nav class="nav-left" aria-label="Main navigation left">
       <a href="/shop" class:list={['nav-link', { active: isActive('/shop') }]}>Shop</a>
-      <a href="/portfolio" class:list={['nav-link', { active: isActive('/portfolio') }]}>Art</a>
+      <a href="/portfolio" class:list={['nav-link', { active: isActive('/portfolio') }]}>Portfolio</a>
       <a href="/games" class:list={['nav-link', { active: isActive('/games') }]}>Games</a>
     </nav>
 
@@ -31,7 +31,7 @@ const isActive = (path: string) =>
 
   <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
     <a href="/shop" class:list={['mobile-link', { active: isActive('/shop') }]}>Shop</a>
-    <a href="/portfolio" class:list={['mobile-link', { active: isActive('/portfolio') }]}>Art</a>
+    <a href="/portfolio" class:list={['mobile-link', { active: isActive('/portfolio') }]}>Portfolio</a>
     <a href="/games" class:list={['mobile-link', { active: isActive('/games') }]}>Games</a>
     <a href="/about" class:list={['mobile-link', { active: isActive('/about') }]}>About</a>
     <a href="/blog" class:list={['mobile-link', { active: isActive('/blog') }]}>Blog</a>
