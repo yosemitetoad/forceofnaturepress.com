@@ -119,6 +119,7 @@
     function applyBigMode(on: boolean) {
       bigMode = on;
       menu.classList.toggle('a11y-menu--big', on);
+      restore.classList.toggle('a11y-restore--big', on);
       bigModeBtn.setAttribute('aria-pressed', String(on));
       bigModeBtn.classList.toggle('active', on);
     }
@@ -628,6 +629,14 @@
   }
   .a11y-menu--big .a11y-menu-body {
     max-height: 500px;
+  }
+  .a11y-restore--big {
+    width: 68px;
+    height: 84px;
+  }
+  .a11y-restore--big .a11y-restore-icon {
+    width: 44px;
+    height: 44px;
   }
 
   /* Side tab — always visible, draggable vertically */
