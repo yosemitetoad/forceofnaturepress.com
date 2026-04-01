@@ -30,6 +30,7 @@ try {
       ))}
     </select>
     <span id="visibleCount" class="result-count"></span>
+    <button id="shuffleBtn" class="btn btn-shuffle">Shuffle</button>
     <button id="saveBtn" class="btn btn-primary">Save Order</button>
     <span id="saveStatus" class="save-status"></span>
   </div>
@@ -43,6 +44,7 @@ try {
           <img src={item.image} alt="" class="thumb" />
           <span class="item-title">{item.title}</span>
           <span class="cat-badge">{catLabel}</span>
+          <button class="lock-btn" title="Lock position during shuffle" aria-pressed="false">Unlocked</button>
         </div>
       );
     })}
@@ -99,12 +101,26 @@ try {
 
   .drag-handle { cursor: grab; color: #a08060; font-size: 1.2rem; padding: 0 0.2rem; flex-shrink: 0; }
   .drag-handle:active { cursor: grabbing; }
+  .reorder-row[data-locked="true"] .drag-handle { opacity: 0.3; cursor: not-allowed; }
   .thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
   .item-title { flex: 1; font-weight: 700; font-size: 0.9rem; color: #2d1f0e; }
   .cat-badge {
     font-size: 0.75rem; font-weight: 700; padding: 0.2em 0.6em;
     background: #e4d3b8; color: #6b4a2a; border-radius: 999px; flex-shrink: 0;
   }
+  .btn-shuffle { background: #5b5b9e; color: #faf5ea; }
+  .btn-shuffle:hover { background: #3d3d7a; }
+  .lock-btn {
+    font-family: inherit; font-size: 0.75rem; font-weight: 700;
+    padding: 0.25em 0.7em; border-radius: 999px; border: 2px solid #d4b896;
+    background: #f0e6d0; color: #6b4a2a; cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .lock-btn:hover { border-color: #3d7a6e; }
+  .lock-btn[aria-pressed="true"] {
+    background: #3d7a6e; border-color: #3d7a6e; color: #faf5ea;
+  }
+  .reorder-row[data-locked="true"] { background: rgba(61, 122, 110, 0.06); }
 
   .no-results { text-align: center; color: #6b4a2a; font-style: italic; padding: 1.5rem 0; }
 </style>
@@ -113,15 +129,61 @@ try {
   const list = document.getElementById('reorderList')!;
   const catFilter = document.getElementById('catFilter') as HTMLSelectElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const shuffleBtn = document.getElementById('shuffleBtn') as HTMLButtonElement;
   const saveStatus = document.getElementById('saveStatus')!;
   const visibleCount = document.getElementById('visibleCount')!;
   const noResults = document.getElementById('noResults')!;
 
   let dragEl: HTMLElement | null = null;
 
+  // ── Lock toggle ──
+  list.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.lock-btn') as HTMLButtonElement | null;
+    if (!btn) return;
+    const row = btn.closest('.reorder-row') as HTMLElement;
+    const locked = row.dataset.locked === 'true';
+    row.dataset.locked = locked ? 'false' : 'true';
+    row.draggable = locked; // re-enable drag when unlocking
+    btn.setAttribute('aria-pressed', locked ? 'false' : 'true');
+    btn.textContent = locked ? 'Unlocked' : 'Locked';
+  });
+
+  // ── Shuffle (visible unlocked items only) ──
+  shuffleBtn.addEventListener('click', () => {
+    const cat = catFilter.value;
+    const allRows = Array.from(list.querySelectorAll<HTMLElement>('.reorder-row'));
+
+    // Rows visible under current filter
+    const visible = allRows.filter(r => cat === 'all' || r.dataset.category === cat);
+    const locked = visible.filter(r => r.dataset.locked === 'true');
+    const unlocked = visible.filter(r => r.dataset.locked !== 'true');
+
+    // Fisher-Yates shuffle on unlocked
+    for (let i = unlocked.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [unlocked[i], unlocked[j]] = [unlocked[j], unlocked[i]];
+    }
+
+    // Rebuild visible order: slot unlocked into positions not held by locked rows
+    const result: HTMLElement[] = [];
+    let ui = 0;
+    for (const row of visible) {
+      result.push(row.dataset.locked === 'true' ? row : unlocked[ui++]);
+    }
+
+    // Re-insert into DOM — find the first visible row's position as anchor
+    const firstVisible = visible[0];
+    for (const row of result) {
+      list.insertBefore(row, firstVisible);
+    }
+    // Move hidden rows (other categories) back — they stay at end, order preserved
+  });
+
   // ── Drag-to-reorder ──
   list.addEventListener('dragstart', (e) => {
-    dragEl = (e.target as HTMLElement).closest('.reorder-row') as HTMLElement;
+    const row = (e.target as HTMLElement).closest('.reorder-row') as HTMLElement;
+    if (row?.dataset.locked === 'true') { e.preventDefault(); return; }
+    dragEl = row;
     if (dragEl) setTimeout(() => dragEl!.classList.add('dragging'), 0);
   });
   list.addEventListener('dragend', () => {
