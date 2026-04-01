@@ -172,8 +172,8 @@ try {
     }
 
     // Find the first hidden row as insertion anchor (null = append to end)
-    const allRows = Array.from(list.querySelectorAll<HTMLElement>('.reorder-row'));
-    const insertionPoint = allRows.find(r => !visible.includes(r)) ?? null;
+    const currentRows = Array.from(list.querySelectorAll<HTMLElement>('.reorder-row'));
+    const insertionPoint = currentRows.find(r => !visible.includes(r)) ?? null;
     for (const row of result) {
       list.insertBefore(row, insertionPoint);
     }
