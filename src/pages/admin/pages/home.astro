@@ -271,6 +271,7 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
   let newsDragEl: HTMLElement | null = null;
 
   newsContainer.addEventListener('dragstart', (e) => {
+    if (!(e.target as HTMLElement).closest('.news-drag-handle')) { e.preventDefault(); return; }
     newsDragEl = (e.target as HTMLElement).closest('.news-editor') as HTMLElement;
     if (newsDragEl) setTimeout(() => newsDragEl!.classList.add('dragging'), 0);
   });
