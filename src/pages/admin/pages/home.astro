@@ -73,7 +73,7 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
       <p class="help-text">Supports basic markdown in the text field: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
       <div id="whatsNewItems">
         {whatsNew.map((item, i) => (
-          <div class="news-editor" data-index={i} draggable="true">
+          <div class="news-editor" data-index={i}>
             <div class="news-editor-header">
               <span class="news-drag-handle" title="Drag to reorder">⠿</span>
               <strong>Item {i + 1}</strong>
@@ -270,13 +270,24 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
   const newsContainer = document.getElementById('whatsNewItems')!;
   let newsDragEl: HTMLElement | null = null;
 
+  // Enable draggable only while holding the handle
+  newsContainer.addEventListener('mousedown', (e) => {
+    const handle = (e.target as HTMLElement).closest('.news-drag-handle');
+    if (handle) {
+      const row = handle.closest('.news-editor') as HTMLElement;
+      if (row) row.draggable = true;
+    }
+  });
+
   newsContainer.addEventListener('dragstart', (e) => {
-    if (!(e.target as HTMLElement).closest('.news-drag-handle')) { e.preventDefault(); return; }
     newsDragEl = (e.target as HTMLElement).closest('.news-editor') as HTMLElement;
     if (newsDragEl) setTimeout(() => newsDragEl!.classList.add('dragging'), 0);
   });
   newsContainer.addEventListener('dragend', () => {
-    if (newsDragEl) newsDragEl.classList.remove('dragging');
+    if (newsDragEl) {
+      newsDragEl.classList.remove('dragging');
+      newsDragEl.draggable = false;
+    }
     newsDragEl = null;
   });
   newsContainer.addEventListener('dragover', (e) => {
@@ -300,7 +311,6 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
     const div = document.createElement('div');
     div.className = 'news-editor';
     div.dataset.index = String(idx);
-    div.draggable = true;
     div.innerHTML = `
       <div class="news-editor-header">
         <span class="news-drag-handle" title="Drag to reorder">⠿</span>
