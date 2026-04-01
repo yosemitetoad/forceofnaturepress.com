@@ -110,8 +110,7 @@
       'highlight-links', 'big-cursor', 'reduce-motion'
     ] as const;
     let activeFont = 'off';
-    // Store the user's intended widget position (not clamped to viewport)
-    let intendedX = -1, intendedY = -1;
+    let tabY = 120;
 
     // --- Big Widget toggle ---
     const bigModeBtn = document.getElementById('a11yBigMode')!;
@@ -124,20 +123,17 @@
       bigModeBtn.classList.toggle('active', on);
     }
 
+    function setTabY(y: number) {
+      tabY = Math.max(20, Math.min(window.innerHeight - 70, y));
+      restore.style.top = tabY + 'px';
+      widget.style.top = tabY + 'px';
+    }
+
     // --- Load saved prefs ---
     function loadPrefs() {
       try {
         const saved = localStorage.getItem('a11y-prefs');
-        if (!saved) {
-          // Auto-collapse on mobile for first-time visitors
-          if (window.innerWidth <= 720) {
-            widget.classList.add('dismissed');
-            widget.setAttribute('aria-hidden', 'true');
-            restore.classList.add('visible');
-            restore.setAttribute('aria-hidden', 'false');
-          }
-          return;
-        }
+        if (!saved) return;
         const prefs = JSON.parse(saved);
 
         for (const key of TOGGLES) {
@@ -160,36 +156,18 @@
           sizeValue.textContent = textScale + '%';
         }
 
-        if (prefs.bigMode) {
-          applyBigMode(true);
-        }
+        if (prefs.bigMode) applyBigMode(true);
 
-        if (prefs.dismissed) {
-          widget.classList.add('dismissed');
-          widget.setAttribute('aria-hidden', 'true');
-          restore.classList.add('visible');
-          restore.setAttribute('aria-hidden', 'false');
-        }
-
-        if (prefs.posX != null && prefs.posY != null) {
-          intendedX = prefs.posX;
-          intendedY = prefs.posY;
-          positionWidget(intendedX, intendedY);
-        }
+        if (prefs.tabY != null) setTabY(prefs.tabY);
       } catch {}
     }
 
     function savePrefs() {
-      const prefs: Record<string, any> = { textScale, font: activeFont };
+      const prefs: Record<string, any> = { textScale, font: activeFont, tabY };
       for (const key of TOGGLES) {
         prefs[key] = document.documentElement.classList.contains('a11y-' + key);
       }
-      prefs.dismissed = widget.classList.contains('dismissed');
       prefs.bigMode = bigMode;
-      if (intendedX >= 0) {
-        prefs.posX = intendedX;
-        prefs.posY = intendedY;
-      }
       try { localStorage.setItem('a11y-prefs', JSON.stringify(prefs)); } catch {}
     }
 
@@ -306,76 +284,48 @@
     });
 
     // --- Dismiss / Restore ---
+    // "Collapse Widget" just closes the menu; tab stays visible always
     dismiss.addEventListener('click', () => {
       closeMenu();
-      widget.classList.add('dismissed');
-      widget.setAttribute('aria-hidden', 'true');
-      restore.classList.add('visible');
-      restore.setAttribute('aria-hidden', 'false');
       savePrefs();
     });
 
-    restore.addEventListener('click', () => {
-      widget.classList.remove('dismissed');
-      widget.setAttribute('aria-hidden', 'false');
-      restore.classList.remove('visible');
-      restore.setAttribute('aria-hidden', 'true');
-      savePrefs();
-    });
+    // --- Tab drag (vertical only) ---
+    let isDraggingTab = false;
+    let tabDragStartY = 0, tabStartY = 0;
+    let tabHasDragged = false;
 
-    // --- Dragging ---
-    let isDragging = false;
-    let dragStartX = 0, dragStartY = 0;
-    let widgetStartX = 0, widgetStartY = 0;
-    let hasDragged = false;
-
-    function positionWidget(x: number, y: number) {
-      const size = 96;
-      widget.style.left = Math.max(0, Math.min(window.innerWidth - size, x)) + 'px';
-      widget.style.top = Math.max(0, Math.min(window.innerHeight - size, y)) + 'px';
-      widget.style.right = 'auto';
-      widget.style.bottom = 'auto';
-    }
-
-    toggle.addEventListener('pointerdown', (e: PointerEvent) => {
-      isDragging = true;
-      hasDragged = false;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-      const rect = widget.getBoundingClientRect();
-      widgetStartX = rect.left;
-      widgetStartY = rect.top;
-      toggle.setPointerCapture(e.pointerId);
+    restore.addEventListener('pointerdown', (e: PointerEvent) => {
+      isDraggingTab = true;
+      tabHasDragged = false;
+      tabDragStartY = e.clientY;
+      tabStartY = restore.getBoundingClientRect().top;
+      restore.setPointerCapture(e.pointerId);
       e.preventDefault();
     });
 
     document.addEventListener('pointermove', (e: PointerEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - dragStartX;
-      const dy = e.clientY - dragStartY;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasDragged = true;
-      if (!hasDragged) return;
-
-      intendedX = widgetStartX + dx;
-      intendedY = widgetStartY + dy;
-      positionWidget(intendedX, intendedY);
+      if (!isDraggingTab) return;
+      const dy = e.clientY - tabDragStartY;
+      if (Math.abs(dy) > 3) tabHasDragged = true;
+      if (!tabHasDragged) return;
+      setTabY(tabStartY + dy);
     });
 
-    document.addEventListener('pointerup', (e: PointerEvent) => {
-      if (!isDragging) return;
-      isDragging = false;
-      if (hasDragged) {
-        e.stopPropagation();
-        savePrefs();
-        toggle.addEventListener('click', (ev) => ev.stopImmediatePropagation(), { once: true, capture: true });
-      }
+    document.addEventListener('pointerup', () => {
+      if (!isDraggingTab) return;
+      isDraggingTab = false;
+      if (tabHasDragged) savePrefs();
     });
 
-    // --- Keep widget in viewport on resize (returns to intended position when window grows) ---
-    window.addEventListener('resize', () => {
-      if (intendedX < 0 || widget.classList.contains('dismissed')) return;
-      positionWidget(intendedX, intendedY);
+    // Tab click opens/closes menu (only if not a drag)
+    restore.addEventListener('click', () => {
+      if (tabHasDragged) { tabHasDragged = false; return; }
+      if (menuOpen) closeMenu(); else openMenu();
     });
+
+    // Keep tab in viewport on resize
+    window.addEventListener('resize', () => setTabY(tabY));
 
     loadPrefs();
   }
@@ -484,46 +434,22 @@
   /* ---- Widget chrome ---- */
   .a11y-widget {
     position: fixed;
-    right: 20px;
-    top: 100px;
+    right: 0;
+    top: 120px;
     z-index: 9999;
     user-select: none;
     touch-action: none;
   }
-  .a11y-widget.dismissed { display: none; }
 
-  .a11y-toggle {
-    width: 96px;
-    height: 96px;
-    border-radius: 50%;
-    border: 2px solid var(--border);
-    background: var(--cream-light);
-    cursor: grab;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: box-shadow 0.15s, transform 0.15s;
-    padding: 0;
-  }
-  .a11y-toggle:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    transform: scale(1.08);
-  }
-  .a11y-toggle:active { cursor: grabbing; }
-
-  .a11y-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 0;
-    pointer-events: none;
-  }
+  /* Circle toggle is replaced by the side tab — hide it */
+  .a11y-toggle { display: none; }
+  .a11y-icon { display: none; }
 
   /* Menu */
   .a11y-menu {
     position: absolute;
-    top: 106px;
-    right: 0;
+    top: 0;
+    right: 56px;
     width: 260px;
     background: var(--cream-light);
     border: 2px solid var(--border);
@@ -704,7 +630,7 @@
     max-height: 500px;
   }
 
-  /* Restore tab */
+  /* Side tab — always visible, draggable vertically */
   .a11y-restore {
     position: fixed;
     right: -2px;
@@ -716,16 +642,17 @@
     border-right: none;
     border-radius: 12px 0 0 12px;
     background: var(--cream-light);
-    cursor: pointer;
-    display: none;
+    cursor: grab;
+    display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: -2px 2px 6px rgba(0,0,0,0.1);
     padding: 0;
     transition: width 0.15s;
+    touch-action: none;
   }
   .a11y-restore:hover { width: 58px; }
-  .a11y-restore.visible { display: flex; }
+  .a11y-restore:active { cursor: grabbing; }
 
   .a11y-restore-icon {
     width: 33px;
