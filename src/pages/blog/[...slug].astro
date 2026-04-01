@@ -35,6 +35,7 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
           )}
           <div class="post-card">
             <div class="prose">
+              <a href="/blog" class="back-link">&larr; Back to Blog</a>
               <div class="post-header">
                 <div class="date">
                   {new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -136,6 +137,17 @@ const comments = post.commentsEnabled ? await getApprovedComments(db, post.id) :
     max-width: 720px;
     margin: 0 auto;
   }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: var(--brown-mid);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--orange); }
+
   .post-header {
     margin-bottom: 2rem;
     padding-bottom: 1rem;
