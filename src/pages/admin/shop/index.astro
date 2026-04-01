@@ -19,7 +19,10 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
 <Admin title="Shop Items">
   <div class="page-header">
     <h1>Shop Items ({items.length})</h1>
-    <a href="/admin/shop/new" class="btn btn-primary">+ Add Item</a>
+    <div class="header-actions">
+      <a href="/admin/shop/reorder" class="btn btn-secondary">Reorder Items</a>
+      <a href="/admin/shop/new" class="btn btn-primary">+ Add Item</a>
+    </div>
   </div>
 
   <div class="controls">
@@ -83,8 +86,11 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
   }
   h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
   .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .header-actions { display: flex; gap: 0.6rem; }
   .btn-primary { background: #c87830; color: #faf5ea; }
   .btn-primary:hover { background: #a05e18; }
+  .btn-secondary { background: #3d7a6e; color: #faf5ea; }
+  .btn-secondary:hover { background: #2a5a50; }
 
   .controls {
     display: flex;
