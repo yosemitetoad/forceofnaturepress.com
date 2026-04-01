@@ -85,6 +85,7 @@ try {
         >
           <div class="product-img-wrap">
             <img src={item.image} alt={item.title} loading="lazy" width="400" height="400" />
+            <div class="product-overlay">View on Etsy &rarr;</div>
           </div>
           <div class="product-info">
             <span class="product-title">{item.title}</span>
@@ -347,6 +348,21 @@ document.addEventListener('astro:after-swap', initShop);
     display: block;
   }
   .product-card:hover .product-img-wrap img { transform: scale(1.04); }
+  .product-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(45, 31, 14, 0.45);
+    color: var(--cream-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .product-card:hover .product-overlay { opacity: 1; }
   .product-info {
     padding: 0.7rem 0.8rem;
     display: flex;
