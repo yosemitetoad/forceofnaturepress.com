@@ -7,12 +7,10 @@ const year = new Date().getFullYear();
   <div class="footer-inner">
     <p class="footer-copy">&copy; {year} Riley Briggs / Force of Nature Press. All rights reserved.</p>
 
+    <div class="footer-right">
     <nav class="footer-socials" aria-label="Social links">
       <a href={ETSY_SHOP_URL} target="_blank" rel="noopener noreferrer" aria-label="Etsy shop">
-        <!-- Etsy -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-          <path d="M11.308 2C6.172 2 2 6.172 2 11.308c0 5.137 4.172 9.308 9.308 9.308 5.137 0 9.309-4.171 9.309-9.308C20.617 6.172 16.445 2 11.308 2zm3.393 4.5c.234 0 .422.04.563.117.14.078.211.188.211.328 0 .117-.04.234-.118.352l-.351.562c-.079.117-.196.176-.352.176-.117 0-.234-.04-.351-.117-.156-.078-.313-.117-.469-.117-.313 0-.547.117-.703.351-.157.235-.235.563-.235.985v.47h1.407c.156 0 .273.038.351.116.079.079.118.196.118.352v.586c0 .156-.04.273-.118.351-.078.079-.195.118-.351.118h-1.407v4.336c0 .156-.04.273-.118.351-.077.079-.195.118-.351.118h-.82c-.157 0-.274-.039-.352-.118-.078-.078-.117-.195-.117-.351V10.1h-.82c-.156 0-.274-.039-.352-.118-.078-.078-.117-.195-.117-.351v-.586c0-.156.039-.273.117-.352.078-.078.196-.116.352-.116h.82v-.47c0-.78.195-1.374.586-1.78.39-.407.937-.61 1.64-.61.312 0 .586.039.82.117zm-5.625.234h3.047c.156 0 .273.04.351.118.079.078.118.195.118.351v.586c0 .156-.04.273-.118.351-.078.079-.195.118-.351.118H9.897v1.64h1.992c.157 0 .274.04.352.118.078.078.117.195.117.351v.586c0 .156-.039.274-.117.352-.078.078-.195.117-.352.117H9.897v1.758h2.578c.156 0 .274.039.352.117.078.079.117.196.117.352v.586c0 .156-.039.273-.117.351-.078.079-.196.118-.352.118H9.076c-.157 0-.274-.039-.352-.118-.078-.078-.117-.195-.117-.351V7.086c0-.156.039-.273.117-.351.078-.079.195-.118.352-.118.078 0 .117 0 .117.117z"/>
-        </svg>
+        <img src="/etsylogo.webp" alt="Etsy" class="social-img" />
       </a>
       <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
         <!-- Instagram -->
@@ -39,6 +37,7 @@ const year = new Date().getFullYear();
       <span class="footer-sep">&middot;</span>
       <a href="/terms">Terms of Service</a>
     </nav>
+    </div>
   </div>
 </footer>
 
@@ -60,19 +59,32 @@ const year = new Date().getFullYear();
     font-size: 0.8rem;
     color: rgba(228, 211, 184, 0.6);
   }
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+  }
   .footer-socials {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.9rem;
   }
   .footer-socials a {
     color: rgba(228, 211, 184, 0.6);
     display: flex;
     align-items: center;
-    transition: color 0.15s;
+    transition: color 0.15s, opacity 0.15s;
+    opacity: 0.6;
   }
   .footer-socials a:hover {
-    color: rgba(228, 211, 184, 1);
+    opacity: 1;
+  }
+  .social-img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    display: block;
+    filter: brightness(0) invert(1);
   }
   .footer-links {
     display: flex;
@@ -96,6 +108,10 @@ const year = new Date().getFullYear();
       flex-direction: column;
       gap: 0.6rem;
       text-align: center;
+    }
+    .footer-right {
+      flex-direction: column;
+      gap: 0.5rem;
     }
   }
 </style>
