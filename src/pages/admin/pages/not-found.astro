@@ -110,6 +110,8 @@ const message = content['not_found_message'] || "The page you're looking for doe
   .prev-404 { font-size: 4rem; font-weight: 800; color: #c87830; margin: 0 0 0.4rem; line-height: 1; }
   .prev-subtitle { font-size: 1.1rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.8rem; }
   .prev-message { font-size: 0.95rem; color: #8b6240; margin: 0 0 1.5rem; line-height: 1.6; }
+  .prev-message p { margin: 0 0 0.6em; }
+  .prev-message p:last-child { margin: 0; }
   .prev-btn {
     display: inline-block; padding: 0.5em 1.4em; background: #c87830; color: #faf5ea;
     border-radius: 8px; font-weight: 800; font-size: 0.9rem;
@@ -132,7 +134,7 @@ const message = content['not_found_message'] || "The page you're looking for doe
 
   function updatePreview() {
     prevSubtitle.innerHTML = marked.parseInline(subtitleInput.value || '') as string;
-    prevMessage.innerHTML = marked.parseInline(messageInput.value || '') as string;
+    prevMessage.innerHTML = marked.parse(messageInput.value || '') as string;
   }
 
   previewBtn.addEventListener('click', () => {

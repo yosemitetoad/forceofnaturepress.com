@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import { getPageContentMulti } from '../lib/db';
-import { mdInline } from '../lib/markdown';
+import { mdInline, md } from '../lib/markdown';
 
 const db = Astro.locals.runtime?.env?.DB;
 const content = db ? await getPageContentMulti(db, [
@@ -12,7 +12,7 @@ const content = db ? await getPageContentMulti(db, [
 ]) : {};
 const heading = content['under_construction_heading'] || 'Under Construction';
 const subtitle = await mdInline(content['under_construction_subtitle'] || "We're tending to the garden. Check back soon!");
-const message = await mdInline(content['under_construction_message'] || "Force of Nature Press is currently being updated. We'll be back shortly.");
+const message = await md(content['under_construction_message'] || "Force of Nature Press is currently being updated. We'll be back shortly.");
 const image = content['under_construction_image'] || '/beetleshopiconsquare.webp';
 ---
 
@@ -33,7 +33,7 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
       {image && <img src={image} alt="Force of Nature Press" class="logo" width="80" height="80" />}
       <h1>{heading}</h1>
       <p class="subtitle" set:html={subtitle} />
-      <p class="message" set:html={message} />
+      <div class="message" set:html={message} />
     </div>
   </div>
 </body>
@@ -96,6 +96,8 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
     margin: 0;
     line-height: 1.6;
   }
+  .message p { margin: 0 0 0.8em; }
+  .message p:last-child { margin: 0; }
 
   @media (max-width: 600px) {
     .card { padding: 2.5rem 1.5rem; }

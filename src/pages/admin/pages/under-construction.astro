@@ -130,6 +130,8 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
   .prev-h1 { font-size: 1.8rem; color: #c87830; margin: 0 0 0.4rem; line-height: 1.1; font-weight: 800; }
   .prev-subtitle { font-size: 1rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.6rem; }
   .prev-message { font-size: 0.95rem; color: #8b6240; margin: 0; line-height: 1.6; }
+  .prev-message p { margin: 0 0 0.6em; }
+  .prev-message p:last-child { margin: 0; }
 </style>
 
 <script>
@@ -154,7 +156,7 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
   function updatePreview() {
     prevHeading.textContent = headingInput.value || 'Under Construction';
     prevSubtitle.innerHTML = marked.parseInline(subtitleInput.value || '') as string;
-    prevMessage.innerHTML = marked.parseInline(messageInput.value || '') as string;
+    prevMessage.innerHTML = marked.parse(messageInput.value || '') as string;
     const src = imageInput.value.trim();
     prevImage.src = src;
     prevImage.style.display = src ? 'block' : 'none';

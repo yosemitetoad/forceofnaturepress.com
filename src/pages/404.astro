@@ -2,12 +2,12 @@
 export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { getPageContentMulti } from '../lib/db';
-import { mdInline } from '../lib/markdown';
+import { mdInline, md } from '../lib/markdown';
 
 const db = Astro.locals.runtime?.env?.DB;
 const content = db ? await getPageContentMulti(db, ['not_found_subtitle', 'not_found_message']) : {};
 const subtitle = await mdInline(content['not_found_subtitle'] || "Looks like this page got lost in the woods.");
-const message = await mdInline(content['not_found_message'] || "The page you're looking for doesn't exist or may have been moved.");
+const message = await md(content['not_found_message'] || "The page you're looking for doesn't exist or may have been moved.");
 ---
 
 <Base title="Page Not Found — Force of Nature Press" fullWidth>
@@ -15,7 +15,7 @@ const message = await mdInline(content['not_found_message'] || "The page you're 
     <div class="not-found-content">
       <h1>404</h1>
       <p class="subtitle" set:html={subtitle} />
-      <p class="message" set:html={message} />
+      <div class="message" set:html={message} />
       <a href="/" class="btn btn-primary">Back to Home</a>
     </div>
   </div>
@@ -68,6 +68,8 @@ const message = await mdInline(content['not_found_message'] || "The page you're 
     margin: 0 0 2.5rem;
     line-height: 1.6;
   }
+  .message p { margin: 0 0 0.8em; }
+  .message p:last-child { margin: 0; }
 
   .btn {
     display: inline-block;

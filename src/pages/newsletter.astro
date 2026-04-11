@@ -16,7 +16,7 @@ try {
       'newsletter_title', 'newsletter_body', 'newsletter_success_title', 'newsletter_success_body'
     ]);
     if (content.newsletter_title) title = content.newsletter_title;
-    if (content.newsletter_body) body = content.newsletter_body;
+    if (content.newsletter_body) body = content.newsletter_body.replace(/\n\n+/g, '<br><br>');
     if (content.newsletter_success_title) successTitle = content.newsletter_success_title;
     if (content.newsletter_success_body) successBody = content.newsletter_success_body;
   }
@@ -36,7 +36,7 @@ try {
                 <div class="ml-form-embedBody ml-form-embedBodyDefault row-form">
                   <div class="ml-form-embedContent" style="">
                     <h4>{title}</h4>
-                    <p>{body}</p>
+                    <p set:html={body}></p>
                   </div>
                   <form class="ml-block-form" action="https://assets.mailerlite.com/jsonp/2216294/forms/182854136374494712/subscribe" data-code="" method="post" target="_blank">
                     <div class="ml-form-formContent">

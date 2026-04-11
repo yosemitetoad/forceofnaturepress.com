@@ -183,9 +183,9 @@ const successBody = content.newsletter_success_body ?? "Check your inbox for you
 
   function updatePreview() {
     prevTitle.textContent = titleInput.value;
-    prevBody.textContent = bodyInput.value;
+    prevBody.innerHTML = bodyInput.value.replace(/\n\n+/g, '<br><br>');
     prevSuccessTitle.textContent = successTitleInput.value;
-    prevSuccessBody.textContent = successBodyInput.value;
+    prevSuccessBody.innerHTML = successBodyInput.value.replace(/\n\n+/g, '<br><br>');
   }
 
   previewBtn.addEventListener('click', () => {
