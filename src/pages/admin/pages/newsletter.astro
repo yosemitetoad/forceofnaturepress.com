@@ -49,9 +49,36 @@ const successBody = content.newsletter_success_body ?? "Check your inbox for you
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
       <span id="saveStatus" class="save-status"></span>
     </div>
   </form>
+
+  <div id="previewPanel" class="preview-panel hidden">
+    <h2 class="preview-label">Preview</h2>
+    <div class="preview-tabs">
+      <button class="preview-tab active" data-tab="signup">Sign-Up</button>
+      <button class="preview-tab" data-tab="success">Success</button>
+    </div>
+    <div class="preview-bg">
+      <div class="preview-card">
+        <div id="prev-signup">
+          <h4 id="prev-title" class="prev-heading"></h4>
+          <p id="prev-body" class="prev-body"></p>
+          <div class="prev-input-row">
+            <div class="prev-input">Email</div>
+            <button class="prev-submit" type="button">Count Me In!</button>
+          </div>
+          <p class="prev-fine">You can unsubscribe anytime.</p>
+        </div>
+        <div id="prev-success" class="hidden">
+          <h4 id="prev-success-title" class="prev-heading"></h4>
+          <p id="prev-success-body" class="prev-body"></p>
+          <p class="prev-fine"><a href="#">Back to the homepage</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
 </Admin>
 
 <style>
@@ -89,12 +116,108 @@ const successBody = content.newsletter_success_body ?? "Check your inbox for you
   .save-status { font-size: 0.9rem; font-weight: 700; }
   .save-status.success { color: #3d7a6e; }
   .save-status.error { color: #b44; }
+
+  /* Preview */
+  .preview-panel { margin-top: 2rem; }
+  .preview-panel.hidden { display: none; }
+  .preview-label { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #6b4a2a; margin: 0 0 0.6rem; }
+
+  .preview-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.8rem; }
+  .preview-tab {
+    padding: 0.35em 1em; border-radius: 8px; font-family: inherit; font-weight: 700;
+    font-size: 0.85rem; cursor: pointer; border: 2px solid #d4b896; background: #faf5ea; color: #6b4a2a;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .preview-tab.active { background: #c87830; border-color: #c87830; color: #faf5ea; }
+  .preview-tab:hover:not(.active) { background: #e4d3b8; }
+
+  .preview-bg {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    border-radius: 10px;
+    padding: 3rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-card {
+    background: rgba(240, 230, 208, 0.92);
+    border: 2px solid #d4b896;
+    border-radius: 14px;
+    padding: 2.5rem 3rem;
+    text-align: center;
+    max-width: 560px;
+    width: 100%;
+  }
+  .prev-heading { font-size: 1.4rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.8rem; }
+  .prev-body { color: #8b6240; font-size: 0.95rem; line-height: 1.6; margin: 0 0 1.2rem; }
+  .prev-input-row { display: flex; gap: 0.5rem; max-width: 380px; margin: 0 auto 0.8rem; }
+  .prev-input {
+    flex: 1; padding: 0.6em 1em; border: 2px solid #d4b896; border-radius: 8px;
+    background: #f5e6c8; color: #aaa; font-size: 0.9rem; text-align: left;
+  }
+  .prev-submit {
+    padding: 0.6em 1.1em; background: #c87830; color: #faf5ea; border: none;
+    border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: default;
+  }
+  .prev-fine { font-size: 0.78rem; color: #aaa; margin: 0; }
+  .prev-fine a { color: #c87830; }
+  .hidden { display: none !important; }
 </style>
 
 <script>
   const form = document.getElementById('newsletterForm') as HTMLFormElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   const saveStatus = document.getElementById('saveStatus')!;
+  const previewBtn = document.getElementById('previewBtn') as HTMLButtonElement;
+  const previewPanel = document.getElementById('previewPanel')!;
+
+  const titleInput = document.getElementById('newsletter_title') as HTMLInputElement;
+  const bodyInput = document.getElementById('newsletter_body') as HTMLTextAreaElement;
+  const successTitleInput = document.getElementById('newsletter_success_title') as HTMLInputElement;
+  const successBodyInput = document.getElementById('newsletter_success_body') as HTMLTextAreaElement;
+
+  const prevTitle = document.getElementById('prev-title')!;
+  const prevBody = document.getElementById('prev-body')!;
+  const prevSuccessTitle = document.getElementById('prev-success-title')!;
+  const prevSuccessBody = document.getElementById('prev-success-body')!;
+
+  function updatePreview() {
+    prevTitle.textContent = titleInput.value;
+    prevBody.textContent = bodyInput.value;
+    prevSuccessTitle.textContent = successTitleInput.value;
+    prevSuccessBody.textContent = successBodyInput.value;
+  }
+
+  previewBtn.addEventListener('click', () => {
+    const isHidden = previewPanel.classList.toggle('hidden');
+    previewBtn.textContent = isHidden ? 'Preview' : 'Hide Preview';
+    if (!isHidden) updatePreview();
+  });
+
+  [titleInput, bodyInput, successTitleInput, successBodyInput].forEach(el => {
+    el.addEventListener('input', () => {
+      if (!previewPanel.classList.contains('hidden')) updatePreview();
+    });
+  });
+
+  // Tab switching
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.preview-tab');
+  const signupPane = document.getElementById('prev-signup')!;
+  const successPane = document.getElementById('prev-success')!;
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (tab.dataset.tab === 'signup') {
+        signupPane.classList.remove('hidden');
+        successPane.classList.add('hidden');
+      } else {
+        signupPane.classList.add('hidden');
+        successPane.classList.remove('hidden');
+      }
+    });
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

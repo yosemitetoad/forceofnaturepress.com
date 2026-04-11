@@ -26,7 +26,7 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
   <form id="pageForm">
     <section class="editor-section">
       <h2>Content</h2>
-      <p class="help-text">Subtitle and message support basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
+      <p class="help-text top">Subtitle and message support basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
 
       <div class="field">
         <label for="heading">Heading</label>
@@ -52,9 +52,22 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
       <span id="saveStatus" class="save-status"></span>
     </div>
   </form>
+
+  <div id="previewPanel" class="preview-panel hidden">
+    <h2 class="preview-label">Preview</h2>
+    <div class="preview-bg">
+      <div class="preview-card">
+        <img id="prev-image" src={image} alt="" class="prev-logo" />
+        <h1 id="prev-heading" class="prev-h1">{heading}</h1>
+        <p id="prev-subtitle" class="prev-subtitle"></p>
+        <p id="prev-message" class="prev-message"></p>
+      </div>
+    </div>
+  </div>
 </Admin>
 
 <style>
@@ -83,18 +96,81 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
   textarea { resize: vertical; }
 
   .help-text { font-size: 0.82rem; color: #6b4a2a; margin: 0.4rem 0 0; line-height: 1.5; }
+  .help-text.top { margin: -0.4rem 0 1rem; }
   .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
   .save-status.success { color: #3d7a6e; }
   .save-status.error { color: #b44; }
+
+  /* Preview */
+  .preview-panel { margin-top: 2rem; }
+  .preview-panel.hidden { display: none; }
+  .preview-label { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #6b4a2a; margin: 0 0 0.8rem; }
+  .preview-bg {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    border-radius: 10px;
+    padding: 3rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-card {
+    background: rgba(240, 230, 208, 0.92);
+    border: 2px solid #d4b896;
+    border-radius: 12px;
+    padding: 2.5rem 3rem;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+  }
+  .prev-logo { width: 64px; height: 64px; border-radius: 10px; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; }
+  .prev-logo[src=""] { display: none; }
+  .prev-h1 { font-size: 1.8rem; color: #c87830; margin: 0 0 0.4rem; line-height: 1.1; font-weight: 800; }
+  .prev-subtitle { font-size: 1rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.6rem; }
+  .prev-message { font-size: 0.95rem; color: #8b6240; margin: 0; line-height: 1.6; }
 </style>
 
 <script>
+  import { marked } from 'marked';
+
   const form = document.getElementById('pageForm') as HTMLFormElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   const saveStatus = document.getElementById('saveStatus')!;
+  const previewBtn = document.getElementById('previewBtn') as HTMLButtonElement;
+  const previewPanel = document.getElementById('previewPanel')!;
+
+  const headingInput = document.getElementById('heading') as HTMLInputElement;
+  const subtitleInput = document.getElementById('subtitle') as HTMLInputElement;
+  const messageInput = document.getElementById('message') as HTMLTextAreaElement;
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+
+  const prevHeading = document.getElementById('prev-heading')!;
+  const prevSubtitle = document.getElementById('prev-subtitle')!;
+  const prevMessage = document.getElementById('prev-message')!;
+  const prevImage = document.getElementById('prev-image') as HTMLImageElement;
+
+  function updatePreview() {
+    prevHeading.textContent = headingInput.value || 'Under Construction';
+    prevSubtitle.innerHTML = marked.parseInline(subtitleInput.value || '') as string;
+    prevMessage.innerHTML = marked.parseInline(messageInput.value || '') as string;
+    const src = imageInput.value.trim();
+    prevImage.src = src;
+    prevImage.style.display = src ? 'block' : 'none';
+  }
+
+  previewBtn.addEventListener('click', () => {
+    const isHidden = previewPanel.classList.toggle('hidden');
+    previewBtn.textContent = isHidden ? 'Preview' : 'Hide Preview';
+    if (!isHidden) updatePreview();
+  });
+
+  [headingInput, subtitleInput, messageInput, imageInput].forEach(el => {
+    el.addEventListener('input', () => {
+      if (!previewPanel.classList.contains('hidden')) updatePreview();
+    });
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -103,10 +179,10 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
     saveStatus.className = 'save-status';
 
     const updates = {
-      under_construction_heading: (document.getElementById('heading') as HTMLInputElement).value,
-      under_construction_subtitle: (document.getElementById('subtitle') as HTMLInputElement).value,
-      under_construction_message: (document.getElementById('message') as HTMLTextAreaElement).value,
-      under_construction_image: (document.getElementById('image') as HTMLInputElement).value,
+      under_construction_heading: headingInput.value,
+      under_construction_subtitle: subtitleInput.value,
+      under_construction_message: messageInput.value,
+      under_construction_image: imageInput.value,
     };
 
     try {

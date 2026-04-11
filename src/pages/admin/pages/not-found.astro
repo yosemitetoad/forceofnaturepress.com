@@ -19,7 +19,7 @@ const message = content['not_found_message'] || "The page you're looking for doe
   <form id="pageForm">
     <section class="editor-section">
       <h2>Content</h2>
-      <p class="help-text">The large "404" heading is fixed. You can edit the text below it. Supports basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
+      <p class="help-text top">The large "404" heading is fixed. Subtitle and message support basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
 
       <div class="field">
         <label for="subtitle">Subtitle</label>
@@ -34,9 +34,22 @@ const message = content['not_found_message'] || "The page you're looking for doe
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
       <span id="saveStatus" class="save-status"></span>
     </div>
   </form>
+
+  <div id="previewPanel" class="preview-panel hidden">
+    <h2 class="preview-label">Preview</h2>
+    <div class="preview-bg">
+      <div class="preview-card">
+        <div class="prev-404">404</div>
+        <p id="prev-subtitle" class="prev-subtitle"></p>
+        <p id="prev-message" class="prev-message"></p>
+        <span class="prev-btn">Back to Home</span>
+      </div>
+    </div>
+  </div>
 </Admin>
 
 <style>
@@ -51,7 +64,6 @@ const message = content['not_found_message'] || "The page you're looking for doe
   .btn-outline:hover { background: #e4d3b8; }
 
   .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.2rem 0 1.2rem; line-height: 1.5; }
 
   .field { margin-bottom: 1.2rem; }
   .field:last-child { margin-bottom: 0; }
@@ -65,16 +77,75 @@ const message = content['not_found_message'] || "The page you're looking for doe
   input[type="text"]:focus, textarea:focus { border-color: #c87830; outline: none; }
   textarea { resize: vertical; }
 
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: 0.4rem 0 0; line-height: 1.5; }
+  .help-text.top { margin: -0.2rem 0 1.2rem; }
+  .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
+
   .form-actions { display: flex; align-items: center; gap: 1rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
   .save-status.success { color: #3d7a6e; }
   .save-status.error { color: #b44; }
+
+  /* Preview */
+  .preview-panel { margin-top: 2rem; }
+  .preview-panel.hidden { display: none; }
+  .preview-label { font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #6b4a2a; margin: 0 0 0.8rem; }
+  .preview-bg {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    border-radius: 10px;
+    padding: 3rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-card {
+    background: rgba(240, 230, 208, 0.88);
+    border: 2px solid #d4b896;
+    border-radius: 12px;
+    padding: 2.5rem 3.5rem;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+  }
+  .prev-404 { font-size: 4rem; font-weight: 800; color: #c87830; margin: 0 0 0.4rem; line-height: 1; }
+  .prev-subtitle { font-size: 1.1rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.8rem; }
+  .prev-message { font-size: 0.95rem; color: #8b6240; margin: 0 0 1.5rem; line-height: 1.6; }
+  .prev-btn {
+    display: inline-block; padding: 0.5em 1.4em; background: #c87830; color: #faf5ea;
+    border-radius: 8px; font-weight: 800; font-size: 0.9rem;
+  }
 </style>
 
 <script>
+  import { marked } from 'marked';
+
   const form = document.getElementById('pageForm') as HTMLFormElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   const saveStatus = document.getElementById('saveStatus')!;
+  const previewBtn = document.getElementById('previewBtn') as HTMLButtonElement;
+  const previewPanel = document.getElementById('previewPanel')!;
+
+  const subtitleInput = document.getElementById('subtitle') as HTMLInputElement;
+  const messageInput = document.getElementById('message') as HTMLTextAreaElement;
+  const prevSubtitle = document.getElementById('prev-subtitle')!;
+  const prevMessage = document.getElementById('prev-message')!;
+
+  function updatePreview() {
+    prevSubtitle.innerHTML = marked.parseInline(subtitleInput.value || '') as string;
+    prevMessage.innerHTML = marked.parseInline(messageInput.value || '') as string;
+  }
+
+  previewBtn.addEventListener('click', () => {
+    const isHidden = previewPanel.classList.toggle('hidden');
+    previewBtn.textContent = isHidden ? 'Preview' : 'Hide Preview';
+    if (!isHidden) updatePreview();
+  });
+
+  [subtitleInput, messageInput].forEach(el => {
+    el.addEventListener('input', () => {
+      if (!previewPanel.classList.contains('hidden')) updatePreview();
+    });
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -83,8 +154,8 @@ const message = content['not_found_message'] || "The page you're looking for doe
     saveStatus.className = 'save-status';
 
     const updates = {
-      not_found_subtitle: (document.getElementById('subtitle') as HTMLInputElement).value,
-      not_found_message: (document.getElementById('message') as HTMLTextAreaElement).value,
+      not_found_subtitle: subtitleInput.value,
+      not_found_message: messageInput.value,
     };
 
     try {
