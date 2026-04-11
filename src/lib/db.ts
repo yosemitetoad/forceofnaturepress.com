@@ -746,6 +746,46 @@ export async function getItemAllTimeClicks(db: D1Database, sku: string): Promise
   return row?.total ?? 0;
 }
 
+// ── Redirects ─────────────────────────────────────────────────────────────────
+
+export interface Redirect {
+  id: number;
+  fromPath: string;
+  toPath: string;
+  createdAt: string;
+}
+
+export async function getRedirect(db: D1Database, fromPath: string): Promise<string | null> {
+  const row = await db
+    .prepare('SELECT to_path FROM redirects WHERE from_path = ?')
+    .bind(fromPath)
+    .first<{ to_path: string }>();
+  return row?.to_path ?? null;
+}
+
+export async function getAllRedirects(db: D1Database): Promise<Redirect[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM redirects ORDER BY created_at DESC')
+    .all<{ id: number; from_path: string; to_path: string; created_at: string }>();
+  return (results ?? []).map(r => ({
+    id: r.id,
+    fromPath: r.from_path,
+    toPath: r.to_path,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function createRedirect(db: D1Database, fromPath: string, toPath: string): Promise<void> {
+  await db
+    .prepare('INSERT INTO redirects (from_path, to_path) VALUES (?, ?) ON CONFLICT(from_path) DO UPDATE SET to_path = excluded.to_path')
+    .bind(fromPath, toPath)
+    .run();
+}
+
+export async function deleteRedirect(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM redirects WHERE id = ?').bind(id).run();
+}
+
 // ── Page Content ──────────────────────────────────────────────────────────
 
 export async function getPageContent(db: D1Database, key: string): Promise<string | null> {

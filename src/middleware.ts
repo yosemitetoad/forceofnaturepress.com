@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { validateSession, getPageContent } from './lib/db';
+import { validateSession, getPageContent, getRedirect } from './lib/db';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
@@ -28,12 +28,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  // Maintenance mode gate — public pages only, not API routes or the under-construction page itself
-  // Guard against prerender context where runtime is unavailable
+  // Redirect + maintenance mode gate — public pages only, not API routes or special pages
   if (!isAdminRoute && !isApiRoute && !isUnderConstruction) {
     const db = context.locals.runtime?.env?.DB;
     if (db) {
-      const maintenanceMode = await getPageContent(db, 'maintenance_mode');
+      const [redirect, maintenanceMode] = await Promise.all([
+        getRedirect(db, pathname),
+        getPageContent(db, 'maintenance_mode'),
+      ]);
+      if (redirect) {
+        return context.redirect(redirect, 301);
+      }
       if (maintenanceMode === '1') {
         return context.redirect('/under-construction');
       }
