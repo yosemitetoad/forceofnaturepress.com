@@ -29,11 +29,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   // Maintenance mode gate — public pages only, not API routes or the under-construction page itself
+  // Guard against prerender context where runtime is unavailable
   if (!isAdminRoute && !isApiRoute && !isUnderConstruction) {
-    const db = context.locals.runtime.env.DB;
-    const maintenanceMode = await getPageContent(db, 'maintenance_mode');
-    if (maintenanceMode === '1') {
-      return context.redirect('/under-construction');
+    const db = context.locals.runtime?.env?.DB;
+    if (db) {
+      const maintenanceMode = await getPageContent(db, 'maintenance_mode');
+      if (maintenanceMode === '1') {
+        return context.redirect('/under-construction');
+      }
     }
   }
 
