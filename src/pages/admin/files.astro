@@ -1,0 +1,269 @@
+---
+export const prerender = false;
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="Files">
+  <h1>Files</h1>
+  <p class="subtitle">Upload files for hosting on the site (PDF, EPUB, ZIP, TXT, CSV — max 50MB).</p>
+
+  <div class="upload-box">
+    <h2>Upload File</h2>
+    <form id="upload-form">
+      <div class="file-row">
+        <input type="file" id="file-input" accept=".pdf,.epub,.zip,.txt,.csv" required />
+        <button type="submit" class="btn btn-primary" id="upload-btn">Upload</button>
+      </div>
+      <div id="upload-status" class="status hidden"></div>
+    </form>
+  </div>
+
+  <div class="files-section">
+    <h2>Hosted Files</h2>
+    <div id="file-list"><p class="loading">Loading...</p></div>
+  </div>
+</Admin>
+
+<style>
+  h1 { font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.2rem; font-weight: 800; margin: 0 0 1rem; }
+  .subtitle { color: #6b4a2a; margin: 0 0 2rem; font-size: 0.95rem; }
+
+  .upload-box {
+    background: #faf5ea;
+    border: 2px solid #d4b896;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    max-width: 700px;
+  }
+
+  .file-row {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  input[type="file"] {
+    flex: 1;
+    min-width: 0;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: white;
+    border: 2px solid #d4b896;
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    color: #2d1f0e;
+  }
+
+  .btn {
+    padding: 0.5em 1.2em;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover:not(:disabled) { background: #a05e18; }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-danger { background: #b44; color: white; font-size: 0.8rem; padding: 0.3em 0.8em; }
+  .btn-danger:hover { background: #833; }
+
+  .status {
+    margin-top: 0.8rem;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .status.hidden { display: none; }
+  .status.success { background: #e8f5e9; border: 2px solid #4caf50; color: #2e7d32; }
+  .status.error { background: #fdecea; border: 2px solid #b44; color: #b44; }
+
+  .files-section {
+    background: #faf5ea;
+    border: 2px solid #d4b896;
+    border-radius: 10px;
+    padding: 1.5rem;
+    max-width: 700px;
+  }
+
+  .loading { color: #6b4a2a; font-style: italic; margin: 0; }
+  .empty { color: #6b4a2a; font-style: italic; margin: 0; }
+
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 2px solid #d4b896;
+    font-weight: 800;
+    color: #6b4a2a;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .file-table td {
+    padding: 0.6rem 0.6rem;
+    border-bottom: 1px solid #e4d3b8;
+    vertical-align: middle;
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+
+  .file-name {
+    font-weight: 700;
+    word-break: break-all;
+  }
+  .file-size { color: #6b4a2a; white-space: nowrap; }
+  .file-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+
+  .copy-btn {
+    background: #3d7a6e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.3em 0.8em;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .copy-btn:hover { background: #2a5a50; }
+  .copy-btn.copied { background: #4caf50; }
+
+  .file-link {
+    color: #c87830;
+    font-size: 0.8rem;
+    word-break: break-all;
+    text-decoration: none;
+  }
+  .file-link:hover { text-decoration: underline; }
+</style>
+
+<script>
+  function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function loadFiles() {
+    const listEl = document.getElementById('file-list')!;
+    try {
+      const res = await fetch('/api/admin/files');
+      const data = await res.json();
+      if (!data.files || data.files.length === 0) {
+        listEl.innerHTML = '<p class="empty">No files uploaded yet.</p>';
+        return;
+      }
+      const rows = data.files.map((f: any) => `
+        <tr>
+          <td class="file-name">
+            <a href="${f.url}" class="file-link" target="_blank">${f.name}</a>
+          </td>
+          <td class="file-size">${formatSize(f.size)}</td>
+          <td class="file-actions">
+            <button class="copy-btn" data-url="${f.url}">Copy link</button>
+            <button class="btn btn-danger" data-key="${f.key}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      listEl.innerHTML = `
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Size</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+
+      listEl.querySelectorAll('.copy-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const url = (btn as HTMLElement).dataset.url!;
+          const full = `${window.location.origin}${url}`;
+          await navigator.clipboard.writeText(full);
+          btn.textContent = 'Copied!';
+          (btn as HTMLElement).classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = 'Copy link';
+            (btn as HTMLElement).classList.remove('copied');
+          }, 2000);
+        });
+      });
+
+      listEl.querySelectorAll('.btn-danger').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const key = (btn as HTMLElement).dataset.key!;
+          if (!confirm(`Delete "${key.replace('downloads/', '')}"?`)) return;
+          const res = await fetch('/api/admin/files', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key }),
+          });
+          if (res.ok) {
+            loadFiles();
+          } else {
+            alert('Delete failed.');
+          }
+        });
+      });
+    } catch {
+      listEl.innerHTML = '<p class="empty">Failed to load files.</p>';
+    }
+  }
+
+  const form = document.getElementById('upload-form') as HTMLFormElement;
+  const fileInput = document.getElementById('file-input') as HTMLInputElement;
+  const uploadBtn = document.getElementById('upload-btn') as HTMLButtonElement;
+  const statusEl = document.getElementById('upload-status')!;
+
+  function showStatus(msg: string, type: 'success' | 'error') {
+    statusEl.textContent = msg;
+    statusEl.className = `status ${type}`;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    statusEl.className = 'status hidden';
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    try {
+      const res = await fetch('/api/admin/upload-file', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        showStatus(`Uploaded: ${data.name}`, 'success');
+        form.reset();
+        loadFiles();
+      } else {
+        showStatus(data.error || 'Upload failed.', 'error');
+      }
+    } catch {
+      showStatus('Upload failed.', 'error');
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+    }
+  });
+
+  loadFiles();
+</script>

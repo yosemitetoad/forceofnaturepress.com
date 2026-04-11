@@ -119,7 +119,10 @@
     function applyBigMode(on: boolean) {
       bigMode = on;
       menu.classList.toggle('a11y-menu--big', on);
-      restore.classList.toggle('a11y-restore--big', on);
+      restore.style.width = on ? '68px' : '';
+      restore.style.height = on ? '84px' : '';
+      const icon = restore.querySelector<HTMLImageElement>('.a11y-restore-icon');
+      if (icon) { icon.style.width = on ? '44px' : ''; icon.style.height = on ? '44px' : ''; }
       bigModeBtn.setAttribute('aria-pressed', String(on));
       bigModeBtn.classList.toggle('active', on);
     }
