@@ -37,13 +37,10 @@ try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
       <p class="help-text">Edit the description text on each contact card. Supports basic markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>. The card titles, icons, and links are managed in site config.</p>
       <div id="card-list">
         {cards.map(card => (
-          <div class="card-field" data-key={card.key}>
+          <div class="card-field" data-key={card.key} draggable="true">
             <div class="card-header">
+              <span class="drag-handle" title="Drag to reorder">⠿</span>
               <span class="card-label">{card.key.charAt(0).toUpperCase() + card.key.slice(1)}</span>
-              <div class="card-controls">
-                <button type="button" class="move-btn move-up" title="Move up">▲</button>
-                <button type="button" class="move-btn move-down" title="Move down">▼</button>
-              </div>
             </div>
             <div class="field">
               <label>Description</label>
@@ -86,17 +83,13 @@ try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
   .field input:focus, .field textarea:focus { border-color: #c87830; outline: none; }
   .field textarea { resize: vertical; }
 
-  .card-field { background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px; padding: 1rem; margin-bottom: 0.8rem; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+  .card-field { background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px; padding: 1rem; margin-bottom: 0.8rem; cursor: default; transition: opacity 0.15s; }
+  .card-field.dragging { opacity: 0.4; }
+  .card-field.drag-over { border-color: #c87830; border-style: dashed; }
+  .card-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+  .drag-handle { font-size: 1.1rem; color: #a08060; cursor: grab; line-height: 1; user-select: none; }
+  .drag-handle:active { cursor: grabbing; }
   .card-label { font-weight: 800; font-size: 0.9rem; color: #2d1f0e; }
-  .card-controls { display: flex; gap: 0.3rem; }
-  .move-btn {
-    background: #d4b896; border: none; border-radius: 5px; width: 28px; height: 28px;
-    font-size: 0.7rem; cursor: pointer; color: #2d1f0e; line-height: 1;
-    transition: background 0.15s;
-  }
-  .move-btn:hover { background: #c87830; color: #faf5ea; }
-  .move-btn:disabled { opacity: 0.3; cursor: default; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
@@ -105,28 +98,50 @@ try { cards = JSON.parse(content.contact_cards ?? '[]'); } catch {}
 </style>
 
 <script>
-  function updateMoveButtons() {
-    const cards = document.querySelectorAll<HTMLElement>('.card-field');
-    cards.forEach((card, i) => {
-      card.querySelector<HTMLButtonElement>('.move-up')!.disabled = i === 0;
-      card.querySelector<HTMLButtonElement>('.move-down')!.disabled = i === cards.length - 1;
-    });
-  }
+  const list = document.getElementById('card-list')!;
+  let dragged: HTMLElement | null = null;
 
-  document.getElementById('card-list')!.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest('.move-btn') as HTMLElement | null;
-    if (!btn) return;
-    const card = btn.closest<HTMLElement>('.card-field')!;
-    const list = card.parentElement!;
-    if (btn.classList.contains('move-up') && card.previousElementSibling) {
-      list.insertBefore(card, card.previousElementSibling);
-    } else if (btn.classList.contains('move-down') && card.nextElementSibling) {
-      list.insertBefore(card.nextElementSibling, card);
-    }
-    updateMoveButtons();
+  list.addEventListener('dragstart', (e) => {
+    dragged = (e.target as HTMLElement).closest<HTMLElement>('.card-field');
+    if (!dragged) return;
+    dragged.classList.add('dragging');
+    e.dataTransfer!.effectAllowed = 'move';
   });
 
-  updateMoveButtons();
+  list.addEventListener('dragend', () => {
+    dragged?.classList.remove('dragging');
+    list.querySelectorAll('.card-field').forEach(el => el.classList.remove('drag-over'));
+    dragged = null;
+  });
+
+  list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = 'move';
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.card-field');
+    if (!target || target === dragged) return;
+    list.querySelectorAll('.card-field').forEach(el => el.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  });
+
+  list.addEventListener('dragleave', (e) => {
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.card-field');
+    target?.classList.remove('drag-over');
+  });
+
+  list.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.card-field');
+    if (!target || !dragged || target === dragged) return;
+    const cards = [...list.querySelectorAll<HTMLElement>('.card-field')];
+    const draggedIdx = cards.indexOf(dragged);
+    const targetIdx = cards.indexOf(target);
+    if (draggedIdx < targetIdx) {
+      list.insertBefore(dragged, target.nextElementSibling);
+    } else {
+      list.insertBefore(dragged, target);
+    }
+    target.classList.remove('drag-over');
+  });
 
   const form = document.getElementById('contactForm') as HTMLFormElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
