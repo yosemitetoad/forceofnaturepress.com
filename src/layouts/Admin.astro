@@ -27,15 +27,28 @@ const { title } = Astro.props;
         Force of Nature Press - Admin View
       </a>
       <div class="nav-links">
-        <a href="/admin">Dashboard</a>
-        <a href="/admin/pages">Pages</a>
-        <a href="/admin/shop">Shop</a>
-        <a href="/admin/portfolio">Portfolio</a>
-        <a href="/admin/blog">Blog</a>
-        <a href="/admin/files">Files</a>
-        <a href="/admin/redirects">Redirects</a>
-        <a href="/admin/analytics">Analytics</a>
-        <a href="/" target="_blank">View Site</a>
+        <a href="/admin" class="nav-link">Dashboard</a>
+
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-btn">Content ▾</button>
+          <div class="nav-dropdown-menu">
+            <a href="/admin/shop">Shop</a>
+            <a href="/admin/portfolio">Portfolio</a>
+            <a href="/admin/blog">Blog</a>
+            <a href="/admin/pages">Pages</a>
+          </div>
+        </div>
+
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-btn">Tools ▾</button>
+          <div class="nav-dropdown-menu">
+            <a href="/admin/files">Files</a>
+            <a href="/admin/redirects">Redirects</a>
+            <a href="/admin/analytics">Analytics</a>
+          </div>
+        </div>
+
+        <a href="/" target="_blank" class="nav-link">View Site</a>
         <form method="POST" action="/api/admin/logout" class="logout-form">
           <button type="submit">Log Out</button>
         </form>
@@ -83,21 +96,76 @@ const { title } = Astro.props;
     text-decoration: none;
     font-weight: 800;
     font-size: 1.1rem;
+    flex-shrink: 0;
   }
   .nav-brand img { border-radius: 4px; }
+
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 1.2rem;
+    gap: 0.2rem;
   }
-  .nav-links a {
+
+  .nav-link {
     color: #e4d3b8;
     text-decoration: none;
     font-weight: 700;
     font-size: 0.9rem;
+    padding: 0.3em 0.7em;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
   }
-  .nav-links a:hover { color: #faf5ea; }
-  .logout-form { margin: 0; }
+  .nav-link:hover { color: #faf5ea; background: rgba(255,255,255,0.07); }
+
+  /* Dropdowns */
+  .nav-dropdown { position: relative; }
+
+  .nav-dropdown-btn {
+    background: none;
+    border: none;
+    color: #e4d3b8;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.3em 0.7em;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+    height: 56px;
+  }
+  .nav-dropdown-btn:hover,
+  .nav-dropdown.open .nav-dropdown-btn {
+    color: #faf5ea;
+    background: rgba(255,255,255,0.07);
+  }
+
+  .nav-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: #3a2810;
+    border: 1px solid #6b4a2a;
+    border-radius: 8px;
+    padding: 0.4rem;
+    min-width: 150px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .nav-dropdown.open .nav-dropdown-menu { display: block; }
+
+  .nav-dropdown-menu a {
+    display: block;
+    color: #e4d3b8;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.45em 0.9em;
+    border-radius: 6px;
+    transition: background 0.1s, color 0.1s;
+  }
+  .nav-dropdown-menu a:hover { background: rgba(255,255,255,0.1); color: #faf5ea; }
+
+  .logout-form { margin: 0; margin-left: 0.4rem; }
   .logout-form button {
     background: none;
     border: 1px solid #6b4a2a;
@@ -108,14 +176,32 @@ const { title } = Astro.props;
     font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
   }
-  .logout-form button:hover {
-    background: #6b4a2a;
-    color: #faf5ea;
-  }
+  .logout-form button:hover { background: #6b4a2a; color: #faf5ea; }
+
   .admin-main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
   }
 </style>
+
+<script>
+  // Toggle dropdowns open/closed, close when clicking outside
+  const dropdowns = document.querySelectorAll<HTMLElement>('.nav-dropdown');
+
+  dropdowns.forEach(dropdown => {
+    const btn = dropdown.querySelector('.nav-dropdown-btn')!;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.contains('open');
+      dropdowns.forEach(d => d.classList.remove('open'));
+      if (!isOpen) dropdown.classList.add('open');
+    });
+  });
+
+  document.addEventListener('click', () => {
+    dropdowns.forEach(d => d.classList.remove('open'));
+  });
+</script>
