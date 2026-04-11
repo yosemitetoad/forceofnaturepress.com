@@ -1,6 +1,7 @@
 ---
 export const prerender = false;
 import { getPageContentMulti } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 const db = Astro.locals.runtime?.env?.DB;
 const content = db ? await getPageContentMulti(db, [
@@ -10,8 +11,8 @@ const content = db ? await getPageContentMulti(db, [
   'under_construction_image',
 ]) : {};
 const heading = content['under_construction_heading'] || 'Under Construction';
-const subtitle = content['under_construction_subtitle'] || "We're tending to the garden. Check back soon!";
-const message = content['under_construction_message'] || 'Force of Nature Press is currently being updated. We\'ll be back shortly.';
+const subtitle = await mdInline(content['under_construction_subtitle'] || "We're tending to the garden. Check back soon!");
+const message = await mdInline(content['under_construction_message'] || "Force of Nature Press is currently being updated. We'll be back shortly.");
 const image = content['under_construction_image'] || '/beetleshopiconsquare.webp';
 ---
 
@@ -31,8 +32,8 @@ const image = content['under_construction_image'] || '/beetleshopiconsquare.webp
     <div class="card">
       {image && <img src={image} alt="Force of Nature Press" class="logo" width="80" height="80" />}
       <h1>{heading}</h1>
-      <p class="subtitle">{subtitle}</p>
-      <p class="message">{message}</p>
+      <p class="subtitle" set:html={subtitle} />
+      <p class="message" set:html={message} />
     </div>
   </div>
 </body>
