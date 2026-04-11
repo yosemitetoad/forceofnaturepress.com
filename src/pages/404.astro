@@ -70,10 +70,10 @@ const message = await md(content['not_found_message'] || "The page you're lookin
   }
   .message p { margin: 0 0 0.8em; }
   .message p:last-child { margin: 0; }
-  .message a { color: var(--teal); }
-  .message a:hover { color: var(--teal-dark); }
-  .subtitle a { color: var(--teal); }
-  .subtitle a:hover { color: var(--teal-dark); }
+  .message :global(a) { color: var(--teal); }
+  .message :global(a:hover) { color: var(--teal-dark); }
+  .subtitle :global(a) { color: var(--teal); }
+  .subtitle :global(a:hover) { color: var(--teal-dark); }
 
   .btn {
     display: inline-block;
