@@ -1,30 +1,40 @@
 import { defineMiddleware } from 'astro:middleware';
-import { validateSession } from './lib/db';
+import { validateSession, getPageContent } from './lib/db';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
-  // Only gate /admin and /api/admin routes (but not /admin/login)
   const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   const isLoginPage = pathname === '/admin/login' || pathname === '/admin/login/';
   const isLoginApi = pathname === '/api/admin/login' || pathname === '/api/admin/login/';
+  const isUnderConstruction = pathname === '/under-construction' || pathname === '/under-construction/';
+  const isApiRoute = pathname.startsWith('/api/');
 
-  if (!isAdminRoute || isLoginPage || isLoginApi) {
+  // Admin session gate
+  if (isAdminRoute && !isLoginPage && !isLoginApi) {
+    const db = context.locals.runtime.env.DB;
+    const sessionToken = context.cookies.get('admin_session')?.value;
+
+    if (!sessionToken || !(await validateSession(db, sessionToken))) {
+      if (pathname.startsWith('/api/')) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return context.redirect('/admin/login');
+    }
+
     return next();
   }
 
-  const db = context.locals.runtime.env.DB;
-  const sessionToken = context.cookies.get('admin_session')?.value;
-
-  if (!sessionToken || !(await validateSession(db, sessionToken))) {
-    // API routes get 401, pages get redirected
-    if (pathname.startsWith('/api/')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+  // Maintenance mode gate — public pages only, not API routes or the under-construction page itself
+  if (!isAdminRoute && !isApiRoute && !isUnderConstruction) {
+    const db = context.locals.runtime.env.DB;
+    const maintenanceMode = await getPageContent(db, 'maintenance_mode');
+    if (maintenanceMode === '1') {
+      return context.redirect('/under-construction');
     }
-    return context.redirect('/admin/login');
   }
 
   return next();

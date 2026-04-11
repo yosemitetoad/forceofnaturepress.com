@@ -2,9 +2,11 @@
 export const prerender = false;
 
 import Admin from '../../layouts/Admin.astro';
-import { getAllShopItems, getAllPortfolioItems, getBlogPostCount, getPendingCommentCount } from '../../lib/db';
+import { getAllShopItems, getAllPortfolioItems, getBlogPostCount, getPendingCommentCount, getPageContent } from '../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
+const maintenanceRaw = await getPageContent(db, 'maintenance_mode');
+const maintenanceEnabled = maintenanceRaw === '1';
 const shopItems = await getAllShopItems(db);
 const portfolioItems = await getAllPortfolioItems(db);
 const blogCounts = await getBlogPostCount(db);
@@ -111,6 +113,18 @@ for (const item of portfolioItems) {
       )}
     </div>
   </div>
+
+  <div class="maintenance-bar" id="maintenance-bar" data-enabled={maintenanceEnabled ? 'true' : 'false'}>
+    <div class="maintenance-info">
+      <span class="maintenance-label">Site Mode</span>
+      <span class="maintenance-status" id="maintenance-status">
+        {maintenanceEnabled ? 'Under Construction — site is hidden from visitors' : 'Live — site is visible to everyone'}
+      </span>
+    </div>
+    <button class="btn maintenance-btn" id="maintenance-toggle" data-enabled={maintenanceEnabled ? 'true' : 'false'}>
+      {maintenanceEnabled ? 'Take Site Live' : 'Enable Under Construction'}
+    </button>
+  </div>
 </Admin>
 
 <style>
@@ -168,5 +182,67 @@ for (const item of portfolioItems) {
     color: #c87830; font-weight: 800; font-size: 0.9rem; text-decoration: none;
   }
   .pending-alert a:hover { text-decoration: underline; }
+
+  .maintenance-bar {
+    margin-top: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    border: 2px solid #d4b896;
+    background: #faf5ea;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .maintenance-bar[data-enabled='true'] {
+    background: #fff3e0;
+    border-color: #c87830;
+  }
+  .maintenance-info { display: flex; flex-direction: column; gap: 0.2rem; }
+  .maintenance-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #6b4a2a; }
+  .maintenance-status { font-size: 0.95rem; font-weight: 700; color: #2d1f0e; }
+  .maintenance-btn { white-space: nowrap; }
+  .maintenance-btn[data-enabled='false'] { background: #6b4a2a; color: #faf5ea; }
+  .maintenance-btn[data-enabled='false']:hover { background: #4a2f12; }
+  .maintenance-btn[data-enabled='true'] { background: #3d7a6e; color: #faf5ea; }
+  .maintenance-btn[data-enabled='true']:hover { background: #2a5a50; }
 </style>
+
+<script>
+  const bar = document.getElementById('maintenance-bar')!;
+  const btn = document.getElementById('maintenance-toggle') as HTMLButtonElement;
+  const statusEl = document.getElementById('maintenance-status')!;
+
+  btn.addEventListener('click', async () => {
+    const currentlyEnabled = btn.dataset.enabled === 'true';
+    const newEnabled = !currentlyEnabled;
+
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+
+    try {
+      const res = await fetch('/api/admin/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newEnabled }),
+      });
+
+      if (res.ok) {
+        btn.dataset.enabled = newEnabled ? 'true' : 'false';
+        bar.dataset.enabled = newEnabled ? 'true' : 'false';
+        btn.textContent = newEnabled ? 'Take Site Live' : 'Enable Under Construction';
+        statusEl.textContent = newEnabled
+          ? 'Under Construction — site is hidden from visitors'
+          : 'Live — site is visible to everyone';
+      } else {
+        btn.textContent = 'Error — try again';
+      }
+    } catch {
+      btn.textContent = 'Error — try again';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
 
