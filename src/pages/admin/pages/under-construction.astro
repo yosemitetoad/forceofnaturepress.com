@@ -1,0 +1,127 @@
+---
+export const prerender = false;
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContentMulti } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, [
+  'under_construction_heading',
+  'under_construction_subtitle',
+  'under_construction_message',
+  'under_construction_image',
+]);
+
+const heading = content['under_construction_heading'] || 'Under Construction';
+const subtitle = content['under_construction_subtitle'] || "We're tending to the garden. Check back soon!";
+const message = content['under_construction_message'] || "Force of Nature Press is currently being updated. We'll be back shortly.";
+const image = content['under_construction_image'] || '/beetleshopiconsquare.webp';
+---
+
+<Admin title="Under Construction Page">
+  <div class="page-header">
+    <h1>Under Construction Page</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <form id="pageForm">
+    <section class="editor-section">
+      <h2>Content</h2>
+
+      <div class="field">
+        <label for="heading">Heading</label>
+        <input type="text" id="heading" name="heading" value={heading} />
+      </div>
+
+      <div class="field">
+        <label for="subtitle">Subtitle</label>
+        <input type="text" id="subtitle" name="subtitle" value={subtitle} />
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="3">{message}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="image">Image URL</label>
+        <input type="text" id="image" name="image" value={image} placeholder="/beetleshopiconsquare.webp" />
+        <p class="help-text">Path to image shown in the box. Leave blank to hide. Use an uploaded image URL or a path from <code>/public</code>.</p>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 1rem; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+
+  .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+
+  .field { margin-bottom: 1.2rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; color: #2d1f0e; }
+
+  input[type="text"], textarea {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+    box-sizing: border-box;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: #c87830; outline: none; }
+  textarea { resize: vertical; }
+
+  .help-text { font-size: 0.82rem; color: #6b4a2a; margin: 0.4rem 0 0; line-height: 1.5; }
+  .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+</style>
+
+<script>
+  const form = document.getElementById('pageForm') as HTMLFormElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const saveStatus = document.getElementById('saveStatus')!;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.className = 'save-status';
+
+    const updates = {
+      under_construction_heading: (document.getElementById('heading') as HTMLInputElement).value,
+      under_construction_subtitle: (document.getElementById('subtitle') as HTMLInputElement).value,
+      under_construction_message: (document.getElementById('message') as HTMLTextAreaElement).value,
+      under_construction_image: (document.getElementById('image') as HTMLInputElement).value,
+    };
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
+      if (res.ok) { saveStatus.textContent = 'Saved!'; saveStatus.className = 'save-status success'; }
+      else throw new Error();
+    } catch {
+      saveStatus.textContent = 'Error saving.';
+      saveStatus.className = 'save-status error';
+    }
+
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+</script>

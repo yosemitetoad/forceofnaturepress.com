@@ -1,13 +1,20 @@
 ---
+export const prerender = false;
 import Base from '../layouts/Base.astro';
+import { getPageContentMulti } from '../lib/db';
+
+const db = Astro.locals.runtime?.env?.DB;
+const content = db ? await getPageContentMulti(db, ['not_found_subtitle', 'not_found_message']) : {};
+const subtitle = content['not_found_subtitle'] || "Looks like this page got lost in the woods.";
+const message = content['not_found_message'] || "The page you're looking for doesn't exist or may have been moved.";
 ---
 
 <Base title="Page Not Found — Force of Nature Press" fullWidth>
   <div class="not-found">
     <div class="not-found-content">
       <h1>404</h1>
-      <p class="subtitle">Looks like this page got lost in the woods.</p>
-      <p class="message">The page you're looking for doesn't exist or may have been moved.</p>
+      <p class="subtitle">{subtitle}</p>
+      <p class="message">{message}</p>
       <a href="/" class="btn btn-primary">Back to Home</a>
     </div>
   </div>

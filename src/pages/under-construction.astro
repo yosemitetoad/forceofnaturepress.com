@@ -1,5 +1,18 @@
 ---
 export const prerender = false;
+import { getPageContentMulti } from '../lib/db';
+
+const db = Astro.locals.runtime?.env?.DB;
+const content = db ? await getPageContentMulti(db, [
+  'under_construction_heading',
+  'under_construction_subtitle',
+  'under_construction_message',
+  'under_construction_image',
+]) : {};
+const heading = content['under_construction_heading'] || 'Under Construction';
+const subtitle = content['under_construction_subtitle'] || "We're tending to the garden. Check back soon!";
+const message = content['under_construction_message'] || 'Force of Nature Press is currently being updated. We\'ll be back shortly.';
+const image = content['under_construction_image'] || '/beetleshopiconsquare.webp';
 ---
 
 <!doctype html>
@@ -16,10 +29,10 @@ export const prerender = false;
 <body>
   <div class="page">
     <div class="card">
-      <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press beetle logo" class="logo" width="80" height="80" />
-      <h1>Under Construction</h1>
-      <p class="subtitle">We're tending to the garden. Check back soon!</p>
-      <p class="message">Force of Nature Press is currently being updated. We'll be back shortly.</p>
+      {image && <img src={image} alt="Force of Nature Press" class="logo" width="80" height="80" />}
+      <h1>{heading}</h1>
+      <p class="subtitle">{subtitle}</p>
+      <p class="message">{message}</p>
     </div>
   </div>
 </body>
