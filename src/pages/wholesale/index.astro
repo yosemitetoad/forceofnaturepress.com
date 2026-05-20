@@ -98,8 +98,10 @@ function formatCat(cat: string) {
         <section class="terms-section container" id="terms">
           <details class="section-details" open>
             <summary class="section-heading">Terms &amp; Conditions</summary>
-            <div class="terms-body">
-              <Fragment set:html={termsHtml} />
+            <div class="terms-scroll-wrap">
+              <div class="terms-body">
+                <Fragment set:html={termsHtml} />
+              </div>
             </div>
           </details>
         </section>
@@ -530,6 +532,17 @@ function formatCat(cat: string) {
   .catalog-category > summary:hover::after { color: #6b4a2a; }
 
   /* Terms */
+  .terms-scroll-wrap { position: relative; }
+  .terms-scroll-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 2px; right: 2px;
+    height: 72px;
+    background: linear-gradient(to bottom, transparent, #faf5ea);
+    border-radius: 0 0 10px 10px;
+    pointer-events: none;
+    z-index: 1;
+  }
   .terms-body { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem; font-size: 0.95rem; line-height: 1.8; max-height: 320px; overflow-y: auto; }
   .terms-body :global(p) { margin: 0 0 0.8rem; }
   .terms-body :global(p:last-child) { margin-bottom: 0; }
