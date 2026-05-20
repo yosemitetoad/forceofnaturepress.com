@@ -397,17 +397,23 @@ const configJson = JSON.stringify(config);
           i++; continue;
         }
 
-        // Inline: website+social pair
+        // Inline: website+social+business_address group
         const next = visFields[i + 1];
         if (f.id === 'website' && next?.id === 'social') {
-          html += `<div class="p-field"><label class="p-label">Website or Social Media<span class="p-req"> *</span></label><p class="p-help">${esc(f.helpText || 'Please provide at least one.')}</p>
+          const afterNext = visFields[i + 2];
+          const hasBizAddr = afterNext?.id === 'business_address';
+          const groupLabel = hasBizAddr ? 'Website, Social Media, or Store Address' : 'Website or Social Media';
+          html += `<div class="p-field"><label class="p-label">${groupLabel}<span class="p-req"> *</span></label><p class="p-help">${esc(f.helpText || 'Please provide at least one.')}</p>
             <div class="p-row">
               <div class="p-field" style="margin-bottom:0"><label class="p-label" style="font-weight:600;font-size:0.82rem">Website URL</label><input class="p-input" placeholder="${esc(f.placeholder || 'https://...')}" /></div>
               <div class="p-field" style="margin-bottom:0"><label class="p-label" style="font-weight:600;font-size:0.82rem">Social Media Handle(s)</label><input class="p-input" placeholder="${esc(next.placeholder || '@handle')}" /></div>
-            </div></div>`;
-          i += 2; continue;
+            </div>
+            ${hasBizAddr ? `<div class="p-field" style="margin-top:0.6rem;margin-bottom:0"><label class="p-label" style="font-weight:600;font-size:0.82rem">${esc(afterNext.label)}</label><input class="p-input" placeholder="${esc(afterNext.placeholder || '')}" /></div>` : ''}
+            </div>`;
+          i += hasBizAddr ? 3 : 2; continue;
         }
         if (f.id === 'social' && visFields[i - 1]?.id === 'website') { i++; continue; }
+        if (f.id === 'business_address' && (visFields[i - 1]?.id === 'social' || visFields[i - 2]?.id === 'website')) { i++; continue; }
 
         // Pair two inline fields
         const canPair = next && !['textarea','select','checkbox','address','address-billing'].includes(next.type);

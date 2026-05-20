@@ -280,16 +280,19 @@ function formatCat(cat: string) {
                       i++; continue;
                     }
 
-                    // Inline fields: try to pair website+social together, otherwise pair consecutive inline fields
+                    // Inline fields: group website+social+business_address together, otherwise pair consecutive inline fields
                     const next = visFields[i + 1];
                     const isWebsite = f.id === 'website';
                     const isSocial = f.id === 'social';
+                    const isBusinessAddr = f.id === 'business_address';
                     const nextIsSocial = next?.id === 'social';
 
                     if (isWebsite && nextIsSocial) {
+                      const afterNext = visFields[i + 2];
+                      const hasBusinessAddr = afterNext?.id === 'business_address';
                       rendered.push(
                         <div class="field">
-                          <label>Website or Social Media{f.required || next.required ? <span class="req"> *</span> : ''}</label>
+                          <label>Website, Social Media{hasBusinessAddr ? ', or Store Address' : ''}<span class="req"> *</span></label>
                           <p class="field-help">{f.helpText || 'Please provide at least one.'}</p>
                           <div class="form-row">
                             <div class="field mb-0">
@@ -301,14 +304,21 @@ function formatCat(cat: string) {
                               <input type="text" id="social" name="social" placeholder={next.placeholder ?? '@handle or profile link'} />
                             </div>
                           </div>
-                          <p id="social-error" class="field-error" hidden>Please provide a website URL or at least one social media handle.</p>
+                          {hasBusinessAddr && (
+                            <div class="field mb-0" style="margin-top:0.6rem">
+                              <label for="business_address" class="sub-label">{afterNext.label}</label>
+                              <input type="text" id="business_address" name="business_address" placeholder={afterNext.placeholder ?? ''} />
+                            </div>
+                          )}
+                          <p id="presence-error" class="field-error" hidden>Please provide a website, social media handle, or store address.</p>
                         </div>
                       );
-                      i += 2; continue;
+                      i += hasBusinessAddr ? 3 : 2; continue;
                     }
 
-                    // Skip rendering social standalone if it follows website (already handled above)
+                    // Skip social/business_address if already rendered as part of the website group
                     if (isSocial && visFields[i - 1]?.id === 'website') { i++; continue; }
+                    if (isBusinessAddr && (visFields[i - 1]?.id === 'social' || visFields[i - 2]?.id === 'website')) { i++; continue; }
 
                     // Pair two consecutive inline fields in a form-row
                     const canPair = next && !['textarea','select','checkbox','address','address-billing'].includes(next.type);
@@ -616,7 +626,8 @@ function formatCat(cat: string) {
     const billingFields = document.getElementById('billingFields')!;
     const websiteInput = document.getElementById('website') as HTMLInputElement;
     const socialInput = document.getElementById('social') as HTMLInputElement;
-    const socialError = document.getElementById('social-error')!;
+    const businessAddrInput = document.getElementById('business_address') as HTMLInputElement;
+    const presenceError = document.getElementById('presence-error');
 
     sameAsShipping?.addEventListener('change', () => {
       billingFields.style.display = sameAsShipping.checked ? 'none' : '';
@@ -625,17 +636,17 @@ function formatCat(cat: string) {
     orderForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Validate website/social — at least one required (only if both fields are present)
-      const showWebsiteSocial = !!(websiteInput || socialInput);
-      if (showWebsiteSocial) {
+      // Validate online presence — at least one of website/social/business address required
+      if (presenceError) {
         const website = websiteInput?.value.trim() ?? '';
         const social = socialInput?.value.trim() ?? '';
-        if (!website && !social) {
-          socialError?.removeAttribute('hidden');
-          socialError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const bizAddr = businessAddrInput?.value.trim() ?? '';
+        if (!website && !social && !bizAddr) {
+          presenceError.removeAttribute('hidden');
+          presenceError.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
-        socialError?.setAttribute('hidden', '');
+        presenceError.setAttribute('hidden', '');
       }
 
       // Validate required checkboxes and fields via browser API
