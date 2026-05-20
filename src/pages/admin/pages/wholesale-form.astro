@@ -202,9 +202,9 @@ const configJson = JSON.stringify(config);
   .form-preview-box :global(.p-help) { font-size: 0.82rem; color: #6b4a2a; margin: 0.1rem 0 0.4rem; }
   .form-preview-box :global(.p-input) { width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box; }
   .form-preview-box :global(.p-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .form-preview-box :global(.p-address-block) { border: 1.5px solid #d4b896; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
-  .form-preview-box :global(.p-address-label) { font-size: 0.85rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; font-family: 'Nunito', sans-serif; }
-  .form-preview-box :global(.p-address-row) { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem; }
+  .form-preview-box :global(.p-address-block) { margin-bottom: 1rem; }
+  .form-preview-box :global(.p-address-label) { display: block; font-weight: 700; font-size: 0.85rem; color: #6b4a2a; margin: 0 0 0.3rem; font-family: 'Nunito', sans-serif; }
+  .form-preview-box :global(.p-address-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
   .form-preview-box :global(.p-address-input) { width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; margin-bottom: 0.5rem; box-sizing: border-box; display: block; }
   .form-preview-box :global(.p-checkbox-label) { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; line-height: 1.5; font-family: 'Nunito', sans-serif; }
   .form-preview-box :global(.p-agreement-field) { margin-bottom: 0.8rem; }
@@ -370,18 +370,20 @@ const configJson = JSON.stringify(config);
         const help = f.helpText ? `<p class="p-help">${esc(f.helpText)}</p>` : '';
 
         if (f.type === 'address') {
-          html += `<div class="p-address-block"><p class="p-address-label">${esc(f.label)}${req}</p>
+          html += `<div class="p-address-block"><label class="p-address-label">${esc(f.label)}${req}</label>
             <input class="p-address-input" placeholder="Street address" />
-            <div class="p-address-row"><input class="p-address-input" placeholder="City" /><input class="p-address-input" placeholder="State / Province" /><input class="p-address-input" placeholder="ZIP" /></div>
-            <input class="p-address-input" placeholder="Country" /></div>`;
+            <div class="p-address-row"><input class="p-address-input" placeholder="City" /><input class="p-address-input" placeholder="State / Province" /></div>
+            <div class="p-address-row"><input class="p-address-input" placeholder="ZIP / Postal code" /><input class="p-address-input" placeholder="Country" /></div>
+            </div>`;
           i++; continue;
         }
         if (f.type === 'address-billing') {
-          html += `<div class="p-address-block"><p class="p-address-label">${esc(f.label)}</p>
+          html += `<div class="p-address-block"><label class="p-address-label">${esc(f.label)}</label>
             <label class="p-checkbox-label" style="margin-bottom:0.7rem"><input type="checkbox" /> Same as shipping address</label>
             <input class="p-address-input" placeholder="Street address" />
-            <div class="p-address-row"><input class="p-address-input" placeholder="City" /><input class="p-address-input" placeholder="State" /><input class="p-address-input" placeholder="ZIP" /></div>
-            <input class="p-address-input" placeholder="Country" /></div>`;
+            <div class="p-address-row"><input class="p-address-input" placeholder="City" /><input class="p-address-input" placeholder="State / Province" /></div>
+            <div class="p-address-row"><input class="p-address-input" placeholder="ZIP / Postal code" /><input class="p-address-input" placeholder="Country" /></div>
+            </div>`;
           i++; continue;
         }
         if (f.type === 'textarea') {

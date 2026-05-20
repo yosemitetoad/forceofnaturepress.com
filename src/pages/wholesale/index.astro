@@ -201,14 +201,16 @@ function formatCat(cat: string) {
                     if (f.type === 'address') {
                       rendered.push(
                         <div class="address-block">
-                          <h4 class="address-label">{f.label}{f.required && <span class="req"> *</span>}</h4>
+                          <label class="address-label">{f.label}{f.required && <span class="req"> *</span>}</label>
                           <input type="text" name="shipping_address" placeholder="Street address" required={f.required} class="address-input" />
                           <div class="address-row">
                             <input type="text" name="shipping_city" placeholder="City" required={f.required} class="address-input" />
                             <input type="text" name="shipping_state" placeholder="State / Province" required={f.required} class="address-input" />
-                            <input type="text" name="shipping_zip" placeholder="ZIP / Postal code" required={f.required} class="address-input" />
                           </div>
-                          <input type="text" name="shipping_country" placeholder="Country" required={f.required} class="address-input" />
+                          <div class="address-row">
+                            <input type="text" name="shipping_zip" placeholder="ZIP / Postal code" required={f.required} class="address-input" />
+                            <input type="text" name="shipping_country" placeholder="Country" required={f.required} class="address-input" />
+                          </div>
                         </div>
                       );
                       i++; continue;
@@ -217,7 +219,7 @@ function formatCat(cat: string) {
                     if (f.type === 'address-billing') {
                       rendered.push(
                         <div class="address-block">
-                          <h4 class="address-label">{f.label}</h4>
+                          <label class="address-label">{f.label}</label>
                           <label class="same-as-shipping checkbox-label">
                             <input type="checkbox" id="sameAsShipping" />
                             Same as shipping address
@@ -227,9 +229,11 @@ function formatCat(cat: string) {
                             <div class="address-row">
                               <input type="text" name="billing_city" placeholder="City" class="address-input" />
                               <input type="text" name="billing_state" placeholder="State / Province" class="address-input" />
-                              <input type="text" name="billing_zip" placeholder="ZIP / Postal code" class="address-input" />
                             </div>
-                            <input type="text" name="billing_country" placeholder="Country" class="address-input" />
+                            <div class="address-row">
+                              <input type="text" name="billing_zip" placeholder="ZIP / Postal code" class="address-input" />
+                              <input type="text" name="billing_country" placeholder="Country" class="address-input" />
+                            </div>
                           </div>
                         </div>
                       );
@@ -540,17 +544,16 @@ function formatCat(cat: string) {
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
   }
   .field select:focus { border-color: #c87830; outline: none; }
-  .address-block { border: 1.5px solid #d4b896; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+  .address-block { margin-bottom: 1rem; }
   .address-block:last-child { margin-bottom: 0; }
-  .address-label { font-size: 0.85rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .address-label { display: block; font-weight: 700; font-size: 0.85rem; color: #6b4a2a; margin: 0 0 0.3rem; }
   .address-input {
     width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
     margin-bottom: 0.5rem; box-sizing: border-box; display: block;
   }
-  .address-input:last-child { margin-bottom: 0; }
   .address-input:focus { border-color: #c87830; outline: none; }
-  .address-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem; }
+  .address-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
   .same-as-shipping { margin-bottom: 0.8rem; display: block; }
   .checkbox-label { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; cursor: pointer; line-height: 1.5; }
   .checkbox-label input[type="checkbox"] { margin-top: 0.18rem; flex-shrink: 0; width: 1rem; height: 1rem; accent-color: #c87830; cursor: pointer; }
@@ -597,7 +600,7 @@ function formatCat(cat: string) {
 
   @media (max-width: 600px) {
     .order-section { padding: 1.2rem 1rem; }
-    .address-row { grid-template-columns: 1fr; }
+    .address-row { grid-template-columns: 1fr; gap: 0; }
   }
 
   @media (max-width: 520px) {
