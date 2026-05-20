@@ -456,6 +456,10 @@ function formatCat(cat: string) {
         <div id="reviewModalBody" class="review-modal-body"></div>
         <div class="review-actions">
           <button type="button" class="review-edit-btn" id="reviewEditBtn">Close</button>
+          <div class="review-util-btns">
+            <button type="button" class="review-util-btn" id="reviewPrintBtn">Print</button>
+            <button type="button" class="review-util-btn" id="reviewDownloadBtn">Download</button>
+          </div>
           <button type="button" class="review-confirm-btn" id="reviewConfirmBtn">Submit Order Request</button>
         </div>
         <p id="reviewSubmitStatus" class="order-form-status" style="margin-top:0.8rem"></p>
@@ -543,7 +547,7 @@ function formatCat(cat: string) {
     pointer-events: none;
     z-index: 1;
   }
-  .terms-body { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem; font-size: 0.95rem; line-height: 1.8; max-height: 320px; overflow-y: auto; }
+  .terms-body { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem 5rem; font-size: 0.95rem; line-height: 1.8; max-height: 320px; overflow-y: auto; }
   .terms-body :global(p) { margin: 0 0 0.8rem; }
   .terms-body :global(p:last-child) { margin-bottom: 0; }
   .terms-body :global(strong) { color: #2d1f0e; }
@@ -762,6 +766,9 @@ function formatCat(cat: string) {
   .review-confirm-btn { padding: 0.6em 1.4em; border: none; border-radius: 8px; background: #c87830; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
   .review-confirm-btn:hover { background: #a05e18; }
   .review-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .review-util-btns { display: flex; gap: 0.5rem; margin-left: auto; }
+  .review-util-btn { padding: 0.5em 1em; border: 2px solid #d4b896; border-radius: 8px; background: transparent; color: #6b4a2a; font-family: inherit; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; }
+  .review-util-btn:hover { background: #e4d3b8; }
 </style>
 
 <script>
@@ -1108,6 +1115,104 @@ function formatCat(cat: string) {
       e.preventDefault();
       doSubmit(false);
     });
+
+    // ── Print / Download order summary ────────────────────────────────────────
+    function buildOrderPrintHtml() {
+      const date = new Date().toLocaleString();
+      let body = `<h1>Force of Nature Press — Wholesale Order Request</h1><p class="date">Generated: ${date}</p>`;
+      body += `<h2>Order Items</h2>`;
+      let total = 0; let hasItems = false;
+      document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty <= 0) return;
+        hasItems = true;
+        const title = (input.dataset.title ?? 'Unknown').replace(/</g, '&lt;');
+        const price = parseFloat(input.dataset.ws || '0');
+        const lineTotal = qty * price;
+        total += lineTotal;
+        body += `<div class="item-row">${title}<span class="meta">QTY: ${qty} | $${lineTotal.toFixed(2)}</span></div>`;
+      });
+      if (!hasItems) body += `<div class="item-row">(no items selected)</div>`;
+      body += `<div class="total-row">Estimated wholesale total: $${total.toFixed(2)}</div>`;
+      collectFormSummary().forEach(({ heading, rows }) => {
+        body += `<h2>${heading.replace(/</g, '&lt;')}</h2>`;
+        rows.forEach(r => {
+          if (r.isCheck) {
+            const cls = r.label === '✓' ? 'yes' : 'no';
+            body += `<div class="check-row"><span class="${cls}">${r.label}</span> ${r.value.replace(/</g, '&lt;')}</div>`;
+          } else {
+            body += `<div class="field-row"><span class="lbl">${r.label.replace(/</g, '&lt;')}:</span><span class="val">${r.value.replace(/</g, '&lt;')}</span></div>`;
+          }
+        });
+      });
+      return `<!doctype html><html><head><title>Order Request — Force of Nature Press</title><style>
+        body{font-family:Georgia,serif;max-width:640px;margin:2rem auto;color:#2d1f0e;line-height:1.6;font-size:14px}
+        h1{font-size:1.1rem;margin:0 0 .2rem}
+        .date{font-size:.85rem;color:#6b4a2a;margin-bottom:1.5rem}
+        h2{font-size:.8rem;font-weight:bold;text-transform:uppercase;letter-spacing:.05em;margin:1.4rem 0 .4rem;border-bottom:1px solid #d4b896;padding-bottom:.2rem;color:#6b4a2a}
+        .item-row{display:flex;justify-content:space-between;padding:.2rem 0;font-size:.9rem;border-bottom:1px solid #f0e6d0}
+        .meta{color:#6b4a2a;font-size:.85rem}
+        .total-row{font-weight:bold;margin-top:.6rem;font-size:.95rem}
+        .field-row{display:flex;gap:.5rem;padding:.15rem 0}
+        .lbl{min-width:150px;font-weight:bold;font-size:.85rem;color:#6b4a2a;flex-shrink:0}
+        .val{font-size:.9rem}
+        .check-row{padding:.15rem 0;font-size:.85rem}
+        .yes{color:#3d7a6e;font-weight:bold}.no{color:#b44;font-weight:bold}
+        @media print{body{margin:1rem}}
+      </style></head><body>${body}</body></html>`;
+    }
+
+    function buildOrderText() {
+      const lines: string[] = [];
+      lines.push('FORCE OF NATURE PRESS — WHOLESALE ORDER REQUEST');
+      lines.push('Generated: ' + new Date().toLocaleString());
+      lines.push('');
+      lines.push('ORDER ITEMS');
+      lines.push('─'.repeat(50));
+      let total = 0; let hasItems = false;
+      document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty <= 0) return;
+        hasItems = true;
+        const title = input.dataset.title ?? 'Unknown';
+        const price = parseFloat(input.dataset.ws || '0');
+        const lineTotal = qty * price;
+        total += lineTotal;
+        lines.push(`${title}   QTY: ${qty}   $${lineTotal.toFixed(2)}`);
+      });
+      if (!hasItems) lines.push('(no items selected)');
+      lines.push(`Estimated wholesale total: $${total.toFixed(2)}`);
+      lines.push('');
+      collectFormSummary().forEach(({ heading, rows }) => {
+        lines.push(heading.toUpperCase());
+        lines.push('─'.repeat(50));
+        rows.forEach(r => {
+          if (r.isCheck) lines.push(`  ${r.label} ${r.value}`);
+          else lines.push(`  ${r.label}: ${r.value}`);
+        });
+        lines.push('');
+      });
+      return lines.join('\n');
+    }
+
+    document.getElementById('reviewPrintBtn')?.addEventListener('click', () => {
+      const win = window.open('', '_blank', 'width=720,height=900');
+      if (!win) return;
+      win.document.write(buildOrderPrintHtml());
+      win.document.close();
+      win.focus();
+      win.print();
+    });
+
+    document.getElementById('reviewDownloadBtn')?.addEventListener('click', () => {
+      const blob = new Blob([buildOrderText()], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'wholesale-order-request.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
 
   if (modal) {
@@ -1137,4 +1242,8 @@ function formatCat(cat: string) {
     modal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hasAttribute('hidden')) closeModal(); });
   }
+
+  // Block right-click and drag on all images
+  document.addEventListener('contextmenu', (e) => { if (e.target instanceof HTMLImageElement) e.preventDefault(); });
+  document.addEventListener('dragstart', (e) => { if (e.target instanceof HTMLImageElement) e.preventDefault(); });
 </script>
