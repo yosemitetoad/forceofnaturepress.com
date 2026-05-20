@@ -264,6 +264,12 @@ function formatCat(cat: string) {
                             <option value="nature-center">Nature center</option>
                             <option value="other">Other</option>
                           </select>
+                          {f.id === 'business_type' && (
+                            <div id="businessTypeOtherWrap" hidden style="margin-top:0.6rem">
+                              <label for="business_type_other" class="sub-label">Please describe your business: <span class="req">*</span></label>
+                              <input type="text" id="business_type_other" name="business_type_other" disabled />
+                            </div>
+                          )}
                         </div>
                       );
                       i++; continue;
@@ -634,6 +640,18 @@ function formatCat(cat: string) {
 
     sameAsShipping?.addEventListener('change', () => {
       billingFields.style.display = sameAsShipping.checked ? 'none' : '';
+    });
+
+    const businessTypeSelect = document.getElementById('business_type') as HTMLSelectElement;
+    const businessTypeOtherWrap = document.getElementById('businessTypeOtherWrap');
+    const businessTypeOtherInput = document.getElementById('business_type_other') as HTMLInputElement;
+    businessTypeSelect?.addEventListener('change', () => {
+      const isOther = businessTypeSelect.value === 'other';
+      businessTypeOtherWrap?.toggleAttribute('hidden', !isOther);
+      if (businessTypeOtherInput) {
+        businessTypeOtherInput.disabled = !isOther;
+        businessTypeOtherInput.required = isOther;
+      }
     });
 
     orderForm.addEventListener('submit', async (e) => {
