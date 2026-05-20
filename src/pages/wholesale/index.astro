@@ -14,7 +14,7 @@ const isAdmin = adminToken ? await validateSession(db, adminToken) : false;
 const isWholesaleAuth = wholesaleToken === 'wholesale_ok';
 const isAuthenticated = isAdmin || isWholesaleAuth;
 
-const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password', 'wholesale_contact_email', 'wholesale_form_url']);
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro']);
 const wholesalePassword = content.wholesale_password ?? '';
 
 // Handle password form POST
@@ -51,6 +51,7 @@ const termsHtml = isAuthenticated ? await md(content.wholesale_terms ?? '') : ''
 const contactIntro = content.wholesale_contact_intro ?? '';
 const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
+const catalogIntro = content.wholesale_catalog_intro ?? '';
 
 // Flatten visible fields for JS validation logic
 const visibleFieldIds = new Set(
@@ -138,6 +139,7 @@ function formatCat(cat: string) {
       <section class="catalog-section container">
         <details class="section-details" open>
           <summary class="section-heading">Catalog</summary>
+          {catalogIntro && <p class="catalog-intro">{catalogIntro}</p>}
           {items.length === 0 ? (
             <p class="empty-catalog">No items available yet — check back soon.</p>
           ) : (
@@ -494,6 +496,7 @@ function formatCat(cat: string) {
   .terms-body :global(strong) { color: #2d1f0e; }
 
   /* Grid */
+  .catalog-intro { color: #5a3e1e; font-size: 0.95rem; margin: 0 0 1.5rem; line-height: 1.7; }
   .empty-catalog { color: #6b4a2a; font-style: italic; }
   .catalog-category { margin-bottom: 2.5rem; }
   .catalog-category:last-child { margin-bottom: 0; }

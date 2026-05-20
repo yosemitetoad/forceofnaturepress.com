@@ -5,9 +5,10 @@ import Admin from '../../../layouts/Admin.astro';
 import { getPageContentMulti } from '../../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
-const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password']);
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password', 'wholesale_catalog_intro']);
 
 const terms = content.wholesale_terms ?? '';
+const catalogIntro = content.wholesale_catalog_intro ?? '';
 const contactIntro = content.wholesale_contact_intro ?? '';
 const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
@@ -30,6 +31,14 @@ const passwordSet = !!(content.wholesale_password);
       <p class="help-text">Shown at the top of the wholesale page. Supports markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link](url)</code>. Leave a blank line between paragraphs to create a paragraph break.</p>
       <div class="field">
         <textarea name="wholesale_terms" rows="10">{terms}</textarea>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <h2>Catalog Intro</h2>
+      <p class="help-text">Optional paragraph shown below the Catalog heading, above the product categories.</p>
+      <div class="field">
+        <textarea name="wholesale_catalog_intro" rows="4">{catalogIntro}</textarea>
       </div>
     </section>
 
