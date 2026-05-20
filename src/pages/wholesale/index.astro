@@ -286,6 +286,7 @@ function formatCat(cat: string) {
                                         type="number" id={`qty_${item.id}`} class="qty-input"
                                         data-id={item.id} data-title={item.title}
                                         data-ws={item.wholesalePrice} data-moq={item.moq}
+                                        data-image={item.image || ''}
                                         min="0" step="1" placeholder="0"
                                       />
                                     </div>
@@ -300,6 +301,7 @@ function formatCat(cat: string) {
                           </div>
                           <p class="order-minimum-note">Opening orders: $150 minimum &bull; Reorders: $100 minimum</p>
                           <p id="order-items-error" class="field-error" hidden>Please add at least one item to your order.</p>
+                          <p id="order-min-error" class="field-error" hidden>Your order total is below the $100 minimum. Please add more items before submitting.</p>
                           <input type="hidden" name="products" id="productsHidden" />
                         </div>
                       );
@@ -373,7 +375,7 @@ function formatCat(cat: string) {
                           <div class="form-row">
                             <div class="field mb-0">
                               <label for="website" class="sub-label">Website URL</label>
-                              <input type="url" id="website" name="website" placeholder={f.placeholder ?? 'https://...'} />
+                              <input type="text" id="website" name="website" placeholder={f.placeholder ?? 'https://... or websitename.com'} />
                             </div>
                             <div class="field mb-0">
                               <label for="social" class="sub-label">Social Media Handle(s)</label>
@@ -667,6 +669,7 @@ function formatCat(cat: string) {
   }
   .qty-input:focus { border-color: #c87830; outline: none; }
   .qty-input.has-qty { border-color: #5b7b6d; background: #e8f0ee; }
+  .order-product-card:has(.qty-input.has-qty) { border-color: #5b7b6d; box-shadow: 0 0 0 2px rgba(91,123,109,0.18); }
   .order-total-row {
     display: flex; align-items: center; justify-content: space-between;
     background: #f0e6d0; border: 2px solid #d4b896; border-radius: 8px;
@@ -764,11 +767,15 @@ function formatCat(cat: string) {
   .review-form-row { display: flex; gap: 0.8rem; padding: 0.2rem 0; line-height: 1.5; }
   .review-form-label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; white-space: nowrap; min-width: 130px; flex-shrink: 0; }
   .review-form-value { font-size: 0.88rem; color: #2d1f0e; word-break: break-word; }
-  .review-item-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3rem 0; border-bottom: 1px solid #f0e6d0; gap: 1rem; }
+  .review-item-row { display: flex; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid #f0e6d0; gap: 0.7rem; flex-wrap: wrap; }
   .review-item-row:last-child { border-bottom: none; }
-  .review-item-name { font-size: 0.88rem; color: #2d1f0e; flex: 1; }
-  .review-item-qty { font-size: 0.85rem; color: #6b4a2a; white-space: nowrap; }
-  .review-item-total { font-size: 0.88rem; font-weight: 700; color: #2d1f0e; white-space: nowrap; }
+  .review-item-img { width: 38px; height: 38px; object-fit: contain; border-radius: 5px; border: 1px solid #e4d3b8; background: #f5edd8; flex-shrink: 0; }
+  .review-item-name { font-size: 0.88rem; color: #2d1f0e; flex: 1; min-width: 120px; }
+  .review-item-meta { font-size: 0.82rem; color: #6b4a2a; white-space: nowrap; }
+  .review-item-meta::before { content: ' | '; color: #d4b896; margin-right: 0.1rem; }
+  .review-check-row { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.3rem 0; }
+  .review-check-mark { color: #5b7b6d; font-weight: 800; font-size: 1rem; flex-shrink: 0; line-height: 1.5; }
+  .review-check-text { font-size: 0.85rem; color: #2d1f0e; line-height: 1.5; }
   .review-order-total-row { display: flex; justify-content: space-between; align-items: center; background: #f0e6d0; border: 2px solid #d4b896; border-radius: 8px; padding: 0.5rem 0.9rem; margin-top: 0.6rem; }
   .review-total-label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; }
   .review-total-value { font-size: 1rem; font-weight: 800; color: #2d1f0e; }
@@ -896,11 +903,11 @@ function formatCat(cat: string) {
     });
 
     function collectFormSummary() {
-      const sections: { heading: string; rows: { label: string; value: string }[] }[] = [];
+      const sections: { heading: string; rows: { label: string; value: string; isCheck?: boolean }[] }[] = [];
       const seen = new Set<string>();
       document.querySelectorAll<HTMLElement>('.order-section').forEach(section => {
         const heading = section.querySelector('.order-section-heading')?.textContent?.trim() ?? '';
-        const rows: { label: string; value: string }[] = [];
+        const rows: { label: string; value: string; isCheck?: boolean }[] = [];
         section.querySelectorAll<HTMLElement>('[name]:not([name="products"])').forEach(el => {
           if (el instanceof HTMLInputElement && el.type === 'hidden') return;
           if (el instanceof HTMLInputElement && el.classList.contains('qty-input')) return;
@@ -940,7 +947,7 @@ function formatCat(cat: string) {
           if (el instanceof HTMLInputElement && el.type === 'checkbox') {
             if (el.checked) {
               const cbText = el.closest('label')?.textContent?.trim() ?? labelText;
-              rows.push({ label: 'Agreed', value: cbText.length > 90 ? cbText.slice(0, 90) + '…' : cbText });
+              rows.push({ label: '✓', value: cbText.length > 120 ? cbText.slice(0, 120) + '…' : cbText, isCheck: true });
               seen.add(name);
             }
             return;
@@ -968,37 +975,35 @@ function formatCat(cat: string) {
 
     function openViewOrderModal() {
       reviewModalBody.innerHTML = '';
-      // Form summary
-      collectFormSummary().forEach(({ heading, rows }) => {
-        const sec = document.createElement('div');
-        sec.className = 'review-form-section';
-        sec.innerHTML = `<h4 class="review-section-heading">${heading}</h4>`;
-        rows.forEach(({ label, value }) => {
-          const row = document.createElement('div');
-          row.className = 'review-form-row';
-          row.innerHTML = `<span class="review-form-label">${label}:</span><span class="review-form-value">${value}</span>`;
-          sec.appendChild(row);
-        });
-        reviewModalBody.appendChild(sec);
-      });
-      // Order items
+
+      // ── Order items first ────────────────────────────────────────────────
       const orderSec = document.createElement('div');
       orderSec.className = 'review-form-section';
       orderSec.innerHTML = '<h4 class="review-section-heading">Order Items</h4>';
-      const orderLines: { title: string; qty: number; ws: number }[] = [];
+      const orderLines: { title: string; qty: number; ws: number; image: string }[] = [];
       document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
         const qty = parseInt(input.value) || 0;
-        if (qty > 0) orderLines.push({ title: input.dataset.title || '', qty, ws: parseFloat(input.dataset.ws || '0') });
+        if (qty > 0) orderLines.push({
+          title: input.dataset.title || '',
+          qty,
+          ws: parseFloat(input.dataset.ws || '0'),
+          image: input.dataset.image || '',
+        });
       });
       if (orderLines.length === 0) {
         orderSec.innerHTML += '<p class="review-empty">No items added yet.</p>';
       } else {
         let total = 0;
-        orderLines.forEach(({ title, qty, ws }) => {
+        orderLines.forEach(({ title, qty, ws, image }) => {
           const lt = qty * ws; total += lt;
           const row = document.createElement('div');
           row.className = 'review-item-row';
-          row.innerHTML = `<span class="review-item-name">${title}</span><span class="review-item-qty">× ${qty}</span><span class="review-item-total">$${lt.toFixed(2)}</span>`;
+          row.innerHTML = `
+            ${image ? `<img src="${image}" alt="${title}" class="review-item-img" />` : ''}
+            <span class="review-item-name">${title}</span>
+            <span class="review-item-meta">QTY: ${qty}</span>
+            <span class="review-item-meta">TOTAL: $${lt.toFixed(2)}</span>
+          `;
           orderSec.appendChild(row);
         });
         const totalRow = document.createElement('div');
@@ -1007,6 +1012,26 @@ function formatCat(cat: string) {
         orderSec.appendChild(totalRow);
       }
       reviewModalBody.appendChild(orderSec);
+
+      // ── Form summary sections ────────────────────────────────────────────
+      collectFormSummary().forEach(({ heading, rows }) => {
+        const sec = document.createElement('div');
+        sec.className = 'review-form-section';
+        sec.innerHTML = `<h4 class="review-section-heading">${heading}</h4>`;
+        rows.forEach(r => {
+          const row = document.createElement('div');
+          if (r.isCheck) {
+            row.className = 'review-check-row';
+            row.innerHTML = `<span class="review-check-mark">✓</span><span class="review-check-text">${r.value}</span>`;
+          } else {
+            row.className = 'review-form-row';
+            row.innerHTML = `<span class="review-form-label">${r.label}: </span><span class="review-form-value">${r.value}</span>`;
+          }
+          sec.appendChild(row);
+        });
+        reviewModalBody.appendChild(sec);
+      });
+
       reviewSubmitStatus.textContent = '';
       reviewSubmitStatus.className = 'order-form-status';
       reviewConfirmBtn.disabled = false;
@@ -1032,6 +1057,20 @@ function formatCat(cat: string) {
         orderItemsError?.setAttribute('hidden', '');
         productsHidden.value = lines.join('\n');
       }
+      // Enforce $100 order minimum
+      const orderMinError = document.getElementById('order-min-error');
+      let orderTotal = 0;
+      document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) orderTotal += qty * parseFloat(input.dataset.ws || '0');
+      });
+      if (orderTotal < 100) {
+        closeReviewModal();
+        orderMinError?.removeAttribute('hidden');
+        orderMinError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      orderMinError?.setAttribute('hidden', '');
       // Validate online presence
       if (presenceError) {
         const w = websiteInput?.value.trim() ?? '';
