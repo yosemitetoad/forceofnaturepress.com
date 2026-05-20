@@ -431,6 +431,7 @@ function formatCat(cat: string) {
 
             <div class="form-submit-row">
               <button type="submit" class="submit-btn" id="orderSubmitBtn">{formConfig.submitButtonText}</button>
+              <button type="button" class="view-order-btn" id="viewOrderBtn">View Order</button>
               <span id="orderFormStatus" class="order-form-status"></span>
             </div>
           </form>
@@ -477,15 +478,12 @@ function formatCat(cat: string) {
     <div id="reviewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle" hidden>
       <div class="modal-backdrop" id="reviewModalBackdrop"></div>
       <div class="modal-box review-modal-box">
-        <h3 class="review-modal-heading" id="reviewModalTitle">Review Your Order</h3>
-        <div id="reviewItemsList" class="review-items-list"></div>
-        <div class="review-total-row">
-          <span class="review-total-label">Estimated wholesale total:</span>
-          <span class="review-total-value" id="reviewTotalValue">$0.00</span>
-        </div>
+        <button class="modal-close" id="reviewModalClose" aria-label="Close">&times;</button>
+        <h3 class="review-modal-heading" id="reviewModalTitle">Order Review</h3>
+        <div id="reviewModalBody" class="review-modal-body"></div>
         <div class="review-actions">
-          <button type="button" class="review-edit-btn" id="reviewEditBtn">Edit Order</button>
-          <button type="button" class="review-confirm-btn" id="reviewConfirmBtn">Confirm &amp; Submit</button>
+          <button type="button" class="review-edit-btn" id="reviewEditBtn">Close</button>
+          <button type="button" class="review-confirm-btn" id="reviewConfirmBtn">Submit Order Request</button>
         </div>
         <p id="reviewSubmitStatus" class="order-form-status" style="margin-top:0.8rem"></p>
       </div>
@@ -749,19 +747,30 @@ function formatCat(cat: string) {
     .form-row { grid-template-columns: 1fr; }
   }
 
+  /* View Order button */
+  .view-order-btn { padding: 0.65em 1.4em; border: 2px solid #d4b896; border-radius: 8px; background: transparent; color: #6b4a2a; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+  .view-order-btn:hover { background: #e4d3b8; border-color: #c8a878; }
+
   /* Review modal */
-  .review-modal-box { padding: 2rem; max-width: 560px; }
-  .review-modal-heading { font-size: 1.2rem; font-weight: 800; margin: 0 0 1.2rem; color: #2d1f0e; padding-bottom: 0.5rem; border-bottom: 2px solid #d4b896; }
-  .review-items-list { margin-bottom: 1rem; max-height: 45vh; overflow-y: auto; }
-  .review-item-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid #f0e6d0; gap: 1rem; }
+  .review-modal-box { padding: 2rem; max-width: 680px; display: flex; flex-direction: column; }
+  .review-modal-heading { font-size: 1.2rem; font-weight: 800; margin: 0 0 1rem; color: #2d1f0e; padding-bottom: 0.5rem; border-bottom: 2px solid #d4b896; padding-right: 2rem; }
+  .review-modal-body { overflow-y: auto; max-height: 55vh; margin-bottom: 1.2rem; }
+  .review-form-section { margin-bottom: 1.2rem; padding-bottom: 1.2rem; border-bottom: 1px solid #e4d3b8; }
+  .review-form-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .review-section-heading { font-size: 0.78rem; font-weight: 800; color: #a08060; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 0.6rem; }
+  .review-form-row { display: flex; gap: 0.8rem; padding: 0.2rem 0; line-height: 1.5; }
+  .review-form-label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; white-space: nowrap; min-width: 130px; flex-shrink: 0; }
+  .review-form-value { font-size: 0.88rem; color: #2d1f0e; word-break: break-word; }
+  .review-item-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3rem 0; border-bottom: 1px solid #f0e6d0; gap: 1rem; }
   .review-item-row:last-child { border-bottom: none; }
   .review-item-name { font-size: 0.88rem; color: #2d1f0e; flex: 1; }
   .review-item-qty { font-size: 0.85rem; color: #6b4a2a; white-space: nowrap; }
   .review-item-total { font-size: 0.88rem; font-weight: 700; color: #2d1f0e; white-space: nowrap; }
-  .review-total-row { display: flex; justify-content: space-between; align-items: center; background: #f0e6d0; border: 2px solid #d4b896; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1.2rem; }
-  .review-total-label { font-size: 0.85rem; font-weight: 700; color: #6b4a2a; }
-  .review-total-value { font-size: 1.1rem; font-weight: 800; color: #2d1f0e; }
-  .review-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+  .review-order-total-row { display: flex; justify-content: space-between; align-items: center; background: #f0e6d0; border: 2px solid #d4b896; border-radius: 8px; padding: 0.5rem 0.9rem; margin-top: 0.6rem; }
+  .review-total-label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; }
+  .review-total-value { font-size: 1rem; font-weight: 800; color: #2d1f0e; }
+  .review-empty { font-size: 0.88rem; color: #a08060; font-style: italic; margin: 0; }
+  .review-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid #e4d3b8; }
   .review-edit-btn { padding: 0.6em 1.4em; border: 2px solid #d4b896; border-radius: 8px; background: transparent; color: #6b4a2a; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
   .review-edit-btn:hover { background: #e4d3b8; }
   .review-confirm-btn { padding: 0.6em 1.4em; border: none; border-radius: 8px; background: #c87830; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
@@ -858,11 +867,11 @@ function formatCat(cat: string) {
 
     // ── Order review modal ────────────────────────────────────────────────────
     const reviewModal = document.getElementById('reviewModal') as HTMLElement;
-    const reviewItemsList = document.getElementById('reviewItemsList')!;
-    const reviewTotalValue = document.getElementById('reviewTotalValue')!;
+    const reviewModalBody = document.getElementById('reviewModalBody')!;
     const reviewEditBtn = document.getElementById('reviewEditBtn') as HTMLButtonElement;
     const reviewConfirmBtn = document.getElementById('reviewConfirmBtn') as HTMLButtonElement;
     const reviewSubmitStatus = document.getElementById('reviewSubmitStatus')!;
+    const viewOrderBtn = document.getElementById('viewOrderBtn') as HTMLButtonElement;
 
     function closeReviewModal() {
       reviewModal.setAttribute('hidden', '');
@@ -870,76 +879,142 @@ function formatCat(cat: string) {
     }
 
     reviewEditBtn?.addEventListener('click', closeReviewModal);
+    document.getElementById('reviewModalClose')?.addEventListener('click', closeReviewModal);
     document.getElementById('reviewModalBackdrop')?.addEventListener('click', closeReviewModal);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !reviewModal.hasAttribute('hidden')) closeReviewModal();
     });
 
-    function showReviewModal(orderLines: { title: string; qty: number; ws: number }[], formData: FormData) {
-      reviewItemsList.innerHTML = '';
-      let total = 0;
-      orderLines.forEach(({ title, qty, ws }) => {
-        const lineTotal = qty * ws;
-        total += lineTotal;
-        const row = document.createElement('div');
-        row.className = 'review-item-row';
-        row.innerHTML = `<span class="review-item-name">${title}</span><span class="review-item-qty">× ${qty}</span><span class="review-item-total">$${lineTotal.toFixed(2)}</span>`;
-        reviewItemsList.appendChild(row);
+    function collectFormSummary() {
+      const sections: { heading: string; rows: { label: string; value: string }[] }[] = [];
+      const seen = new Set<string>();
+      document.querySelectorAll<HTMLElement>('.order-section').forEach(section => {
+        const heading = section.querySelector('.order-section-heading')?.textContent?.trim() ?? '';
+        const rows: { label: string; value: string }[] = [];
+        section.querySelectorAll<HTMLElement>('[name]:not([name="products"])').forEach(el => {
+          if (el instanceof HTMLInputElement && el.type === 'hidden') return;
+          if (el instanceof HTMLInputElement && el.classList.contains('qty-input')) return;
+          const name = el.getAttribute('name') ?? '';
+          if (!name || seen.has(name)) return;
+          // Group shipping address
+          if (name === 'shipping_address') {
+            const block = el.closest('.address-block');
+            if (block) {
+              const vals = [...block.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])')].map(i => i.value.trim()).filter(Boolean);
+              if (vals.length) rows.push({ label: 'Shipping Address', value: vals.join(', ') });
+              block.querySelectorAll<HTMLInputElement>('input').forEach(i => seen.add(i.getAttribute('name') ?? ''));
+            }
+            return;
+          }
+          // Group billing address
+          if (name === 'billing_address') {
+            const sameAs = document.getElementById('sameAsShipping') as HTMLInputElement;
+            if (sameAs?.checked) {
+              rows.push({ label: 'Billing Address', value: 'Same as shipping address' });
+            } else {
+              const block = el.closest('.address-block');
+              const vals = block ? [...block.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])')].map(i => i.value.trim()).filter(Boolean) : [];
+              if (vals.length) rows.push({ label: 'Billing Address', value: vals.join(', ') });
+            }
+            ['billing_address','billing_city','billing_state','billing_zip','billing_country'].forEach(n => seen.add(n));
+            return;
+          }
+          if (['billing_city','billing_state','billing_zip','billing_country'].includes(name)) return;
+          // Find label
+          let labelText = '';
+          if (el.id) {
+            const lbl = section.querySelector<HTMLElement>(`label[for="${el.id}"]`);
+            if (lbl) labelText = lbl.textContent?.trim().replace(/\s*\*$/, '').replace(/\s+/g, ' ') ?? '';
+          }
+          // Checkbox
+          if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+            if (el.checked) {
+              const cbText = el.closest('label')?.textContent?.trim() ?? labelText;
+              rows.push({ label: 'Agreed', value: cbText.length > 90 ? cbText.slice(0, 90) + '…' : cbText });
+              seen.add(name);
+            }
+            return;
+          }
+          // Select
+          if (el instanceof HTMLSelectElement) {
+            const opt = el.options[el.selectedIndex];
+            if (!opt?.value) return;
+            let val = opt.text;
+            if (opt.value === 'other') {
+              const oi = document.getElementById('business_type_other') as HTMLInputElement;
+              if (oi?.value.trim()) { val += ': ' + oi.value.trim(); seen.add('business_type_other'); }
+            }
+            if (labelText) { rows.push({ label: labelText, value: val }); seen.add(name); }
+            return;
+          }
+          // Textarea / input
+          const val = el instanceof HTMLTextAreaElement ? el.value.trim() : (el as HTMLInputElement).value?.trim() ?? '';
+          if (val && labelText) { rows.push({ label: labelText, value: val }); seen.add(name); }
+        });
+        if (rows.length) sections.push({ heading, rows });
       });
-      reviewTotalValue.textContent = `$${total.toFixed(2)}`;
+      return sections;
+    }
+
+    function openViewOrderModal() {
+      reviewModalBody.innerHTML = '';
+      // Form summary
+      collectFormSummary().forEach(({ heading, rows }) => {
+        const sec = document.createElement('div');
+        sec.className = 'review-form-section';
+        sec.innerHTML = `<h4 class="review-section-heading">${heading}</h4>`;
+        rows.forEach(({ label, value }) => {
+          const row = document.createElement('div');
+          row.className = 'review-form-row';
+          row.innerHTML = `<span class="review-form-label">${label}:</span><span class="review-form-value">${value}</span>`;
+          sec.appendChild(row);
+        });
+        reviewModalBody.appendChild(sec);
+      });
+      // Order items
+      const orderSec = document.createElement('div');
+      orderSec.className = 'review-form-section';
+      orderSec.innerHTML = '<h4 class="review-section-heading">Order Items</h4>';
+      const orderLines: { title: string; qty: number; ws: number }[] = [];
+      document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) orderLines.push({ title: input.dataset.title || '', qty, ws: parseFloat(input.dataset.ws || '0') });
+      });
+      if (orderLines.length === 0) {
+        orderSec.innerHTML += '<p class="review-empty">No items added yet.</p>';
+      } else {
+        let total = 0;
+        orderLines.forEach(({ title, qty, ws }) => {
+          const lt = qty * ws; total += lt;
+          const row = document.createElement('div');
+          row.className = 'review-item-row';
+          row.innerHTML = `<span class="review-item-name">${title}</span><span class="review-item-qty">× ${qty}</span><span class="review-item-total">$${lt.toFixed(2)}</span>`;
+          orderSec.appendChild(row);
+        });
+        const totalRow = document.createElement('div');
+        totalRow.className = 'review-order-total-row';
+        totalRow.innerHTML = `<span class="review-total-label">Estimated wholesale total:</span><span class="review-total-value">$${total.toFixed(2)}</span>`;
+        orderSec.appendChild(totalRow);
+      }
+      reviewModalBody.appendChild(orderSec);
       reviewSubmitStatus.textContent = '';
       reviewSubmitStatus.className = 'order-form-status';
       reviewConfirmBtn.disabled = false;
       reviewModal.removeAttribute('hidden');
       document.body.style.overflow = 'hidden';
-
-      reviewConfirmBtn.onclick = async () => {
-        reviewConfirmBtn.disabled = true;
-        reviewSubmitStatus.textContent = 'Submitting...';
-        reviewSubmitStatus.className = 'order-form-status';
-        try {
-          const res = await fetch(orderForm.action, {
-            method: 'POST',
-            headers: { 'Accept': 'application/json' },
-            body: formData,
-          });
-          if (res.ok) {
-            closeReviewModal();
-            orderFormStatus.textContent = 'Thank you! Your order request has been submitted. We\'ll be in touch soon.';
-            orderFormStatus.className = 'order-form-status success';
-            orderForm.reset();
-            if (billingFields) billingFields.style.display = '';
-            updateOrderTotal();
-          } else {
-            const data: any = await res.json().catch(() => ({}));
-            reviewSubmitStatus.textContent = data.error ?? 'Something went wrong. Please try again or email us directly.';
-            reviewSubmitStatus.className = 'order-form-status error';
-            reviewConfirmBtn.disabled = false;
-          }
-        } catch {
-          reviewSubmitStatus.textContent = 'Network error. Please check your connection and try again.';
-          reviewSubmitStatus.className = 'order-form-status error';
-          reviewConfirmBtn.disabled = false;
-        }
-      };
     }
 
-    orderForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      // Validate order items — at least one qty > 0
-      const orderLines: { title: string; qty: number; ws: number }[] = [];
+    async function doSubmit(fromModal: boolean) {
+      const statusEl = fromModal ? reviewSubmitStatus : orderFormStatus;
+      // Validate order items
       if (productsHidden) {
         const lines: string[] = [];
         document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
           const qty = parseInt(input.value) || 0;
-          const ws = parseFloat(input.dataset.ws || '0');
-          if (qty > 0) {
-            lines.push(`${input.dataset.title} × ${qty}`);
-            orderLines.push({ title: input.dataset.title || '', qty, ws });
-          }
+          if (qty > 0) lines.push(`${input.dataset.title} × ${qty}`);
         });
         if (lines.length === 0) {
+          closeReviewModal();
           orderItemsError?.removeAttribute('hidden');
           orderItemsError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
@@ -947,36 +1022,67 @@ function formatCat(cat: string) {
         orderItemsError?.setAttribute('hidden', '');
         productsHidden.value = lines.join('\n');
       }
-
-      // Validate online presence — at least one of website/social/business address required
+      // Validate online presence
       if (presenceError) {
-        const website = websiteInput?.value.trim() ?? '';
-        const social = socialInput?.value.trim() ?? '';
-        const bizAddr = businessAddrInput?.value.trim() ?? '';
-        if (!website && !social && !bizAddr) {
+        const w = websiteInput?.value.trim() ?? '';
+        const s = socialInput?.value.trim() ?? '';
+        const b = businessAddrInput?.value.trim() ?? '';
+        if (!w && !s && !b) {
+          closeReviewModal();
           presenceError.removeAttribute('hidden');
           presenceError.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
         presenceError.setAttribute('hidden', '');
       }
-
-      // Validate required fields via browser API
+      // Browser validation
       if (!orderForm.checkValidity()) {
+        closeReviewModal();
         orderForm.reportValidity();
         return;
       }
-
+      reviewConfirmBtn.disabled = true;
+      orderSubmitBtn.disabled = true;
+      statusEl.textContent = 'Submitting…';
+      statusEl.className = 'order-form-status';
       const formData = new FormData(orderForm);
       if (sameAsShipping?.checked) {
         formData.set('billing_address', 'Same as shipping address');
-        formData.delete('billing_city');
-        formData.delete('billing_state');
-        formData.delete('billing_zip');
-        formData.delete('billing_country');
+        formData.delete('billing_city'); formData.delete('billing_state');
+        formData.delete('billing_zip'); formData.delete('billing_country');
       }
+      try {
+        const res = await fetch(orderForm.action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: formData,
+        });
+        if (res.ok) {
+          closeReviewModal();
+          orderFormStatus.textContent = 'Thank you! Your order request has been submitted. We\'ll be in touch soon.';
+          orderFormStatus.className = 'order-form-status success';
+          orderForm.reset();
+          if (billingFields) billingFields.style.display = '';
+          updateOrderTotal();
+        } else {
+          const data: any = await res.json().catch(() => ({}));
+          statusEl.textContent = data.error ?? 'Something went wrong. Please try again or email us directly.';
+          statusEl.className = 'order-form-status error';
+        }
+      } catch {
+        statusEl.textContent = 'Network error. Please check your connection and try again.';
+        statusEl.className = 'order-form-status error';
+      }
+      reviewConfirmBtn.disabled = false;
+      orderSubmitBtn.disabled = false;
+    }
 
-      showReviewModal(orderLines, formData);
+    reviewConfirmBtn?.addEventListener('click', () => doSubmit(true));
+    viewOrderBtn?.addEventListener('click', openViewOrderModal);
+
+    orderForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      doSubmit(false);
     });
   }
 
