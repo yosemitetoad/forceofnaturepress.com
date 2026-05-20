@@ -1416,10 +1416,18 @@ export async function batchUpdateWholesaleItems(
 // ── Wholesale categories ─────────────────────────────────────────────────────
 
 export async function getWholesaleCategories(db: D1Database): Promise<WholesaleCategory[]> {
-  const { results } = await db
-    .prepare('SELECT slug, label, description, cat_group, sort_order FROM wholesale_categories ORDER BY sort_order ASC, label ASC')
-    .all<{ slug: string; label: string; description: string; cat_group: string | null; sort_order: number }>();
-  return (results ?? []).map(r => ({ slug: r.slug, label: r.label, description: r.description ?? '', group: r.cat_group ?? '', sortOrder: r.sort_order }));
+  try {
+    const { results } = await db
+      .prepare('SELECT slug, label, description, cat_group, sort_order FROM wholesale_categories ORDER BY sort_order ASC, label ASC')
+      .all<{ slug: string; label: string; description: string; cat_group: string | null; sort_order: number }>();
+    return (results ?? []).map(r => ({ slug: r.slug, label: r.label, description: r.description ?? '', group: r.cat_group ?? '', sortOrder: r.sort_order }));
+  } catch {
+    // cat_group column may not exist yet if migration hasn't run
+    const { results } = await db
+      .prepare('SELECT slug, label, description, sort_order FROM wholesale_categories ORDER BY sort_order ASC, label ASC')
+      .all<{ slug: string; label: string; description: string; sort_order: number }>();
+    return (results ?? []).map(r => ({ slug: r.slug, label: r.label, description: r.description ?? '', group: '', sortOrder: r.sort_order }));
+  }
 }
 
 export async function updateWholesaleCategoryDescription(db: D1Database, slug: string, description: string): Promise<void> {
