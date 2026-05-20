@@ -39,8 +39,8 @@ const [stats30, allTimeClicks] = await Promise.all([
     <div class="form-row">
       <div class="form-group">
         <label for="sku">SKU</label>
-        <input type="text" id="sku" value={item.sku} disabled />
-        <span class="hint">SKU cannot be changed</span>
+        <input type="text" id="sku" name="sku" value={item.sku} required />
+        <span class="hint">Changing the SKU updates all references (wholesale catalog, analytics).</span>
       </div>
       <div class="form-group">
         <label for="category">Category *</label>
@@ -85,6 +85,14 @@ const [stats30, allTimeClicks] = await Promise.all([
 
     <div class="preview-area">
       <img id="image-preview" src={item.image} alt="Preview" />
+    </div>
+
+    <div class="form-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="wholesaleEnabled" name="wholesaleEnabled" checked={item.wholesaleEnabled !== false} />
+        Enable for wholesale sync
+      </label>
+      <span class="hint">When enabled, this item will be added when syncing the wholesale catalog.</span>
     </div>
 
     <div class="form-actions">
@@ -147,6 +155,8 @@ const [stats30, allTimeClicks] = await Promise.all([
   .upload-progress { font-size: 0.85rem; color: #c87830; font-weight: 700; margin-top: 0.3rem; }
   .preview-area { margin-bottom: 1.2rem; }
   .preview-area img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #d4b896; }
+  .checkbox-label { display: flex !important; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 700; font-size: 0.9rem; color: #2d1f0e; }
+  .checkbox-label input[type="checkbox"] { width: auto; margin: 0; accent-color: #c87830; }
   .form-actions { display: flex; gap: 0.8rem; align-items: center; }
   .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
   .btn-primary { background: #c87830; color: #faf5ea; }
@@ -220,8 +230,10 @@ const [stats30, allTimeClicks] = await Promise.all([
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(form)) as any;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData) as any;
     data.price = Number(data.price);
+    data.wholesaleEnabled = formData.has('wholesaleEnabled');
     if (data.category === '__new__') {
       const slug = (data.newCategory || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if (!slug) { status.textContent = 'Please enter a category name.'; status.style.color = '#b44'; return; }
@@ -236,8 +248,13 @@ const [stats30, allTimeClicks] = await Promise.all([
     });
 
     if (res.ok) {
-      status.textContent = 'Saved!';
-      status.style.color = '#3d7a6e';
+      const result = await res.json() as { ok: boolean; sku: string };
+      if (result.sku !== sku) {
+        window.location.href = `/admin/shop/${result.sku}`;
+      } else {
+        status.textContent = 'Saved!';
+        status.style.color = '#3d7a6e';
+      }
     } else {
       const err = await res.json();
       status.textContent = err.error || 'Failed to save.';

@@ -4,7 +4,7 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { ETSY_SHOP_URL, SITE_DESCRIPTION } from '../consts';
 import { SHOP_ITEMS, getEtsyUrl } from '../data/shop';
-import { getAllShopItems, getPageContentMulti } from '../lib/db';
+import { getAllShopItems, getPageContentMulti, getActiveWhatsNewItems } from '../lib/db';
 import { mdInline } from '../lib/markdown';
 
 const defaultFeaturedSkus = ['4467858004', 'FLYAGRCGLD', 'PSSMKYCHN', 'RACLINO', 'BEECLOVERSTCKR', 'OTTERPRNT', 'SOCKEYEPIN', 'HRBRSLMGNT'];
@@ -24,11 +24,12 @@ try {
     const dbItems = await getAllShopItems(db);
     if (dbItems.length > 0) allItems = dbItems;
 
-    const content = await getPageContentMulti(db, ['home_intro_p1', 'home_intro_p2', 'home_featured_skus', 'home_whats_new']);
+    const content = await getPageContentMulti(db, ['home_intro_p1', 'home_intro_p2', 'home_featured_skus']);
     if (content.home_intro_p1) introP1 = content.home_intro_p1;
     if (content.home_intro_p2) introP2 = content.home_intro_p2;
     if (content.home_featured_skus) featuredSkus = content.home_featured_skus.split(',').map(s => s.trim()).filter(Boolean);
-    if (content.home_whats_new) try { whatsNew = JSON.parse(content.home_whats_new); } catch {}
+    const dbWhatsNew = await getActiveWhatsNewItems(db);
+    if (dbWhatsNew.length > 0) whatsNew = dbWhatsNew.map(i => ({ title: i.title, text: i.text, linkText: i.linkText, linkUrl: i.linkUrl }));
   }
 } catch (e) {
   console.warn('[home] D1 unavailable, using static data:', e);

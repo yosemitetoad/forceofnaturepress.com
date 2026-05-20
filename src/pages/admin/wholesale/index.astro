@@ -1,0 +1,902 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAllWholesaleItems, getWholesaleCategories } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const [items, categories] = await Promise.all([getAllWholesaleItems(db), getWholesaleCategories(db)]);
+
+const publishedCount = items.filter(i => i.published).length;
+
+// Build a map for fast label lookup, and group items by effective category
+const catMap = new Map(categories.map(c => [c.slug, c.label]));
+
+const grouped = new Map<string, typeof items>();
+for (const item of items) {
+  const cat = item.category || 'other';
+  if (!grouped.has(cat)) grouped.set(cat, []);
+  grouped.get(cat)!.push(item);
+}
+
+// Categories in DB order first; uncategorized (not in DB) appended at end
+const sortedCategories = [
+  ...categories,
+  // any item categories not yet in the categories table
+  ...[...grouped.keys()]
+    .filter(k => !catMap.has(k))
+    .map(k => ({ slug: k, label: k, sortOrder: 999 })),
+];
+
+function getCatLabel(slug: string) {
+  return catMap.get(slug) ?? slug;
+}
+---
+
+<Admin title="Wholesale Catalog">
+  <div class="page-header">
+    <div>
+      <h1>Wholesale Catalog</h1>
+      <p class="item-count">{items.length} item{items.length !== 1 ? 's' : ''} total &mdash; {publishedCount} published</p>
+    </div>
+    <div class="header-actions">
+      <a href="/admin/pages/wholesale" class="btn btn-outline">Page Content &amp; Password</a>
+      <button id="syncBtn" class="btn btn-sync" type="button">Sync from Shop</button>
+      <span id="syncStatus" class="sync-status"></span>
+      <a href="/admin/wholesale/new" class="btn btn-primary">+ Add Item</a>
+    </div>
+  </div>
+
+  <div class="top-controls">
+    <p class="help-text">Check items to batch edit. Drag category headers or item rows to reorder. Only published items appear on the public <a href="/wholesale" target="_blank">/wholesale</a> page.</p>
+    <div class="new-cat-wrap">
+      <button id="newCatToggle" class="btn btn-outline btn-sm-action" type="button">+ New Category</button>
+      <div id="newCatForm" class="new-cat-form" hidden>
+        <input id="newCatLabel" type="text" placeholder="Category name..." />
+        <button id="newCatSave" class="btn btn-primary btn-sm-action" type="button">Create</button>
+        <button id="newCatCancel" class="btn btn-outline btn-sm-action" type="button">Cancel</button>
+        <span id="newCatStatus" class="inline-status"></span>
+      </div>
+    </div>
+  </div>
+
+  {items.length === 0 && categories.length === 0 && (
+    <div class="empty-state">
+      <p>No items yet. <a href="/admin/wholesale/new">Add your first wholesale item.</a></p>
+    </div>
+  )}
+
+  <div id="categoryContainer">
+    {sortedCategories.map(cat => {
+      const catItems = grouped.get(cat.slug) ?? [];
+      return (
+        <div class="category-group" data-cat={cat.slug}>
+          <div class="category-header">
+            <span class="cat-drag-handle" title="Drag to reorder category">⠿</span>
+            <label class="select-all-label" title="Select all in category">
+              <input type="checkbox" class="select-all-cb" data-cat={cat.slug} />
+            </label>
+            <div class="cat-name-wrap">
+              <span class="category-name" data-cat={cat.slug}>{getCatLabel(cat.slug)}</span>
+              <input class="category-name-input" data-cat={cat.slug} value={getCatLabel(cat.slug)} hidden />
+              <button class="btn-rename" data-cat={cat.slug} title="Rename" type="button">✎</button>
+              <button class="btn-rename-save" data-cat={cat.slug} type="button" hidden>Save</button>
+              <button class="btn-rename-cancel" data-cat={cat.slug} type="button" hidden>Cancel</button>
+              <span class="rename-status" data-cat={cat.slug}></span>
+            </div>
+            <span class="category-count">{catItems.length} item{catItems.length !== 1 ? 's' : ''}</span>
+            <button class="btn-delete-cat" data-cat={cat.slug} data-count={catItems.length} title="Delete category" type="button">✕</button>
+          </div>
+
+          <div class="cat-desc-row" data-cat={cat.slug}>
+            <span class="cat-desc-text" data-cat={cat.slug}>{cat.description || ''}</span>
+            {!cat.description && <span class="cat-desc-empty">No description — </span>}
+            <button class="btn-edit-desc" data-cat={cat.slug} type="button">edit description</button>
+            <textarea class="cat-desc-input" data-cat={cat.slug} rows="2" hidden>{cat.description || ''}</textarea>
+            <button class="btn-desc-save" data-cat={cat.slug} type="button" hidden>Save</button>
+            <button class="btn-desc-cancel" data-cat={cat.slug} type="button" hidden>Cancel</button>
+            <span class="desc-status" data-cat={cat.slug}></span>
+          </div>
+
+          <div class="item-list" data-category={cat.slug}>
+            {catItems.map(item => (
+              <div class="item-row" draggable="true" data-id={item.id}>
+                <label class="row-check-label">
+                  <input type="checkbox" class="item-cb" data-id={item.id} data-cat={cat.slug} />
+                </label>
+                <span class="drag-handle" title="Drag to reorder item">⠿</span>
+                <img src={item.image} alt="" class="thumb" />
+                <div class="item-info">
+                  <span class="item-title">{item.title}</span>
+                  <span class="item-sku">{item.sku}</span>
+                </div>
+                <div class="item-prices">
+                  <span class="price-label">Wholesale</span>
+                  <span class="price-value" data-field="wholesalePrice">${item.wholesalePrice.toFixed(2)}</span>
+                </div>
+                <div class="item-prices">
+                  <span class="price-label">RRP</span>
+                  <span class="price-value" data-field="rrp">${item.rrp.toFixed(2)}</span>
+                </div>
+                <div class="item-prices">
+                  <span class="price-label">MOQ</span>
+                  <span class="price-value" data-field="moq">{item.moq}</span>
+                </div>
+                <button
+                  class={`status-badge ${item.published ? 'published' : 'draft'}`}
+                  data-id={item.id}
+                  data-published={item.published ? 'true' : 'false'}
+                  title="Click to toggle"
+                >
+                  {item.published ? 'Published' : 'Draft'}
+                </button>
+                <a href={`/admin/wholesale/${item.id}`} class="btn-sm btn-edit">Edit</a>
+                <button class="btn-sm btn-delete" data-id={item.id}>Delete</button>
+              </div>
+            ))}
+            {catItems.length === 0 && (
+              <div class="empty-cat-row">No items — move items here or <button type="button" class="btn-delete-cat-empty" data-cat={cat.slug}>delete this category</button>.</div>
+            )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  {items.length > 0 && (
+    <div class="list-actions">
+      <button id="saveOrderBtn" class="btn btn-outline">Save Order</button>
+      <span id="orderStatus" class="save-status"></span>
+    </div>
+  )}
+
+  <!-- Batch edit toolbar (fixed bottom, shown when items are selected) -->
+  <div id="batchToolbar" class="batch-toolbar" hidden>
+    <span class="selection-label" id="selectionCount">0 selected</span>
+    <div class="toolbar-fields">
+      <div class="toolbar-field">
+        <label>Wholesale ($)</label>
+        <input type="number" id="batchWholesale" step="0.01" min="0" placeholder="—" />
+      </div>
+      <div class="toolbar-field">
+        <label>RRP ($)</label>
+        <input type="number" id="batchRrp" step="0.01" min="0" placeholder="—" />
+      </div>
+      <div class="toolbar-field">
+        <label>MOQ</label>
+        <input type="number" id="batchMoq" step="1" min="1" placeholder="—" />
+      </div>
+      <div class="toolbar-field">
+        <label>Move to category</label>
+        <select id="batchCategory">
+          <option value="">— no change —</option>
+          {categories.map(c => (
+            <option value={c.slug}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+      <button id="batchApplyBtn" class="btn btn-primary">Apply</button>
+    </div>
+    <div class="toolbar-publish-actions">
+      <button id="batchPublishBtn" class="btn btn-toolbar-publish">Publish</button>
+      <button id="batchUnpublishBtn" class="btn btn-toolbar-unpublish">Unpublish</button>
+    </div>
+    <button id="batchClearBtn" class="btn btn-toolbar-clear">Clear</button>
+    <span id="batchStatus" class="batch-status-msg"></span>
+  </div>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0 0 0.15rem; }
+  .item-count { font-size: 0.88rem; color: #6b4a2a; margin: 0; }
+  .header-actions { display: flex; gap: 0.6rem; flex-shrink: 0; }
+
+  .top-controls { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .help-text { font-size: 0.88rem; color: #6b4a2a; margin: 0; }
+  .help-text a { color: #c87830; }
+
+  .new-cat-wrap { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+  .new-cat-form { display: flex; align-items: center; gap: 0.5rem; }
+  .new-cat-form[hidden] { display: none; }
+  .new-cat-form input {
+    padding: 0.4em 0.7em; border: 2px solid #d4b896; border-radius: 7px;
+    font-family: inherit; font-size: 0.9rem; background: #faf5ea; color: #2d1f0e;
+    width: 190px;
+  }
+  .new-cat-form input:focus { border-color: #c87830; outline: none; }
+  .inline-status { font-size: 0.82rem; font-weight: 700; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-sync { background: #3d7a6e; color: #faf5ea; }
+  .btn-sync:hover { background: #2d5a50; }
+  .btn-sync:disabled { opacity: 0.6; cursor: default; }
+  .sync-status { font-size: 0.85rem; font-weight: 700; }
+  .btn-sm-action { padding: 0.35em 0.9em; font-size: 0.85rem; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.8em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none; text-decoration: none; }
+  .btn-edit { background: #e4d3b8; color: #2d1f0e; }
+  .btn-edit:hover { background: #d4b896; }
+  .btn-delete { background: #b44; color: #faf5ea; }
+  .btn-delete:hover { background: #833; }
+
+  .empty-state { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; text-align: center; color: #6b4a2a; }
+  .empty-state a { color: #c87830; font-weight: 700; }
+
+  /* Category groups */
+  .category-group { margin-bottom: 1.5rem; }
+  .category-group.cat-dragging { opacity: 0.4; }
+  .category-group.cat-drag-over { outline: 2px solid #c87830; border-radius: 8px; }
+
+  .category-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.45rem 0.8rem; background: #e4d3b8; border: 2px solid #d4b896;
+    border-radius: 8px 8px 0 0; border-bottom: none;
+  }
+
+  .cat-drag-handle { cursor: grab; color: #8a6840; font-size: 1.1rem; flex-shrink: 0; line-height: 1; }
+  .cat-drag-handle:active { cursor: grabbing; }
+
+  .select-all-label { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+  .select-all-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: #c87830; cursor: pointer; margin: 0; }
+
+  .cat-name-wrap { display: flex; align-items: center; gap: 0.35rem; flex: 1; min-width: 0; }
+  .category-name { font-weight: 800; font-size: 0.88rem; color: #2d1f0e; text-transform: uppercase; letter-spacing: 0.06em; }
+  .category-name-input {
+    font-family: inherit; font-weight: 800; font-size: 0.88rem; color: #2d1f0e;
+    background: #faf5ea; border: 2px solid #c87830; border-radius: 5px;
+    padding: 0.15em 0.5em; outline: none; min-width: 130px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .btn-rename { background: none; border: none; color: #a08060; cursor: pointer; font-size: 0.9rem; padding: 0.1em 0.3em; border-radius: 4px; transition: color 0.1s, background 0.1s; }
+  .btn-rename:hover { color: #2d1f0e; background: rgba(0,0,0,0.06); }
+  .btn-rename-save, .btn-rename-cancel { background: none; border: none; font-family: inherit; font-weight: 700; font-size: 0.75rem; cursor: pointer; padding: 0.2em 0.5em; border-radius: 5px; }
+  .btn-rename-save { color: #3d7a6e; }
+  .btn-rename-save:hover { background: rgba(61,122,110,0.1); }
+  .btn-rename-cancel { color: #a08060; }
+  .rename-status { font-size: 0.75rem; font-weight: 700; }
+
+  .category-count { font-size: 0.78rem; font-weight: 700; color: #6b4a2a; flex-shrink: 0; margin-left: auto; }
+
+  .btn-delete-cat {
+    background: none; border: none; color: #c0907a; font-size: 0.85rem;
+    cursor: pointer; padding: 0.1em 0.3em; border-radius: 4px; flex-shrink: 0;
+    transition: color 0.1s, background 0.1s;
+  }
+  .btn-delete-cat:hover { color: #b44; background: rgba(180,68,68,0.08); }
+
+  /* Category description row */
+  .cat-desc-row {
+    background: #f5edd8; border-left: 2px solid #d4b896; border-right: 2px solid #d4b896;
+    padding: 0.4rem 0.85rem; display: flex; align-items: flex-start; gap: 0.4rem; flex-wrap: wrap;
+    font-size: 0.82rem; color: #5a3e1e; line-height: 1.5;
+  }
+  .cat-desc-text { flex: 1; min-width: 0; }
+  .cat-desc-empty { color: #a08060; font-style: italic; }
+  .btn-edit-desc {
+    background: none; border: none; color: #a08060; cursor: pointer; font-size: 0.78rem;
+    font-family: inherit; padding: 0.05em 0.3em; border-radius: 4px; flex-shrink: 0; white-space: nowrap;
+    text-decoration: underline;
+  }
+  .btn-edit-desc:hover { color: #2d1f0e; }
+  .cat-desc-input {
+    width: 100%; font-family: inherit; font-size: 0.82rem; color: #2d1f0e;
+    background: #faf5ea; border: 2px solid #c87830; border-radius: 5px;
+    padding: 0.35em 0.6em; resize: vertical; outline: none; line-height: 1.5;
+  }
+  .btn-desc-save, .btn-desc-cancel {
+    background: none; border: none; font-family: inherit; font-weight: 700; font-size: 0.75rem;
+    cursor: pointer; padding: 0.2em 0.5em; border-radius: 5px; flex-shrink: 0;
+  }
+  .btn-desc-save { color: #3d7a6e; }
+  .btn-desc-save:hover { background: rgba(61,122,110,0.1); }
+  .btn-desc-cancel { color: #a08060; }
+  .desc-status { font-size: 0.75rem; font-weight: 700; }
+
+  /* Item list */
+  .item-list { background: #faf5ea; border: 2px solid #d4b896; border-radius: 0 0 10px 10px; overflow: hidden; }
+
+  .item-row {
+    display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.55rem 0.8rem; border-bottom: 1px solid #e4d3b8;
+    background: #faf5ea; cursor: default; user-select: none;
+    transition: background 0.1s;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-row.dragging { opacity: 0.4; }
+  .item-row.drag-over { background: rgba(200,120,48,0.08); border-top: 2px solid #c87830; }
+  .item-row.selected { background: #fff8ee; }
+
+  .empty-cat-row { padding: 0.8rem 1rem; font-size: 0.85rem; color: #a08060; font-style: italic; }
+  .btn-delete-cat-empty { background: none; border: none; color: #c87830; font-weight: 700; font-size: inherit; cursor: pointer; padding: 0; text-decoration: underline; font-style: normal; }
+
+  .row-check-label { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
+  .row-check-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: #c87830; cursor: pointer; margin: 0; }
+
+  .drag-handle { cursor: grab; color: #a08060; font-size: 1.1rem; flex-shrink: 0; }
+  .drag-handle:active { cursor: grabbing; }
+  .thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+
+  .item-info { flex: 1; min-width: 0; }
+  .item-title { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-sku { display: block; font-size: 0.74rem; color: #a08060; }
+
+  .item-prices { text-align: center; flex-shrink: 0; min-width: 60px; }
+  .price-label { display: block; font-size: 0.66rem; font-weight: 700; color: #a08060; text-transform: uppercase; letter-spacing: 0.05em; }
+  .price-value { display: block; font-size: 0.86rem; font-weight: 700; color: #2d1f0e; }
+
+  .status-badge { flex-shrink: 0; padding: 0.25em 0.65em; border-radius: 999px; font-family: inherit; font-size: 0.73rem; font-weight: 700; cursor: pointer; border: none; }
+  .status-badge.published { background: #3d7a6e; color: #faf5ea; }
+  .status-badge.published:hover { background: #2d5a50; }
+  .status-badge.draft { background: #e4d3b8; color: #6b4a2a; }
+  .status-badge.draft:hover { background: #d4b896; }
+
+  .list-actions { margin-top: 1rem; display: flex; align-items: center; gap: 1rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+
+  /* Batch toolbar */
+  .batch-toolbar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: #2d1f0e; color: #faf5ea;
+    padding: 0.7rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    box-shadow: 0 -4px 20px rgba(45,31,14,0.35);
+  }
+  .batch-toolbar[hidden] { display: none; }
+  .selection-label { font-weight: 800; font-size: 0.88rem; color: #e4d3b8; flex-shrink: 0; }
+  .toolbar-fields { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; flex: 1; }
+  .toolbar-field { display: flex; flex-direction: column; gap: 0.12rem; }
+  .toolbar-field label { font-size: 0.66rem; font-weight: 700; color: #a08060; text-transform: uppercase; letter-spacing: 0.05em; }
+  .toolbar-field input, .toolbar-field select {
+    padding: 0.38em 0.6em; border: 1.5px solid #6b4a2a; border-radius: 6px;
+    font-family: inherit; font-size: 0.88rem; background: #3a2810; color: #faf5ea;
+  }
+  .toolbar-field input { width: 105px; }
+  .toolbar-field select { min-width: 150px; }
+  .toolbar-field input:focus, .toolbar-field select:focus { border-color: #c87830; outline: none; }
+  .toolbar-field input::placeholder { color: #6b4a2a; }
+  .btn-toolbar-clear { background: none; border: 1.5px solid #6b4a2a; color: #a08060; font-family: inherit; font-weight: 700; font-size: 0.85rem; padding: 0.38em 0.9em; border-radius: 7px; cursor: pointer; }
+  .btn-toolbar-clear:hover { border-color: #a08060; color: #e4d3b8; }
+  .toolbar-publish-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+  .btn-toolbar-publish { background: #3d7a6e; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.85rem; padding: 0.38em 0.9em; border-radius: 7px; border: none; cursor: pointer; }
+  .btn-toolbar-publish:hover { background: #2d5a50; }
+  .btn-toolbar-unpublish { background: none; border: 1.5px solid #6b4a2a; color: #a08060; font-family: inherit; font-weight: 700; font-size: 0.85rem; padding: 0.38em 0.9em; border-radius: 7px; cursor: pointer; }
+  .btn-toolbar-unpublish:hover { border-color: #a08060; color: #e4d3b8; }
+  .batch-status-msg { font-size: 0.85rem; font-weight: 700; min-width: 140px; }
+  .batch-status-msg.success { color: #6fd4c4; }
+  .batch-status-msg.error { color: #f08080; }
+</style>
+
+<script>
+  // ── Sync from shop ────────────────────────────────────────────────────────
+  document.getElementById('syncBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('syncBtn') as HTMLButtonElement;
+    const status = document.getElementById('syncStatus')!;
+    btn.disabled = true;
+    status.textContent = 'Syncing...';
+    status.style.color = '#6b4a2a';
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync' }),
+      });
+      if (!res.ok) throw new Error();
+      const { added } = await res.json() as { added: number };
+      if (added > 0) {
+        status.textContent = `Added ${added} item${added !== 1 ? 's' : ''}.`;
+        status.style.color = '#3d7a6e';
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        status.textContent = 'Nothing new to sync.';
+        status.style.color = '#6b4a2a';
+        setTimeout(() => { status.textContent = ''; }, 3000);
+      }
+    } catch {
+      status.textContent = 'Sync failed.';
+      status.style.color = '#b44';
+    }
+    btn.disabled = false;
+  });
+
+  // ── Selection state ───────────────────────────────────────────────────────
+  const selectedIds = new Set<number>();
+  const toolbar = document.getElementById('batchToolbar')!;
+  const selectionCountEl = document.getElementById('selectionCount')!;
+
+  function updateToolbar() {
+    toolbar.hidden = selectedIds.size === 0;
+    selectionCountEl.textContent = `${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''} selected`;
+  }
+
+  document.querySelectorAll<HTMLInputElement>('.item-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest<HTMLElement>('.item-row')!.classList.toggle('selected', cb.checked);
+      const id = Number(cb.dataset.id);
+      if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+      syncSelectAll(cb.dataset.cat!);
+      updateToolbar();
+    });
+  });
+
+  document.querySelectorAll<HTMLInputElement>('.select-all-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      document.querySelectorAll<HTMLInputElement>(`.item-cb[data-cat="${cb.dataset.cat}"]`).forEach(itemCb => {
+        itemCb.checked = cb.checked;
+        itemCb.closest<HTMLElement>('.item-row')!.classList.toggle('selected', cb.checked);
+        const id = Number(itemCb.dataset.id);
+        if (cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+      });
+      updateToolbar();
+    });
+  });
+
+  function syncSelectAll(cat: string) {
+    const all = Array.from(document.querySelectorAll<HTMLInputElement>(`.item-cb[data-cat="${cat}"]`));
+    const allCb = document.querySelector<HTMLInputElement>(`.select-all-cb[data-cat="${cat}"]`);
+    if (!allCb) return;
+    const checked = all.filter(c => c.checked).length;
+    allCb.checked = checked === all.length && all.length > 0;
+    allCb.indeterminate = checked > 0 && checked < all.length;
+  }
+
+  function clearSelection() {
+    document.querySelectorAll<HTMLInputElement>('.item-cb, .select-all-cb').forEach(cb => {
+      cb.checked = false;
+      (cb as HTMLInputElement).indeterminate = false;
+    });
+    document.querySelectorAll<HTMLElement>('.item-row').forEach(r => r.classList.remove('selected'));
+    selectedIds.clear();
+    updateToolbar();
+    ['batchWholesale','batchRrp','batchMoq'].forEach(id => (document.getElementById(id) as HTMLInputElement).value = '');
+    (document.getElementById('batchCategory') as HTMLSelectElement).value = '';
+  }
+
+  document.getElementById('batchClearBtn')!.addEventListener('click', clearSelection);
+
+  // ── Batch publish / unpublish ─────────────────────────────────────────────
+  async function batchSetPublished(published: boolean) {
+    const statusEl = document.getElementById('batchStatus')!;
+    const body = { action: 'batch-update', ids: [...selectedIds], published };
+    statusEl.textContent = published ? 'Publishing...' : 'Unpublishing...';
+    statusEl.className = 'batch-status-msg';
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error();
+      selectedIds.forEach(id => {
+        const badge = document.querySelector<HTMLElement>(`.status-badge[data-id="${id}"]`);
+        if (!badge) return;
+        badge.dataset.published = published.toString();
+        badge.textContent = published ? 'Published' : 'Draft';
+        badge.className = `status-badge ${published ? 'published' : 'draft'}`;
+      });
+      statusEl.textContent = `${published ? 'Published' : 'Unpublished'} ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''}.`;
+      statusEl.className = 'batch-status-msg success';
+    } catch {
+      statusEl.textContent = 'Error updating.';
+      statusEl.className = 'batch-status-msg error';
+    }
+    setTimeout(() => { statusEl.textContent = ''; statusEl.className = 'batch-status-msg'; }, 4000);
+  }
+
+  document.getElementById('batchPublishBtn')!.addEventListener('click', () => batchSetPublished(true));
+  document.getElementById('batchUnpublishBtn')!.addEventListener('click', () => batchSetPublished(false));
+
+  // ── Batch apply ───────────────────────────────────────────────────────────
+  document.getElementById('batchApplyBtn')!.addEventListener('click', async () => {
+    const applyBtn = document.getElementById('batchApplyBtn') as HTMLButtonElement;
+    const statusEl = document.getElementById('batchStatus')!;
+    const wInput = document.getElementById('batchWholesale') as HTMLInputElement;
+    const rInput = document.getElementById('batchRrp') as HTMLInputElement;
+    const mInput = document.getElementById('batchMoq') as HTMLInputElement;
+    const catSel = document.getElementById('batchCategory') as HTMLSelectElement;
+
+    const body: Record<string, unknown> = { action: 'batch-update', ids: [...selectedIds] };
+    let hasField = false;
+    if (wInput.value.trim()) { body.wholesalePrice = Number(wInput.value); hasField = true; }
+    if (rInput.value.trim()) { body.rrp = Number(rInput.value); hasField = true; }
+    if (mInput.value.trim()) { body.moq = Number(mInput.value); hasField = true; }
+    if (catSel.value) { body.category = catSel.value; hasField = true; }
+
+    if (!hasField) {
+      statusEl.textContent = 'Enter at least one value.';
+      statusEl.className = 'batch-status-msg error';
+      setTimeout(() => { statusEl.textContent = ''; statusEl.className = 'batch-status-msg'; }, 3000);
+      return;
+    }
+
+    applyBtn.disabled = true;
+    statusEl.textContent = 'Applying...';
+    statusEl.className = 'batch-status-msg';
+
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error();
+
+      if (catSel.value) {
+        // Moving items to another category requires DOM restructure — just reload
+        location.reload();
+        return;
+      }
+
+      // Update prices in place
+      selectedIds.forEach(id => {
+        const row = document.querySelector<HTMLElement>(`.item-row[data-id="${id}"]`);
+        if (!row) return;
+        if (wInput.value.trim()) row.querySelector<HTMLElement>('[data-field="wholesalePrice"]')!.textContent = `$${Number(wInput.value).toFixed(2)}`;
+        if (rInput.value.trim()) row.querySelector<HTMLElement>('[data-field="rrp"]')!.textContent = `$${Number(rInput.value).toFixed(2)}`;
+        if (mInput.value.trim()) row.querySelector<HTMLElement>('[data-field="moq"]')!.textContent = String(Number(mInput.value));
+      });
+
+      statusEl.textContent = `Applied to ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''}.`;
+      statusEl.className = 'batch-status-msg success';
+      wInput.value = ''; rInput.value = ''; mInput.value = '';
+    } catch {
+      statusEl.textContent = 'Error applying.';
+      statusEl.className = 'batch-status-msg error';
+    }
+    applyBtn.disabled = false;
+    setTimeout(() => { statusEl.textContent = ''; statusEl.className = 'batch-status-msg'; }, 4000);
+  });
+
+  // ── New category form ─────────────────────────────────────────────────────
+  const newCatToggle = document.getElementById('newCatToggle') as HTMLButtonElement;
+  const newCatForm = document.getElementById('newCatForm')!;
+  const newCatLabel = document.getElementById('newCatLabel') as HTMLInputElement;
+  const newCatStatus = document.getElementById('newCatStatus')!;
+
+  newCatToggle.addEventListener('click', () => {
+    newCatForm.hidden = !newCatForm.hidden;
+    if (!newCatForm.hidden) newCatLabel.focus();
+  });
+  document.getElementById('newCatCancel')!.addEventListener('click', () => {
+    newCatForm.hidden = true;
+    newCatLabel.value = '';
+    newCatStatus.textContent = '';
+  });
+
+  async function createCategory() {
+    const label = newCatLabel.value.trim();
+    if (!label) return;
+    const saveBtn = document.getElementById('newCatSave') as HTMLButtonElement;
+    saveBtn.disabled = true;
+    newCatStatus.textContent = 'Creating...';
+    newCatStatus.style.color = '#6b4a2a';
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create-category', label }),
+      });
+      if (!res.ok) throw new Error();
+      location.reload();
+    } catch {
+      newCatStatus.textContent = 'Error.';
+      newCatStatus.style.color = '#b44';
+    }
+    saveBtn.disabled = false;
+  }
+
+  document.getElementById('newCatSave')!.addEventListener('click', createCategory);
+  newCatLabel.addEventListener('keydown', e => { if (e.key === 'Enter') createCategory(); });
+
+  // ── Category rename ────────────────────────────────────────────────────────
+  function cancelRename(cat: string) {
+    const nameEl = document.querySelector<HTMLElement>(`.category-name[data-cat="${cat}"]`)!;
+    const input = document.querySelector<HTMLInputElement>(`.category-name-input[data-cat="${cat}"]`)!;
+    input.value = nameEl.textContent ?? '';
+    input.hidden = true; nameEl.hidden = false;
+    document.querySelector<HTMLElement>(`.btn-rename[data-cat="${cat}"]`)!.hidden = false;
+    document.querySelector<HTMLElement>(`.btn-rename-save[data-cat="${cat}"]`)!.hidden = true;
+    document.querySelector<HTMLElement>(`.btn-rename-cancel[data-cat="${cat}"]`)!.hidden = true;
+    document.querySelector<HTMLElement>(`.rename-status[data-cat="${cat}"]`)!.textContent = '';
+  }
+
+  async function saveRename(cat: string) {
+    const input = document.querySelector<HTMLInputElement>(`.category-name-input[data-cat="${cat}"]`)!;
+    const nameEl = document.querySelector<HTMLElement>(`.category-name[data-cat="${cat}"]`)!;
+    const statusEl = document.querySelector<HTMLElement>(`.rename-status[data-cat="${cat}"]`)!;
+    const saveBtn = document.querySelector<HTMLButtonElement>(`.btn-rename-save[data-cat="${cat}"]`)!;
+    const newLabel = input.value.trim();
+    if (!newLabel) { cancelRename(cat); return; }
+    saveBtn.disabled = true;
+    statusEl.textContent = 'Saving...'; statusEl.style.color = '#6b4a2a';
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-category-label', slug: cat, label: newLabel }),
+      });
+      if (!res.ok) throw new Error();
+      nameEl.textContent = newLabel;
+      statusEl.textContent = 'Saved.'; statusEl.style.color = '#3d7a6e';
+      setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      input.hidden = true; nameEl.hidden = false;
+      document.querySelector<HTMLElement>(`.btn-rename[data-cat="${cat}"]`)!.hidden = false;
+      document.querySelector<HTMLElement>(`.btn-rename-save[data-cat="${cat}"]`)!.hidden = true;
+      document.querySelector<HTMLElement>(`.btn-rename-cancel[data-cat="${cat}"]`)!.hidden = true;
+      // Also update the "Move to category" dropdown option
+      const opt = document.querySelector<HTMLOptionElement>(`#batchCategory option[value="${cat}"]`);
+      if (opt) opt.textContent = newLabel;
+    } catch {
+      statusEl.textContent = 'Error.'; statusEl.style.color = '#b44';
+    }
+    saveBtn.disabled = false;
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.btn-rename').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat!;
+      document.querySelector<HTMLElement>(`.category-name[data-cat="${cat}"]`)!.hidden = true;
+      btn.hidden = true;
+      const input = document.querySelector<HTMLInputElement>(`.category-name-input[data-cat="${cat}"]`)!;
+      input.hidden = false; input.focus(); input.select();
+      document.querySelector<HTMLElement>(`.btn-rename-save[data-cat="${cat}"]`)!.hidden = false;
+      document.querySelector<HTMLElement>(`.btn-rename-cancel[data-cat="${cat}"]`)!.hidden = false;
+    });
+  });
+  document.querySelectorAll<HTMLButtonElement>('.btn-rename-save').forEach(btn => btn.addEventListener('click', () => saveRename(btn.dataset.cat!)));
+  document.querySelectorAll<HTMLButtonElement>('.btn-rename-cancel').forEach(btn => btn.addEventListener('click', () => cancelRename(btn.dataset.cat!)));
+  document.querySelectorAll<HTMLInputElement>('.category-name-input').forEach(input => {
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveRename(input.dataset.cat!);
+      if (e.key === 'Escape') cancelRename(input.dataset.cat!);
+    });
+  });
+
+  // ── Delete category ────────────────────────────────────────────────────────
+  async function deleteCategory(slug: string, itemCount: number) {
+    if (itemCount > 0) {
+      alert(`Move or delete the ${itemCount} item${itemCount !== 1 ? 's' : ''} in this category first.`);
+      return;
+    }
+    if (!confirm('Delete this category?')) return;
+    const res = await fetch('/api/admin/wholesale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete-category', slug }),
+    });
+    if (res.ok) {
+      document.querySelector<HTMLElement>(`.category-group[data-cat="${slug}"]`)?.remove();
+      const opt = document.querySelector<HTMLOptionElement>(`#batchCategory option[value="${slug}"]`);
+      opt?.remove();
+    } else alert('Error deleting category.');
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.btn-delete-cat, .btn-delete-cat-empty').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat!;
+      const group = document.querySelector<HTMLElement>(`.category-group[data-cat="${cat}"]`);
+      const count = group ? group.querySelectorAll('.item-row').length : 0;
+      deleteCategory(cat, count);
+    });
+  });
+
+  // ── Drag: categories + items (single unified handler) ────────────────────
+  const container = document.getElementById('categoryContainer')!;
+  let catDragEl: HTMLElement | null = null;
+  let itemDragEl: HTMLElement | null = null;
+
+  container.addEventListener('dragstart', (e) => {
+    const target = e.target as HTMLElement;
+
+    // Never drag when interacting with a text field
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      e.preventDefault();
+      return;
+    }
+
+    // Item row drag (takes priority — item rows are inside category groups)
+    const itemRow = target.closest<HTMLElement>('.item-row');
+    if (itemRow) {
+      itemDragEl = itemRow;
+      setTimeout(() => itemDragEl!.classList.add('dragging'), 0);
+      return;
+    }
+
+    // Category drag — only when draggable was set by the handle's mousedown
+    const catGroup = target.closest<HTMLElement>('.category-group');
+    if (catGroup) {
+      if (!catGroup.draggable) { e.preventDefault(); return; }
+      catDragEl = catGroup;
+      setTimeout(() => catDragEl!.classList.add('cat-dragging'), 0);
+    }
+  });
+
+  // Enable drag on the category group only when grabbing the handle
+  document.querySelectorAll<HTMLElement>('.cat-drag-handle').forEach(handle => {
+    handle.addEventListener('mousedown', () => {
+      handle.closest<HTMLElement>('.category-group')!.draggable = true;
+    });
+  });
+  // Reset if the user releases without dragging
+  document.addEventListener('mouseup', () => {
+    container.querySelectorAll<HTMLElement>('.category-group').forEach(g => g.draggable = false);
+  });
+
+  container.addEventListener('dragend', () => {
+    catDragEl?.classList.remove('cat-dragging');
+    itemDragEl?.classList.remove('dragging');
+    container.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+    container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    container.querySelectorAll<HTMLElement>('.category-group').forEach(g => g.draggable = false);
+    catDragEl = null;
+    itemDragEl = null;
+  });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+
+    if (catDragEl) {
+      const target = (e.target as HTMLElement).closest<HTMLElement>('.category-group');
+      container.querySelectorAll('.cat-drag-over').forEach(el => el.classList.remove('cat-drag-over'));
+      if (target && target !== catDragEl) {
+        const rect = target.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) container.insertBefore(catDragEl, target);
+        else target.after(catDragEl);
+        target.classList.add('cat-drag-over');
+      }
+    } else if (itemDragEl) {
+      const targetRow = (e.target as HTMLElement).closest<HTMLElement>('.item-row');
+      const srcList = itemDragEl.closest<HTMLElement>('.item-list')!;
+      srcList.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      if (targetRow && targetRow !== itemDragEl && targetRow.closest('.item-list') === srcList) {
+        const rect = targetRow.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) srcList.insertBefore(itemDragEl, targetRow);
+        else targetRow.after(itemDragEl);
+        targetRow.classList.add('drag-over');
+      }
+    }
+  });
+
+  container.addEventListener('drop', (e) => {
+    e.preventDefault();
+    container.querySelectorAll('.cat-drag-over, .drag-over').forEach(el => el.classList.remove('cat-drag-over', 'drag-over'));
+  });
+
+  // ── Save order (items + categories) ───────────────────────────────────────
+  document.getElementById('saveOrderBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('saveOrderBtn') as HTMLButtonElement;
+    const status = document.getElementById('orderStatus')!;
+    btn.disabled = true;
+    status.textContent = 'Saving...';
+    status.className = 'save-status';
+
+    const itemIds = Array.from(container.querySelectorAll<HTMLElement>('.item-row')).map(r => Number(r.dataset.id));
+    const catSlugs = Array.from(container.querySelectorAll<HTMLElement>('.category-group')).map(g => g.dataset.cat!);
+
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch('/api/admin/wholesale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', ids: itemIds }) }),
+        fetch('/api/admin/wholesale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder-categories', slugs: catSlugs }) }),
+      ]);
+      if (!r1.ok || !r2.ok) throw new Error();
+      status.textContent = 'Order saved!';
+      status.className = 'save-status success';
+    } catch {
+      status.textContent = 'Error saving.';
+      status.className = 'save-status error';
+    }
+    btn.disabled = false;
+    setTimeout(() => { status.textContent = ''; }, 3000);
+  });
+
+  // ── Toggle published ───────────────────────────────────────────────────────
+  container.addEventListener('click', async (e) => {
+    const badge = (e.target as HTMLElement).closest<HTMLElement>('.status-badge');
+    if (!badge) return;
+    const id = Number(badge.dataset.id);
+    const published = badge.dataset.published === 'true';
+    const res = await fetch(`/api/admin/wholesale/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ published: !published }),
+    });
+    if (res.ok) {
+      badge.dataset.published = (!published).toString();
+      badge.textContent = !published ? 'Published' : 'Draft';
+      badge.className = `status-badge ${!published ? 'published' : 'draft'}`;
+    }
+  });
+
+  // ── Category description edit ─────────────────────────────────────────────
+  function showDescEdit(cat: string) {
+    const row = document.querySelector<HTMLElement>(`.cat-desc-row[data-cat="${cat}"]`)!;
+    row.querySelector<HTMLElement>('.cat-desc-text')!.hidden = true;
+    const emptyEl = row.querySelector<HTMLElement>('.cat-desc-empty');
+    if (emptyEl) emptyEl.hidden = true;
+    row.querySelector<HTMLElement>('.btn-edit-desc')!.hidden = true;
+    const ta = row.querySelector<HTMLTextAreaElement>('.cat-desc-input')!;
+    ta.hidden = false; ta.focus();
+    row.querySelector<HTMLElement>('.btn-desc-save')!.hidden = false;
+    row.querySelector<HTMLElement>('.btn-desc-cancel')!.hidden = false;
+  }
+
+  function hideDescEdit(cat: string) {
+    const row = document.querySelector<HTMLElement>(`.cat-desc-row[data-cat="${cat}"]`)!;
+    row.querySelector<HTMLElement>('.cat-desc-text')!.hidden = false;
+    row.querySelector<HTMLElement>('.cat-desc-input')!.hidden = true;
+    row.querySelector<HTMLElement>('.btn-desc-save')!.hidden = true;
+    row.querySelector<HTMLElement>('.btn-desc-cancel')!.hidden = true;
+    row.querySelector<HTMLElement>('.desc-status')!.textContent = '';
+  }
+
+  async function saveDescription(cat: string) {
+    const row = document.querySelector<HTMLElement>(`.cat-desc-row[data-cat="${cat}"]`)!;
+    const ta = row.querySelector<HTMLTextAreaElement>('.cat-desc-input')!;
+    const textEl = row.querySelector<HTMLElement>('.cat-desc-text')!;
+    const statusEl = row.querySelector<HTMLElement>('.desc-status')!;
+    const saveBtn = row.querySelector<HTMLButtonElement>('.btn-desc-save')!;
+    const newDesc = ta.value.trim();
+    saveBtn.disabled = true;
+    statusEl.textContent = 'Saving...'; statusEl.style.color = '#6b4a2a';
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-category-description', slug: cat, description: newDesc }),
+      });
+      if (!res.ok) throw new Error();
+      textEl.textContent = newDesc;
+      ta.value = newDesc;
+      const emptyEl = row.querySelector<HTMLElement>('.cat-desc-empty');
+      if (emptyEl) emptyEl.hidden = !!newDesc;
+      statusEl.textContent = 'Saved.'; statusEl.style.color = '#3d7a6e';
+      setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      hideDescEdit(cat);
+      textEl.hidden = false;
+    } catch {
+      statusEl.textContent = 'Error.'; statusEl.style.color = '#b44';
+    }
+    saveBtn.disabled = false;
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.btn-edit-desc').forEach(btn => {
+    btn.addEventListener('click', () => showDescEdit(btn.dataset.cat!));
+  });
+  document.querySelectorAll<HTMLButtonElement>('.btn-desc-save').forEach(btn => {
+    btn.addEventListener('click', () => saveDescription(btn.dataset.cat!));
+  });
+  document.querySelectorAll<HTMLButtonElement>('.btn-desc-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat!;
+      const row = document.querySelector<HTMLElement>(`.cat-desc-row[data-cat="${cat}"]`)!;
+      const ta = row.querySelector<HTMLTextAreaElement>('.cat-desc-input')!;
+      const textEl = row.querySelector<HTMLElement>('.cat-desc-text')!;
+      ta.value = textEl.textContent ?? '';
+      hideDescEdit(cat);
+    });
+  });
+  document.querySelectorAll<HTMLTextAreaElement>('.cat-desc-input').forEach(ta => {
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        const cat = ta.dataset.cat!;
+        ta.value = document.querySelector<HTMLElement>(`.cat-desc-text[data-cat="${cat}"]`)?.textContent ?? '';
+        hideDescEdit(cat);
+      }
+    });
+  });
+
+  // ── Delete item ────────────────────────────────────────────────────────────
+  container.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.btn-delete');
+    if (!btn) return;
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+    const id = Number(btn.dataset.id);
+    const res = await fetch(`/api/admin/wholesale/${id}`, { method: 'DELETE' });
+    if (res.ok) btn.closest('.item-row')?.remove();
+    else alert('Error deleting item.');
+  });
+</script>

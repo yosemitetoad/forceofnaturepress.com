@@ -23,6 +23,7 @@ export interface ShopItem {
   price: number;
   image: string;
   etsyListingId?: string;
+  wholesaleEnabled?: boolean;
 }
 
 export function getEtsyUrl(item: ShopItem): string {

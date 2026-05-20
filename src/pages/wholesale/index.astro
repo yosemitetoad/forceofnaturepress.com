@@ -1,0 +1,692 @@
+---
+export const prerender = false;
+
+import { getPublishedWholesaleItems, getPageContentMulti, getWholesaleCategories, validateSession } from '../../lib/db';
+import { md, mdInline } from '../../lib/markdown';
+import { SITE_TITLE } from '../../consts';
+
+const db = Astro.locals.runtime.env.DB;
+
+// ── Auth check ────────────────────────────────────────────────────────────────
+const adminToken = Astro.cookies.get('admin_session')?.value;
+const wholesaleToken = Astro.cookies.get('wholesale_session')?.value;
+const isAdmin = adminToken ? await validateSession(db, adminToken) : false;
+const isWholesaleAuth = wholesaleToken === 'wholesale_ok';
+const isAuthenticated = isAdmin || isWholesaleAuth;
+
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password', 'wholesale_contact_email', 'wholesale_form_url']);
+const wholesalePassword = content.wholesale_password ?? '';
+
+// Handle password form POST
+let passwordError = '';
+if (!isAuthenticated && Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const entered = form.get('password')?.toString() ?? '';
+  if (!wholesalePassword) {
+    passwordError = 'This page is not yet available.';
+  } else if (entered === wholesalePassword) {
+    Astro.cookies.set('wholesale_session', 'wholesale_ok', {
+      path: '/',
+      httpOnly: true,
+      secure: import.meta.env.PROD,
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60,
+    });
+    return Astro.redirect('/wholesale');
+  } else {
+    passwordError = 'Incorrect password.';
+  }
+}
+
+// If not authenticated and no password set, don't reveal the page exists
+if (!isAuthenticated && !wholesalePassword) {
+  return Astro.redirect('/');
+}
+
+// Load page content and items (only if authenticated)
+const [items, wholesaleCategories] = isAuthenticated
+  ? await Promise.all([getPublishedWholesaleItems(db), getWholesaleCategories(db)])
+  : [[], []];
+const termsHtml = isAuthenticated ? await md(content.wholesale_terms ?? '') : '';
+const contactIntro = content.wholesale_contact_intro ?? '';
+const contactEmail = content.wholesale_contact_email ?? '';
+const formUrl = content.wholesale_form_url ?? '';
+
+// Group items by effective category, ordered by DB sort_order
+const catLabelMap = new Map(wholesaleCategories.map(c => [c.slug, c.label]));
+const catOrderMap = new Map(wholesaleCategories.map(c => [c.slug, c.sortOrder]));
+const catDescMap = new Map(wholesaleCategories.map(c => [c.slug, c.description]));
+const groupedItems = new Map<string, typeof items>();
+for (const item of items) {
+  const cat = item.category || 'other';
+  if (!groupedItems.has(cat)) groupedItems.set(cat, []);
+  groupedItems.get(cat)!.push(item);
+}
+const sortedCats = [...groupedItems.keys()].sort((a, b) => {
+  const ao = catOrderMap.get(a) ?? 999;
+  const bo = catOrderMap.get(b) ?? 999;
+  if (ao !== bo) return ao - bo;
+  return a.localeCompare(b);
+});
+function formatCat(cat: string) {
+  return catLabelMap.get(cat) ?? cat.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Wholesale — {SITE_TITLE}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body>
+
+{!isAuthenticated ? (
+  <!-- Password gate -->
+  <div class="gate-wrap">
+    <div class="gate-box">
+      <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press" class="gate-logo" />
+      <h1>Wholesale</h1>
+      <p class="gate-subtitle">Force of Nature Press</p>
+      <form method="POST">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autofocus />
+        {passwordError && <p class="gate-error">{passwordError}</p>}
+        <button type="submit">Enter</button>
+      </form>
+    </div>
+  </div>
+) : (
+  <!-- Full wholesale page -->
+  <>
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="header-brand">
+          <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press" width="36" height="36" />
+          Force of Nature Press
+        </a>
+        <span class="header-tag">Wholesale</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Terms -->
+      {termsHtml && (
+        <section class="terms-section container" id="terms">
+          <details class="section-details" open>
+            <summary class="section-heading">Terms &amp; Conditions</summary>
+            <div class="terms-body">
+              <Fragment set:html={termsHtml} />
+            </div>
+          </details>
+        </section>
+      )}
+
+      <!-- Catalog -->
+      <section class="catalog-section container">
+        <details class="section-details" open>
+          <summary class="section-heading">Catalog</summary>
+          {items.length === 0 ? (
+            <p class="empty-catalog">No items available yet — check back soon.</p>
+          ) : (
+            sortedCats.map(cat => {
+              const catItems = groupedItems.get(cat)!;
+              return (
+                <details class="catalog-category" open>
+                  <summary class="category-heading">{formatCat(cat)}</summary>
+                  {catDescMap.get(cat) && <p class="category-description">{catDescMap.get(cat)}</p>}
+                  <div class="product-grid">
+                    {catItems.map(item => (
+                    <button
+                      class="product-card"
+                      data-item={JSON.stringify({
+                        title: item.title,
+                        image: item.image,
+                        description: item.description,
+                        wholesalePrice: item.wholesalePrice,
+                        rrp: item.rrp,
+                        moq: item.moq,
+                      })}
+                      aria-label={`View details for ${item.title}`}
+                    >
+                      <div class="card-img-wrap">
+                        <img src={item.image} alt={item.title} loading="lazy" />
+                      </div>
+                      <div class="card-info">
+                        <span class="card-title">{item.title}</span>
+                      </div>
+                    </button>
+                    ))}
+                  </div>
+                </details>
+              );
+            })
+          )}
+        </details>
+      </section>
+
+      <!-- Contact / Order Form -->
+      <section class="contact-section container">
+        <h2 class="section-heading">Wholesale Order Form</h2>
+        {contactIntro && <p class="contact-intro">{contactIntro}</p>}
+        {contactEmail && <p class="contact-email">Email: <a href={`mailto:${contactEmail}`}>{contactEmail}</a></p>}
+        {formUrl && (
+          <form id="orderForm" class="order-form" action={formUrl} method="POST" novalidate>
+            <input type="hidden" name="_subject" value="Wholesale Order Request" />
+
+            <!-- Business Identification -->
+            <div class="order-section">
+              <h3 class="order-section-heading">Business Identification</h3>
+
+              <div class="form-row">
+                <div class="field">
+                  <label for="business_name">Business / Shop Name <span class="req">*</span></label>
+                  <input type="text" id="business_name" name="business_name" required />
+                </div>
+                <div class="field">
+                  <label for="contact_name">Contact Person Name <span class="req">*</span></label>
+                  <input type="text" id="contact_name" name="contact_name" required />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="field">
+                  <label for="email">Email <span class="req">*</span></label>
+                  <input type="email" id="email" name="email" required />
+                </div>
+                <div class="field">
+                  <label for="phone">Phone</label>
+                  <input type="tel" id="phone" name="phone" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Website or Social Media <span class="req">*</span></label>
+                <p class="field-help">Please provide at least one.</p>
+                <div class="form-row">
+                  <div class="field mb-0">
+                    <label for="website" class="sub-label">Website URL</label>
+                    <input type="url" id="website" name="website" placeholder="https://..." />
+                  </div>
+                  <div class="field mb-0">
+                    <label for="social" class="sub-label">Social Media Handle(s)</label>
+                    <input type="text" id="social" name="social" placeholder="@handle or profile link" />
+                  </div>
+                </div>
+                <p id="social-error" class="field-error" hidden>Please provide a website URL or at least one social media handle.</p>
+              </div>
+
+              <div class="address-block">
+                <h4 class="address-label">Shipping Address <span class="req">*</span></h4>
+                <input type="text" name="shipping_address" placeholder="Street address" required class="address-input" />
+                <div class="address-row">
+                  <input type="text" name="shipping_city" placeholder="City" required class="address-input" />
+                  <input type="text" name="shipping_state" placeholder="State / Province" required class="address-input" />
+                  <input type="text" name="shipping_zip" placeholder="ZIP / Postal code" required class="address-input" />
+                </div>
+                <input type="text" name="shipping_country" placeholder="Country" required class="address-input" />
+              </div>
+
+              <div class="address-block">
+                <h4 class="address-label">Billing Address</h4>
+                <label class="same-as-shipping checkbox-label">
+                  <input type="checkbox" id="sameAsShipping" />
+                  Same as shipping address
+                </label>
+                <div id="billingFields">
+                  <input type="text" name="billing_address" placeholder="Street address" class="address-input" />
+                  <div class="address-row">
+                    <input type="text" name="billing_city" placeholder="City" class="address-input" />
+                    <input type="text" name="billing_state" placeholder="State / Province" class="address-input" />
+                    <input type="text" name="billing_zip" placeholder="ZIP / Postal code" class="address-input" />
+                  </div>
+                  <input type="text" name="billing_country" placeholder="Country" class="address-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Verification -->
+            <div class="order-section">
+              <h3 class="order-section-heading">Verification</h3>
+
+              <div class="form-row">
+                <div class="field">
+                  <label for="tax_id">Resale Certificate / Tax ID <span class="req">*</span></label>
+                  <input type="text" id="tax_id" name="tax_id" required />
+                </div>
+                <div class="field">
+                  <label for="business_type">Type of Business <span class="req">*</span></label>
+                  <select id="business_type" name="business_type" required>
+                    <option value="">Select...</option>
+                    <option value="brick-and-mortar">Brick-and-mortar store</option>
+                    <option value="online-retailer">Online retailer</option>
+                    <option value="museum-institution">Museum or institution</option>
+                    <option value="nature-center">Nature center</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="sell_where">Where will you sell our products? <span class="req">*</span></label>
+                <textarea id="sell_where" name="sell_where" rows="3" required placeholder="e.g. Online shop at mystore.com, physical store in Portland OR, etc."></textarea>
+              </div>
+
+              <div class="field">
+                <label for="heard_about">How did you hear about us?</label>
+                <input type="text" id="heard_about" name="heard_about" placeholder="e.g. Instagram, a trade show, word of mouth..." />
+              </div>
+            </div>
+
+            <!-- Order Request -->
+            <div class="order-section">
+              <h3 class="order-section-heading">Order Request</h3>
+
+              <div class="field">
+                <label for="products">Products and Quantities <span class="req">*</span></label>
+                <p class="field-help">List each product and how many units you'd like to order. You can also attach an order sheet below.</p>
+                <textarea id="products" name="products" rows="8" required placeholder={"e.g.\nBeetle print A3 — 10 units\nMushroom sticker sheet — 20 units"}></textarea>
+              </div>
+
+              <div class="field">
+                <label for="delivery_timeframe">Estimated Delivery Timeframe</label>
+                <input type="text" id="delivery_timeframe" name="delivery_timeframe" placeholder="e.g. Before September, no rush, etc." />
+              </div>
+
+              <div class="field">
+                <label for="notes">Special Requests / Notes</label>
+                <textarea id="notes" name="notes" rows="4"></textarea>
+              </div>
+            </div>
+
+            <!-- Agreement -->
+            <div class="order-section agreement-section">
+              <h3 class="order-section-heading">Agreement</h3>
+
+              <div class="agreement-field">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="agree_resale" required />
+                  I confirm my business has a valid resale certificate or tax ID.
+                </label>
+              </div>
+              <div class="agreement-field">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="agree_terms" required />
+                  I have read and agree to the <a href="#terms">Force of Nature Press wholesale terms</a>.
+                </label>
+              </div>
+              <div class="agreement-field">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="agree_markets" required />
+                  I understand wholesale products may not be resold at art markets, craft fairs, or conventions without prior written approval.
+                </label>
+              </div>
+            </div>
+
+            <div class="form-submit-row">
+              <button type="submit" class="submit-btn" id="orderSubmitBtn">Submit Order Request</button>
+              <span id="orderFormStatus" class="order-form-status"></span>
+            </div>
+          </form>
+        )}
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>&copy; {new Date().getFullYear()} Force of Nature Press. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <!-- Modal -->
+    <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-box">
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+        <div class="modal-content">
+          <img id="modalImg" src="" alt="" class="modal-img" />
+          <div class="modal-details">
+            <h3 id="modalTitle"></h3>
+            <p id="modalDescription" class="modal-description"></p>
+            <dl class="modal-pricing">
+              <div class="pricing-row">
+                <dt>Wholesale Price</dt>
+                <dd id="modalWholesalePrice"></dd>
+              </div>
+              <div class="pricing-row">
+                <dt>RRP</dt>
+                <dd id="modalRrp"></dd>
+              </div>
+              <div class="pricing-row">
+                <dt>Minimum Order</dt>
+                <dd id="modalMoq"></dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </>
+)}
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: 'Nunito', sans-serif; margin: 0; background: #f0e6d0; color: #2d1f0e; line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* Gate */
+  .gate-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: url('/plainstarbanner.webp') center / cover no-repeat fixed;
+    background-color: #f0e6d0;
+  }
+  .gate-box {
+    background: rgba(240, 230, 208, 0.94); border: 2px solid #d4b896; border-radius: 14px;
+    padding: 2.5rem; width: 100%; max-width: 400px; text-align: center;
+  }
+  .gate-logo { width: 72px; height: 72px; margin-bottom: 1rem; border-radius: 8px; }
+  .gate-box h1 { font-size: 1.6rem; font-weight: 800; margin: 0 0 0.2rem; }
+  .gate-subtitle { color: #6b4a2a; font-size: 0.9rem; margin: 0 0 1.5rem; }
+  .gate-box label { display: block; text-align: left; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; }
+  .gate-box input[type="password"] {
+    width: 100%; padding: 0.7em 1em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 1rem; background: #faf5ea; color: #2d1f0e; outline: none;
+  }
+  .gate-box input[type="password"]:focus { border-color: #c87830; }
+  .gate-error { color: #b44; font-size: 0.88rem; margin: 0.4rem 0 0; text-align: left; }
+  .gate-box button {
+    display: block; width: 100%; margin-top: 1.2rem; padding: 0.7em; border: none; border-radius: 8px;
+    background: #c87830; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
+  }
+  .gate-box button:hover { background: #a05e18; }
+
+  /* Header */
+  .site-header { background: #2d1f0e; color: #faf5ea; padding: 0 0; }
+  .site-header .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .header-brand { display: flex; align-items: center; gap: 0.6rem; color: #faf5ea; text-decoration: none; font-weight: 800; font-size: 1rem; }
+  .header-brand img { border-radius: 4px; }
+  .header-tag { background: rgba(255,255,255,0.12); color: #e4d3b8; font-size: 0.8rem; font-weight: 800; padding: 0.25em 0.8em; border-radius: 999px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* Sections */
+  .terms-section { padding: 3rem 1.5rem 2rem; }
+  .catalog-section { padding: 2rem 1.5rem; }
+  .contact-section { padding: 2rem 1.5rem 3rem; }
+  .section-heading { font-size: 1.5rem; font-weight: 800; margin: 0 0 1.2rem; color: #2d1f0e; padding-bottom: 0.5rem; border-bottom: 2px solid #d4b896; }
+
+  /* Collapsible details */
+  .section-details, .catalog-category { display: block; }
+  .section-details > summary,
+  .catalog-category > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  .section-details > summary::-webkit-details-marker,
+  .catalog-category > summary::-webkit-details-marker { display: none; }
+  .section-details > summary::after,
+  .catalog-category > summary::after {
+    content: '▾';
+    font-weight: 400;
+    color: #a08060;
+    transition: transform 0.18s;
+    flex-shrink: 0;
+    margin-left: 0.6rem;
+    font-size: 1.1em;
+    line-height: 1;
+  }
+  .section-details:not([open]) > summary::after,
+  .catalog-category:not([open]) > summary::after { transform: rotate(-90deg); }
+  .section-details > summary:hover::after,
+  .catalog-category > summary:hover::after { color: #6b4a2a; }
+
+  /* Terms */
+  .terms-body { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem; font-size: 0.95rem; line-height: 1.8; max-width: 800px; }
+  .terms-body :global(p) { margin: 0 0 0.8rem; }
+  .terms-body :global(p:last-child) { margin-bottom: 0; }
+  .terms-body :global(strong) { color: #2d1f0e; }
+
+  /* Grid */
+  .empty-catalog { color: #6b4a2a; font-style: italic; }
+  .catalog-category { margin-bottom: 2.5rem; }
+  .catalog-category:last-child { margin-bottom: 0; }
+  .category-heading {
+    font-size: 1.1rem; font-weight: 800; color: #2d1f0e;
+    margin: 0 0 0.4rem; padding-bottom: 0.4rem;
+    border-bottom: 1px solid #d4b896;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .category-description {
+    font-size: 0.88rem; color: #5a3e1e; margin: 0 0 0.9rem; line-height: 1.6;
+  }
+  .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 220px)); gap: 1.2rem; justify-content: center; }
+
+  .product-card {
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
+    padding: 0; cursor: pointer; text-align: left; font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    overflow: hidden;
+    display: flex; flex-direction: column; align-items: stretch;
+  }
+  .product-card:hover { border-color: #c87830; box-shadow: 0 4px 16px rgba(45,31,14,0.12); transform: translateY(-2px); }
+
+  .card-img-wrap { aspect-ratio: 1; overflow: hidden; background: #e4d3b8; display: flex; align-items: center; justify-content: center; }
+  .card-img-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .card-info { padding: 0.7rem 0.8rem; }
+  .card-title { display: block; font-weight: 700; font-size: 0.88rem; color: #2d1f0e; line-height: 1.3; }
+
+  /* Contact */
+  .contact-intro { color: #5a3e1e; margin: 0 0 0.6rem; font-size: 0.95rem; }
+  .contact-email { margin: 0 0 1.5rem; font-size: 0.95rem; }
+  .contact-email a { color: #c87830; font-weight: 700; }
+  .contact-form { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem; max-width: 640px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  .field input, .field textarea {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; resize: vertical;
+  }
+  .field input:focus, .field textarea:focus { border-color: #c87830; outline: none; }
+  .submit-btn {
+    padding: 0.65em 1.6em; border: none; border-radius: 8px; background: #c87830;
+    color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+  }
+  .submit-btn:hover { background: #a05e18; }
+
+  /* Order form */
+  .order-form { max-width: 800px; }
+  .order-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem; margin-bottom: 1.5rem; }
+  .order-section-heading { font-size: 1.05rem; font-weight: 800; color: #2d1f0e; margin: 0 0 1.2rem; padding-bottom: 0.5rem; border-bottom: 1px solid #d4b896; }
+  .field select {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+  }
+  .field select:focus { border-color: #c87830; outline: none; }
+  .address-block { border: 1.5px solid #d4b896; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+  .address-block:last-child { margin-bottom: 0; }
+  .address-label { font-size: 0.85rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .address-input {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+    margin-bottom: 0.5rem; box-sizing: border-box; display: block;
+  }
+  .address-input:last-child { margin-bottom: 0; }
+  .address-input:focus { border-color: #c87830; outline: none; }
+  .address-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem; }
+  .same-as-shipping { margin-bottom: 0.8rem; display: block; }
+  .checkbox-label { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; cursor: pointer; line-height: 1.5; }
+  .checkbox-label input[type="checkbox"] { margin-top: 0.18rem; flex-shrink: 0; width: 1rem; height: 1rem; accent-color: #c87830; cursor: pointer; }
+  .agreement-field { margin-bottom: 0.8rem; }
+  .agreement-field:last-child { margin-bottom: 0; }
+  .agreement-field a { color: #c87830; font-weight: 700; }
+  .field-help { font-size: 0.82rem; color: #6b4a2a; margin: 0.2rem 0 0.5rem; line-height: 1.5; }
+  .field-error { font-size: 0.85rem; color: #b44; font-weight: 700; margin: 0.4rem 0 0; }
+  .file-input { display: block; width: 100%; padding: 0.4em 0; font-family: inherit; font-size: 0.88rem; color: #2d1f0e; }
+  .req { color: #b44; font-weight: 700; }
+  .sub-label { font-weight: 600 !important; color: #6b4a2a !important; font-size: 0.82rem !important; margin-bottom: 0.25rem !important; }
+  .mb-0 { margin-bottom: 0 !important; }
+  .form-submit-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .order-form-status { font-size: 0.9rem; font-weight: 700; line-height: 1.5; max-width: 480px; }
+  .order-form-status.success { color: #3d7a6e; }
+  .order-form-status.error { color: #b44; }
+
+  /* Footer */
+  .site-footer { background: #2d1f0e; color: #a08060; padding: 1.5rem 0; font-size: 0.85rem; text-align: center; }
+
+  /* Modal */
+  .modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+  .modal[hidden] { display: none; }
+  .modal-backdrop { position: absolute; inset: 0; background: rgba(45,31,14,0.6); }
+  .modal-box {
+    position: relative; background: #faf5ea; border: 2px solid #d4b896; border-radius: 14px;
+    max-width: 640px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(45,31,14,0.25);
+  }
+  .modal-close {
+    position: absolute; top: 0.8rem; right: 0.8rem; background: none; border: none;
+    font-size: 1.5rem; cursor: pointer; color: #a08060; line-height: 1; padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+  }
+  .modal-close:hover { color: #2d1f0e; background: #e4d3b8; }
+  .modal-content { display: flex; gap: 1.5rem; padding: 1.8rem; }
+  .modal-img { width: 200px; height: 200px; object-fit: cover; border-radius: 10px; flex-shrink: 0; border: 2px solid #d4b896; }
+  .modal-details { flex: 1; min-width: 0; }
+  .modal-details h3 { font-size: 1.2rem; font-weight: 800; margin: 0 0 0.6rem; }
+  .modal-description { font-size: 0.9rem; color: #5a3e1e; margin: 0 0 1rem; line-height: 1.6; }
+  .modal-pricing { margin: 0; padding: 0; list-style: none; border-top: 1px solid #e4d3b8; padding-top: 0.8rem; }
+  .pricing-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.3rem 0; border-bottom: 1px solid #f0e6d0; }
+  .pricing-row dt { font-size: 0.82rem; font-weight: 700; color: #a08060; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pricing-row dd { font-size: 1rem; font-weight: 800; color: #2d1f0e; margin: 0; }
+
+  @media (max-width: 600px) {
+    .order-section { padding: 1.2rem 1rem; }
+    .address-row { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 520px) {
+    .modal-content { flex-direction: column; }
+    .modal-img { width: 100%; height: 220px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  const modal = document.getElementById('modal') as HTMLElement;
+  const modalClose = document.getElementById('modalClose');
+  const modalImg = document.getElementById('modalImg') as HTMLImageElement;
+  const modalTitle = document.getElementById('modalTitle')!;
+  const modalDescription = document.getElementById('modalDescription')!;
+  const modalWholesalePrice = document.getElementById('modalWholesalePrice')!;
+  const modalRrp = document.getElementById('modalRrp')!;
+  const modalMoq = document.getElementById('modalMoq')!;
+
+  // Order form
+  const orderForm = document.getElementById('orderForm') as HTMLFormElement | null;
+  if (orderForm) {
+    const orderSubmitBtn = document.getElementById('orderSubmitBtn') as HTMLButtonElement;
+    const orderFormStatus = document.getElementById('orderFormStatus')!;
+    const sameAsShipping = document.getElementById('sameAsShipping') as HTMLInputElement;
+    const billingFields = document.getElementById('billingFields')!;
+    const websiteInput = document.getElementById('website') as HTMLInputElement;
+    const socialInput = document.getElementById('social') as HTMLInputElement;
+    const socialError = document.getElementById('social-error')!;
+
+    sameAsShipping?.addEventListener('change', () => {
+      billingFields.style.display = sameAsShipping.checked ? 'none' : '';
+    });
+
+    orderForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Validate website/social — at least one required
+      const website = websiteInput?.value.trim() ?? '';
+      const social = socialInput?.value.trim() ?? '';
+      if (!website && !social) {
+        socialError.removeAttribute('hidden');
+        socialError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      socialError.setAttribute('hidden', '');
+
+      // Validate required checkboxes and fields via browser API
+      if (!orderForm.checkValidity()) {
+        orderForm.reportValidity();
+        return;
+      }
+
+      orderSubmitBtn.disabled = true;
+      orderFormStatus.textContent = 'Submitting...';
+      orderFormStatus.className = 'order-form-status';
+
+      const formData = new FormData(orderForm);
+      if (sameAsShipping?.checked) {
+        formData.set('billing_address', 'Same as shipping address');
+        formData.delete('billing_city');
+        formData.delete('billing_state');
+        formData.delete('billing_zip');
+        formData.delete('billing_country');
+      }
+
+      try {
+        const res = await fetch(orderForm.action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: formData,
+        });
+        if (res.ok) {
+          orderFormStatus.textContent = 'Thank you! Your order request has been submitted. We\'ll be in touch soon.';
+          orderFormStatus.className = 'order-form-status success';
+          orderForm.reset();
+          billingFields.style.display = '';
+        } else {
+          const data: any = await res.json().catch(() => ({}));
+          orderFormStatus.textContent = data.error ?? 'Something went wrong. Please try again or email us directly.';
+          orderFormStatus.className = 'order-form-status error';
+        }
+      } catch {
+        orderFormStatus.textContent = 'Network error. Please check your connection and try again.';
+        orderFormStatus.className = 'order-form-status error';
+      }
+      orderSubmitBtn.disabled = false;
+    });
+  }
+
+  if (modal) {
+    document.querySelectorAll<HTMLButtonElement>('.product-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const data = JSON.parse(card.dataset.item || '{}');
+        modalImg.src = data.image || '';
+        modalImg.alt = data.title || '';
+        modalTitle.textContent = data.title || '';
+        modalDescription.textContent = data.description || '';
+        modalDescription.style.display = data.description ? '' : 'none';
+        modalWholesalePrice.textContent = `$${Number(data.wholesalePrice).toFixed(2)} per unit`;
+        modalRrp.textContent = `$${Number(data.rrp).toFixed(2)}`;
+        modalMoq.textContent = `${data.moq} unit${data.moq !== 1 ? 's' : ''} minimum`;
+        modal.removeAttribute('hidden');
+        document.body.style.overflow = 'hidden';
+        modalClose?.focus();
+      });
+    });
+
+    function closeModal() {
+      modal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    }
+
+    modalClose?.addEventListener('click', closeModal);
+    modal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hasAttribute('hidden')) closeModal(); });
+  }
+</script>

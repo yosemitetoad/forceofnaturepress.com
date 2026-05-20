@@ -1,0 +1,313 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAllShopItems, getWholesaleCategories } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const [shopItems, categories] = await Promise.all([getAllShopItems(db), getWholesaleCategories(db)]);
+---
+
+<Admin title="New Wholesale Item">
+  <div class="page-header">
+    <h1>New Wholesale Item</h1>
+    <a href="/admin/wholesale" class="back-link">&larr; Back to Catalog</a>
+  </div>
+
+  <div class="mode-tabs">
+    <button id="tabShop" class="mode-tab active" type="button">From Shop</button>
+    <button id="tabStandalone" class="mode-tab" type="button">Standalone Product</button>
+  </div>
+
+  <form id="itemForm" class="item-form">
+    <!-- ── From-shop mode ── -->
+    <div id="shopMode">
+      <div class="field">
+        <label for="sku">Product (from shop) *</label>
+        <select id="sku" name="sku">
+          <option value="">Select a product...</option>
+          {shopItems.map(item => (
+            <option value={item.sku} data-price={item.price} data-title={item.title}>
+              {item.title} ({item.sku})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div class="preview-row" id="productPreview" hidden>
+        <img id="previewImg" src="" alt="" class="preview-thumb" />
+        <span id="previewTitle" class="preview-title"></span>
+      </div>
+    </div>
+
+    <!-- ── Standalone mode ── -->
+    <div id="standaloneMode" hidden>
+      <div class="field-row">
+        <div class="field">
+          <label for="standaloneSku">SKU *</label>
+          <input type="text" id="standaloneSku" name="standaloneSku" placeholder="e.g. MYPRODUCT01" />
+        </div>
+        <div class="field">
+          <label for="standaloneCategory">Category</label>
+          <select id="standaloneCategory" name="standaloneCategory">
+            <option value="">None</option>
+            {categories.map(cat => (
+              <option value={cat.slug}>{cat.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="standaloneTitle">Title *</label>
+        <input type="text" id="standaloneTitle" name="standaloneTitle" placeholder="Product name" />
+      </div>
+      <div class="field">
+        <label for="standaloneImage">Image</label>
+        <div class="upload-row">
+          <input type="text" id="standaloneImage" name="standaloneImage" placeholder="Paste URL or upload" />
+          <label class="upload-btn">
+            Upload
+            <input type="file" id="imageUpload" accept="image/*" hidden />
+          </label>
+        </div>
+        <div id="uploadProgress" style="display:none" class="upload-progress">Uploading...</div>
+        <img id="standaloneImgPreview" src="" alt="" class="standalone-img-preview" hidden />
+      </div>
+    </div>
+
+    <!-- ── Shared fields ── -->
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3" placeholder="Wholesale-specific description (optional)"></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="wholesalePrice">Wholesale Price ($) *</label>
+        <input type="number" id="wholesalePrice" name="wholesalePrice" step="0.01" min="0" required value="0" />
+      </div>
+      <div class="field">
+        <label for="rrp">RRP ($) *</label>
+        <input type="number" id="rrp" name="rrp" step="0.01" min="0" required value="0" />
+        <span class="hint">Recommended retail price.</span>
+      </div>
+      <div class="field">
+        <label for="moq">MOQ *</label>
+        <input type="number" id="moq" name="moq" min="1" step="1" required value="1" />
+        <span class="hint">Minimum order quantity.</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="checkbox-label">
+        <input type="checkbox" name="published" id="published" />
+        Published (visible on /wholesale)
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create Item</button>
+      <a href="/admin/wholesale" class="btn btn-outline">Cancel</a>
+      <span id="formStatus" class="form-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+
+  .mode-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 2px solid #d4b896; }
+  .mode-tab {
+    background: none; border: none; font-family: inherit; font-weight: 700; font-size: 0.9rem;
+    color: #a08060; cursor: pointer; padding: 0.55em 1.4em;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+  }
+  .mode-tab.active { color: #c87830; border-bottom-color: #c87830; }
+  .mode-tab:hover:not(.active) { color: #6b4a2a; }
+
+  .item-form { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; max-width: 700px; }
+
+  .field { margin-bottom: 1.2rem; }
+  .field label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; background: #f5edd8; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #c87830; outline: none; }
+  .field textarea { resize: vertical; }
+  .hint { display: block; font-size: 0.75rem; color: #a08060; margin-top: 0.25rem; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  .field-row.two-col { grid-template-columns: 1fr 1fr; }
+
+  .preview-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; padding: 0.6rem; background: #f0e6d0; border-radius: 8px; border: 1px solid #d4b896; }
+  .preview-row[hidden] { display: none; }
+  .preview-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+  .preview-title { font-weight: 700; font-size: 0.9rem; color: #2d1f0e; }
+
+  .upload-row { display: flex; gap: 0.5rem; align-items: center; }
+  .upload-row input { flex: 1; }
+  .upload-btn {
+    background: #c87830; color: #faf5ea; padding: 0.6em 1.1em; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .upload-btn:hover { background: #a05e18; }
+  .upload-progress { font-size: 0.82rem; color: #c87830; font-weight: 700; margin-top: 0.3rem; }
+  .standalone-img-preview { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid #d4b896; margin-top: 0.5rem; display: block; }
+  .standalone-img-preview[hidden] { display: none; }
+
+  .checkbox-label { display: flex !important; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 700; font-size: 0.9rem; color: #2d1f0e; }
+  .checkbox-label input[type="checkbox"] { width: auto; margin: 0; accent-color: #c87830; }
+
+  .form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.5rem; }
+  .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: none; border: 2px solid #d4b896; color: #6b4a2a; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .form-status { font-weight: 700; font-size: 0.9rem; }
+</style>
+
+<script>
+  const tabShop = document.getElementById('tabShop') as HTMLButtonElement;
+  const tabStandalone = document.getElementById('tabStandalone') as HTMLButtonElement;
+  const shopMode = document.getElementById('shopMode')!;
+  const standaloneMode = document.getElementById('standaloneMode')!;
+  let mode: 'shop' | 'standalone' = 'shop';
+
+  tabShop.addEventListener('click', () => {
+    mode = 'shop';
+    tabShop.classList.add('active');
+    tabStandalone.classList.remove('active');
+    shopMode.hidden = false;
+    standaloneMode.hidden = true;
+  });
+  tabStandalone.addEventListener('click', () => {
+    mode = 'standalone';
+    tabStandalone.classList.add('active');
+    tabShop.classList.remove('active');
+    standaloneMode.hidden = false;
+    shopMode.hidden = true;
+  });
+
+  // Shop mode: auto-fill RRP from shop price, show preview
+  const skuSelect = document.getElementById('sku') as HTMLSelectElement;
+  const rrpInput = document.getElementById('rrp') as HTMLInputElement;
+  const preview = document.getElementById('productPreview') as HTMLElement;
+  const previewImg = document.getElementById('previewImg') as HTMLImageElement;
+  const previewTitle = document.getElementById('previewTitle') as HTMLElement;
+
+  skuSelect.addEventListener('change', () => {
+    const opt = skuSelect.selectedOptions[0];
+    if (!opt?.value) { preview.hidden = true; return; }
+    rrpInput.value = Number(opt.dataset.price ?? 0).toFixed(2);
+    previewTitle.textContent = opt.dataset.title ?? opt.value;
+    previewImg.src = '';
+    preview.hidden = false;
+  });
+
+  // Standalone mode: image upload + preview
+  const standaloneImageInput = document.getElementById('standaloneImage') as HTMLInputElement;
+  const standaloneImgPreview = document.getElementById('standaloneImgPreview') as HTMLImageElement;
+  const uploadProgress = document.getElementById('uploadProgress') as HTMLElement;
+
+  standaloneImageInput.addEventListener('input', () => {
+    const url = standaloneImageInput.value.trim();
+    standaloneImgPreview.src = url;
+    standaloneImgPreview.hidden = !url;
+  });
+
+  document.getElementById('imageUpload')?.addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    uploadProgress.style.display = 'block';
+    uploadProgress.textContent = 'Uploading...';
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json() as { url: string };
+      standaloneImageInput.value = url;
+      standaloneImgPreview.src = url;
+      standaloneImgPreview.hidden = false;
+      uploadProgress.textContent = 'Uploaded!';
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 2000);
+    } catch {
+      uploadProgress.textContent = 'Upload failed.';
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 3000);
+    }
+    (e.target as HTMLInputElement).value = '';
+  });
+
+  // Submit
+  const form = document.getElementById('itemForm') as HTMLFormElement;
+  const formStatus = document.getElementById('formStatus')!;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+    formStatus.textContent = 'Saving...';
+    formStatus.style.color = '#6b4a2a';
+
+    const data = new FormData(form);
+
+    let sku: string, title: string | null, image: string | null, wholesaleCategory: string | null;
+    if (mode === 'shop') {
+      sku = data.get('sku') as string;
+      title = null;
+      image = null;
+      wholesaleCategory = null;
+      if (!sku) {
+        formStatus.textContent = 'Please select a product.';
+        formStatus.style.color = '#b44';
+        btn.disabled = false;
+        return;
+      }
+    } else {
+      sku = (data.get('standaloneSku') as string).trim();
+      title = (data.get('standaloneTitle') as string).trim();
+      image = (data.get('standaloneImage') as string).trim() || null;
+      wholesaleCategory = (data.get('standaloneCategory') as string) || null;
+      if (!sku || !title) {
+        formStatus.textContent = 'SKU and title are required.';
+        formStatus.style.color = '#b44';
+        btn.disabled = false;
+        return;
+      }
+    }
+
+    const body = {
+      sku,
+      title,
+      image,
+      wholesaleCategory,
+      description: data.get('description') as string,
+      wholesalePrice: Number(data.get('wholesalePrice')),
+      rrp: Number(data.get('rrp')),
+      moq: Number(data.get('moq')),
+      published: data.has('published'),
+    };
+
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? 'Error');
+      }
+      const { id } = await res.json() as { id: number };
+      window.location.href = `/admin/wholesale/${id}`;
+    } catch (err: any) {
+      formStatus.textContent = err.message || 'Error saving. Please try again.';
+      formStatus.style.color = '#b44';
+      btn.disabled = false;
+    }
+  });
+</script>

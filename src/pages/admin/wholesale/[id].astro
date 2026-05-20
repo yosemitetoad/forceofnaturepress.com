@@ -1,0 +1,306 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getWholesaleItem, getAllShopItems, getWholesaleCategories } from '../../../lib/db';
+
+const { id } = Astro.params;
+const db = Astro.locals.runtime.env.DB;
+const item = await getWholesaleItem(db, Number(id));
+
+if (!item) return Astro.redirect('/admin/wholesale');
+
+const [shopItems, categories] = await Promise.all([getAllShopItems(db), getWholesaleCategories(db)]);
+const isStandalone = !shopItems.some(s => s.sku === item.sku);
+---
+
+<Admin title={`Edit: ${item.title}`}>
+  <div class="page-header">
+    <h1>Edit Wholesale Item</h1>
+    <a href="/admin/wholesale" class="back-link">&larr; Back to Catalog</a>
+  </div>
+
+  <form id="itemForm" class="item-form" data-id={item.id}>
+    {isStandalone ? (
+      <>
+        <div class="standalone-badge">Standalone product — not linked to a shop item</div>
+        <div class="field-row two-col">
+          <div class="field">
+            <label for="sku">SKU *</label>
+            <input type="text" id="sku" name="sku" required value={item.sku} />
+          </div>
+          <div class="field">
+            <label for="title">Title *</label>
+            <input type="text" id="title" name="title" required value={item.wholesaleTitle ?? item.title} />
+          </div>
+        </div>
+      </>
+    ) : (
+      <>
+        <div class="field">
+          <label for="sku">Product (from shop)</label>
+          <select id="sku" name="sku" required>
+            <option value="">Select a product...</option>
+            {shopItems.map(shopItem => (
+              <option
+                value={shopItem.sku}
+                data-price={shopItem.price}
+                data-title={shopItem.title}
+                selected={shopItem.sku === item.sku}
+              >
+                {shopItem.title} ({shopItem.sku})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div class="preview-row" id="productPreview">
+          <img src={item.image} alt="" class="preview-thumb" id="previewImg" />
+          <span class="preview-title" id="previewTitle">{item.title}</span>
+        </div>
+
+        <div class="field">
+          <label for="title">Title override</label>
+          <input type="text" id="title" name="title" value={item.wholesaleTitle ?? ''} placeholder={`Using: ${item.title}`} />
+          <span class="hint">Leave blank to use the shop product title.</span>
+        </div>
+      </>
+    )}
+
+    <div class="field">
+      <label for="image">{isStandalone ? 'Image' : 'Wholesale Image'}</label>
+      <div class="upload-row">
+        <input type="text" id="image" name="image" value={item.wholesaleImage ?? ''} placeholder="Leave blank to use shop image" />
+        <label class="upload-btn">
+          Upload
+          <input type="file" id="imageUpload" accept="image/*" hidden />
+        </label>
+      </div>
+      <div id="uploadProgress" class="upload-progress" style="display:none">Uploading...</div>
+      <div class="image-preview-row">
+        <div>
+          <p class="preview-label">Wholesale image</p>
+          <img id="wholesalePreview" src={item.wholesaleImage ?? ''} alt="" class="image-preview-thumb" style={item.wholesaleImage ? '' : 'display:none'} />
+          {!item.wholesaleImage && <p class="preview-using-shop">Using shop image</p>}
+        </div>
+        {!isStandalone && (
+        <div>
+          <p class="preview-label">Shop image</p>
+          <img src={item.shopImage} alt="" class="image-preview-thumb" />
+        </div>
+      )}
+      </div>
+      {item.wholesaleImage && (
+        <button type="button" id="resetImageBtn" class="btn-reset-image">Reset to shop image</button>
+      )}
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3">{item.description}</textarea>
+    </div>
+
+    <div class="field">
+      <label for="wholesaleCategory">Category</label>
+      <select id="wholesaleCategory" name="wholesaleCategory">
+        <option value="">Shop default ({item.category})</option>
+        {categories.map(cat => (
+          <option value={cat.slug} selected={item.wholesaleCategory === cat.slug}>{cat.label}</option>
+        ))}
+      </select>
+      <span class="hint">Override which category this item appears under on the wholesale page.</span>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="wholesalePrice">Wholesale Price ($) *</label>
+        <input type="number" id="wholesalePrice" name="wholesalePrice" step="0.01" min="0" required value={item.wholesalePrice} />
+      </div>
+      <div class="field">
+        <label for="rrp">RRP ($) *</label>
+        <input type="number" id="rrp" name="rrp" step="0.01" min="0" required value={item.rrp} />
+        <span class="hint">Recommended retail price.</span>
+      </div>
+      <div class="field">
+        <label for="moq">MOQ *</label>
+        <input type="number" id="moq" name="moq" min="1" step="1" required value={item.moq} />
+        <span class="hint">Minimum order quantity.</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="checkbox-label">
+        <input type="checkbox" name="published" id="published" checked={item.published} />
+        Published (visible on /wholesale)
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="/admin/wholesale" class="btn btn-outline">Cancel</a>
+      <button type="button" id="deleteBtn" class="btn btn-danger">Delete Item</button>
+      <span id="formStatus" class="form-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .back-link { color: #3d7a6e; font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+
+  .item-form { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 2rem; max-width: 700px; }
+
+  .field { margin-bottom: 1.2rem; }
+  .field label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.95rem; background: #f5edd8; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #c87830; outline: none; }
+  .field textarea { resize: vertical; }
+  .hint { display: block; font-size: 0.75rem; color: #a08060; margin-top: 0.25rem; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  .field-row.two-col { grid-template-columns: 1fr 1fr; }
+  .standalone-badge { background: #e8f0ee; border: 1.5px solid #5b7b6d; color: #3d5a4e; border-radius: 6px; padding: 0.4em 0.8em; font-size: 0.82rem; font-weight: 700; margin-bottom: 1rem; display: inline-block; }
+
+  .preview-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem; padding: 0.6rem; background: #f0e6d0; border-radius: 8px; border: 1px solid #d4b896; }
+  .preview-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+  .preview-title { font-weight: 700; font-size: 0.9rem; color: #2d1f0e; }
+
+  .upload-row { display: flex; gap: 0.5rem; align-items: center; }
+  .upload-row input { flex: 1; }
+  .upload-btn {
+    background: #c87830; color: #faf5ea; padding: 0.6em 1.1em; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .upload-btn:hover { background: #a05e18; }
+  .upload-progress { font-size: 0.82rem; color: #c87830; font-weight: 700; margin-top: 0.3rem; }
+  .image-preview-row { display: flex; gap: 1.5rem; margin-top: 0.6rem; align-items: flex-start; }
+  .preview-label { font-size: 0.72rem; font-weight: 700; color: #a08060; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.3rem; }
+  .image-preview-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid #d4b896; display: block; }
+  .preview-using-shop { font-size: 0.78rem; color: #a08060; font-style: italic; margin: 0; }
+  .btn-reset-image {
+    background: none; border: none; color: #a08060; font-family: inherit; font-size: 0.8rem;
+    cursor: pointer; padding: 0; margin-top: 0.4rem; text-decoration: underline;
+  }
+  .btn-reset-image:hover { color: #b44; }
+  .checkbox-label { display: flex !important; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 700; font-size: 0.9rem; color: #2d1f0e; }
+  .checkbox-label input[type="checkbox"] { width: auto; margin: 0; accent-color: #c87830; }
+
+  .form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.5rem; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 0.6em 1.3em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.95rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: none; border: 2px solid #d4b896; color: #6b4a2a; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-danger { background: #b44; color: #faf5ea; margin-left: auto; }
+  .btn-danger:hover { background: #833; }
+  .form-status { font-weight: 700; font-size: 0.9rem; }
+</style>
+
+<script>
+  const form = document.getElementById('itemForm') as HTMLFormElement;
+  const itemId = Number(form.dataset.id);
+  const formStatus = document.getElementById('formStatus')!;
+  const skuSelect = document.getElementById('sku') as HTMLSelectElement;
+  const rrpInput = document.getElementById('rrp') as HTMLInputElement;
+  const previewImg = document.getElementById('previewImg') as HTMLImageElement;
+  const previewTitle = document.getElementById('previewTitle') as HTMLElement;
+
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+  const wholesalePreview = document.getElementById('wholesalePreview') as HTMLImageElement;
+  const uploadProgress = document.getElementById('uploadProgress') as HTMLElement;
+
+  imageInput.addEventListener('input', () => {
+    const url = imageInput.value.trim();
+    wholesalePreview.src = url;
+    wholesalePreview.style.display = url ? '' : 'none';
+    const usingShopEl = wholesalePreview.nextElementSibling as HTMLElement | null;
+    if (usingShopEl?.classList.contains('preview-using-shop')) usingShopEl.style.display = url ? 'none' : '';
+  });
+
+  document.getElementById('imageUpload')?.addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    uploadProgress.style.display = 'block';
+    uploadProgress.textContent = 'Uploading...';
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('Upload failed');
+      const { url } = await res.json() as { url: string };
+      imageInput.value = url;
+      wholesalePreview.src = url;
+      wholesalePreview.style.display = '';
+      uploadProgress.textContent = 'Uploaded!';
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 2000);
+    } catch {
+      uploadProgress.textContent = 'Upload failed.';
+      setTimeout(() => { uploadProgress.style.display = 'none'; }, 3000);
+    }
+    (e.target as HTMLInputElement).value = '';
+  });
+
+  document.getElementById('resetImageBtn')?.addEventListener('click', () => {
+    imageInput.value = '';
+    wholesalePreview.src = '';
+    wholesalePreview.style.display = 'none';
+    const usingShopEl = wholesalePreview.nextElementSibling as HTMLElement | null;
+    if (usingShopEl?.classList.contains('preview-using-shop')) usingShopEl.style.display = '';
+  });
+
+  skuSelect.addEventListener('change', () => {
+    const opt = skuSelect.selectedOptions[0];
+    if (!opt?.value) return;
+    rrpInput.value = Number(opt.dataset.price ?? 0).toFixed(2);
+    previewTitle.textContent = opt.dataset.title ?? opt.value;
+    previewImg.src = '';
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    btn.disabled = true;
+    formStatus.textContent = 'Saving...';
+    formStatus.style.color = '#6b4a2a';
+
+    const data = new FormData(form);
+    const body = {
+      sku: data.get('sku') as string,
+      title: (data.get('title') as string).trim() || null,
+      description: data.get('description') as string,
+      wholesaleCategory: data.get('wholesaleCategory') as string || null,
+      wholesalePrice: Number(data.get('wholesalePrice')),
+      rrp: Number(data.get('rrp')),
+      moq: Number(data.get('moq')),
+      published: data.has('published'),
+      image: (data.get('image') as string).trim() || null,
+    };
+
+    try {
+      const res = await fetch(`/api/admin/wholesale/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error();
+      formStatus.textContent = 'Saved!';
+      formStatus.style.color = '#3d7a6e';
+    } catch {
+      formStatus.textContent = 'Error saving.';
+      formStatus.style.color = '#b44';
+    }
+    btn.disabled = false;
+    setTimeout(() => { formStatus.textContent = ''; }, 3000);
+  });
+
+  document.getElementById('deleteBtn')?.addEventListener('click', async () => {
+    if (!confirm('Delete this item? This cannot be undone.')) return;
+    const res = await fetch(`/api/admin/wholesale/${itemId}`, { method: 'DELETE' });
+    if (res.ok) window.location.href = '/admin/wholesale';
+    else alert('Error deleting item.');
+  });
+</script>

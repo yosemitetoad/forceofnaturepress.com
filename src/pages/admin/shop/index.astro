@@ -53,6 +53,7 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
           <th>SKU</th>
           <th>Category</th>
           <th>Price</th>
+          <th>Wholesale</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -64,6 +65,16 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
             <td><code>{item.sku}</code></td>
             <td>{categories.find(c => c.slug === item.category)?.label ?? item.category}</td>
             <td>${item.price.toFixed(2)}</td>
+            <td>
+              <button
+                class={`btn-sm btn-wholesale ${item.wholesaleEnabled !== false ? 'ws-on' : 'ws-off'}`}
+                data-sku={item.sku}
+                data-enabled={item.wholesaleEnabled !== false ? 'true' : 'false'}
+                title="Click to toggle wholesale sync"
+              >
+                {item.wholesaleEnabled !== false ? 'Enabled' : 'Disabled'}
+              </button>
+            </td>
             <td class="actions-cell">
               <a href={`/admin/shop/${item.sku}`} class="btn-sm btn-edit">Edit</a>
               <button class="btn-sm btn-delete" data-sku={item.sku} data-title={item.title}>Delete</button>
@@ -158,6 +169,11 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
   .btn-edit:hover { background: #2a5a50; }
   .btn-delete { background: #b44; color: #faf5ea; }
   .btn-delete:hover { background: #833; }
+  .btn-wholesale { font-size: 0.75rem; }
+  .ws-on { background: #d4edda; color: #2d6a4f; border: 1px solid #a3d4b5; }
+  .ws-on:hover { background: #b8dfc9; }
+  .ws-off { background: #e4d3b8; color: #6b4a2a; border: 1px solid #c4a07a; }
+  .ws-off:hover { background: #d4b896; }
   .no-results {
     text-align: center;
     color: #6b4a2a;
@@ -222,6 +238,26 @@ const activeCategory = Astro.url.searchParams.get('category') ?? 'all';
         applyFilters();
       } else {
         alert('Failed to delete item.');
+      }
+    });
+  });
+
+  // Wholesale toggle
+  document.querySelectorAll<HTMLButtonElement>('.btn-wholesale').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sku = btn.dataset.sku!;
+      const enabled = btn.dataset.enabled === 'true';
+      const res = await fetch(`/api/admin/shop/${sku}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wholesaleEnabled: !enabled }),
+      });
+      if (res.ok) {
+        btn.dataset.enabled = (!enabled).toString();
+        btn.textContent = !enabled ? 'Enabled' : 'Disabled';
+        btn.className = `btn-sm btn-wholesale ${!enabled ? 'ws-on' : 'ws-off'}`;
+      } else {
+        alert('Failed to update.');
       }
     });
   });

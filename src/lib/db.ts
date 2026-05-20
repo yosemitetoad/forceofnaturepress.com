@@ -9,6 +9,7 @@ interface ShopRow {
   image: string;
   etsy_listing_id: string | null;
   sort_order: number;
+  wholesale_enabled: number;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +22,7 @@ function rowToItem(row: ShopRow): ShopItem {
     price: row.price,
     image: row.image,
     ...(row.etsy_listing_id ? { etsyListingId: row.etsy_listing_id } : {}),
+    wholesaleEnabled: row.wholesale_enabled !== 0,
   };
 }
 
@@ -76,6 +78,7 @@ export interface ShopItemInput {
   image: string;
   etsyListingId?: string;
   sortOrder?: number;
+  wholesaleEnabled?: boolean;
 }
 
 export async function createShopItem(db: D1Database, item: ShopItemInput): Promise<void> {
@@ -99,6 +102,7 @@ export async function updateShopItem(db: D1Database, sku: string, item: Partial<
   if (item.image !== undefined) { sets.push('image = ?'); values.push(item.image); }
   if (item.etsyListingId !== undefined) { sets.push('etsy_listing_id = ?'); values.push(item.etsyListingId ?? null); }
   if (item.sortOrder !== undefined) { sets.push('sort_order = ?'); values.push(item.sortOrder); }
+  if (item.wholesaleEnabled !== undefined) { sets.push('wholesale_enabled = ?'); values.push(item.wholesaleEnabled ? 1 : 0); }
 
   if (sets.length === 0) return;
 
@@ -113,6 +117,41 @@ export async function updateShopItem(db: D1Database, sku: string, item: Partial<
 
 export async function deleteShopItem(db: D1Database, sku: string): Promise<void> {
   await db.prepare('DELETE FROM shop_items WHERE sku = ?').bind(sku).run();
+}
+
+export async function renameShopItemSku(db: D1Database, oldSku: string, newSku: string): Promise<void> {
+  await db.prepare('UPDATE shop_items SET sku = ? WHERE sku = ?').bind(newSku, oldSku).run();
+  await db.prepare('UPDATE wholesale_items SET sku = ? WHERE sku = ?').bind(newSku, oldSku).run();
+  await db.prepare('UPDATE analytics_events SET sku = ? WHERE sku = ?').bind(newSku, oldSku).run();
+}
+
+export async function syncWholesaleFromShop(db: D1Database): Promise<number> {
+  const { results: existing } = await db
+    .prepare('SELECT sku FROM wholesale_items')
+    .all<{ sku: string }>();
+  const existingSkus = new Set((existing ?? []).map(r => r.sku));
+
+  const maxRow = await db
+    .prepare('SELECT COALESCE(MAX(sort_order), 0) AS m FROM wholesale_items')
+    .first<{ m: number }>();
+  let sortOrder = (maxRow?.m ?? 0) + 1;
+
+  const { results: shopItems } = await db
+    .prepare('SELECT sku, price FROM shop_items WHERE wholesale_enabled = 1')
+    .all<{ sku: string; price: number }>();
+
+  const toAdd = (shopItems ?? []).filter(s => !existingSkus.has(s.sku));
+
+  for (const item of toAdd) {
+    await db
+      .prepare(
+        'INSERT INTO wholesale_items (sku, description, wholesale_price, rrp, moq, published, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      )
+      .bind(item.sku, '', 0, item.price, 1, 0, sortOrder++)
+      .run();
+  }
+
+  return toAdd.length;
 }
 
 // ── Sessions ────────────────────────────────────────────────────────────────
@@ -940,4 +979,376 @@ export async function updateGameCard(db: D1Database, id: number, card: Partial<G
 
 export async function deleteGameCard(db: D1Database, id: number): Promise<void> {
   await db.prepare('DELETE FROM game_cards WHERE id = ?').bind(id).run();
+}
+
+// ── What's New ────────────────────────────────────────────────────────────────
+
+export interface WhatsNewItem {
+  id: number;
+  title: string;
+  text: string;
+  linkText: string;
+  linkUrl: string;
+  sortOrder: number;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+}
+
+interface WhatsNewRow {
+  id: number;
+  title: string;
+  text: string;
+  link_text: string;
+  link_url: string;
+  sort_order: number;
+  archived: number;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+function rowToWhatsNewItem(row: WhatsNewRow): WhatsNewItem {
+  return {
+    id: row.id,
+    title: row.title,
+    text: row.text,
+    linkText: row.link_text,
+    linkUrl: row.link_url,
+    sortOrder: row.sort_order,
+    archived: row.archived === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    archivedAt: row.archived_at,
+  };
+}
+
+export async function getActiveWhatsNewItems(db: D1Database): Promise<WhatsNewItem[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM whats_new_items WHERE archived = 0 ORDER BY sort_order ASC')
+    .all<WhatsNewRow>();
+  return (results ?? []).map(rowToWhatsNewItem);
+}
+
+export async function getArchivedWhatsNewItems(db: D1Database): Promise<WhatsNewItem[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM whats_new_items WHERE archived = 1 ORDER BY archived_at DESC')
+    .all<WhatsNewRow>();
+  return (results ?? []).map(rowToWhatsNewItem);
+}
+
+export interface WhatsNewItemInput {
+  title: string;
+  text: string;
+  linkText: string;
+  linkUrl: string;
+  sortOrder?: number;
+}
+
+export async function createWhatsNewItem(db: D1Database, item: WhatsNewItemInput): Promise<{ id: number; createdAt: string; updatedAt: string }> {
+  const maxRow = await db
+    .prepare('SELECT MAX(sort_order) as max_order FROM whats_new_items WHERE archived = 0')
+    .first<{ max_order: number | null }>();
+  const sortOrder = item.sortOrder ?? (maxRow?.max_order ?? 0) + 1;
+  const result = await db
+    .prepare(
+      `INSERT INTO whats_new_items (title, text, link_text, link_url, sort_order)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .bind(item.title, item.text, item.linkText, item.linkUrl, sortOrder)
+    .run();
+  const id = result.meta.last_row_id as number;
+  const row = await db
+    .prepare('SELECT created_at, updated_at FROM whats_new_items WHERE id = ?')
+    .bind(id)
+    .first<{ created_at: string; updated_at: string }>();
+  return { id, createdAt: row!.created_at, updatedAt: row!.updated_at };
+}
+
+export async function updateWhatsNewItem(db: D1Database, id: number, item: Partial<WhatsNewItemInput>): Promise<string> {
+  const sets: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (item.title !== undefined) { sets.push('title = ?'); values.push(item.title); }
+  if (item.text !== undefined) { sets.push('text = ?'); values.push(item.text); }
+  if (item.linkText !== undefined) { sets.push('link_text = ?'); values.push(item.linkText); }
+  if (item.linkUrl !== undefined) { sets.push('link_url = ?'); values.push(item.linkUrl); }
+  if (item.sortOrder !== undefined) { sets.push('sort_order = ?'); values.push(item.sortOrder); }
+
+  if (sets.length === 0) return '';
+
+  sets.push("updated_at = datetime('now')");
+  values.push(id);
+  await db
+    .prepare(`UPDATE whats_new_items SET ${sets.join(', ')} WHERE id = ?`)
+    .bind(...values)
+    .run();
+  const row = await db
+    .prepare('SELECT updated_at FROM whats_new_items WHERE id = ?')
+    .bind(id)
+    .first<{ updated_at: string }>();
+  return row?.updated_at ?? '';
+}
+
+export async function archiveWhatsNewItem(db: D1Database, id: number): Promise<void> {
+  await db
+    .prepare("UPDATE whats_new_items SET archived = 1, archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+    .bind(id)
+    .run();
+}
+
+export async function restoreWhatsNewItem(db: D1Database, id: number): Promise<void> {
+  const maxRow = await db
+    .prepare('SELECT MAX(sort_order) as max_order FROM whats_new_items WHERE archived = 0')
+    .first<{ max_order: number | null }>();
+  const sortOrder = (maxRow?.max_order ?? 0) + 1;
+  await db
+    .prepare("UPDATE whats_new_items SET archived = 0, archived_at = NULL, sort_order = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(sortOrder, id)
+    .run();
+}
+
+export async function deleteWhatsNewItem(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM whats_new_items WHERE id = ?').bind(id).run();
+}
+
+export async function reorderWhatsNewItems(db: D1Database, ids: number[]): Promise<void> {
+  const stmts = ids.map((id, i) =>
+    db.prepare("UPDATE whats_new_items SET sort_order = ?, updated_at = datetime('now') WHERE id = ?").bind(i + 1, id)
+  );
+  await db.batch(stmts);
+}
+
+// ── Wholesale ─────────────────────────────────────────────────────────────────
+
+export interface WholesaleCategory {
+  slug: string;
+  label: string;
+  description: string;
+  sortOrder: number;
+}
+
+export interface WholesaleItem {
+  id: number;
+  sku: string;
+  title: string;
+  wholesaleTitle: string | null;
+  image: string;
+  wholesaleImage: string | null;
+  shopImage: string;
+  category: string;
+  wholesaleCategory: string | null;
+  shopPrice: number;
+  description: string;
+  wholesalePrice: number;
+  rrp: number;
+  moq: number;
+  sortOrder: number;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface WholesaleRow {
+  id: number;
+  sku: string;
+  description: string;
+  wholesale_price: number;
+  rrp: number;
+  moq: number;
+  sort_order: number;
+  published: number;
+  created_at: string;
+  updated_at: string;
+  wholesale_category: string | null;
+  wholesale_image: string | null;
+  wholesale_title: string | null;
+  title: string | null;
+  shop_image: string | null;
+  image: string | null;
+  price: number | null;
+  category: string | null;
+}
+
+function rowToWholesaleItem(row: WholesaleRow): WholesaleItem {
+  return {
+    id: row.id,
+    sku: row.sku,
+    title: row.title ?? row.sku,
+    wholesaleTitle: row.wholesale_title ?? null,
+    image: row.image ?? '',
+    wholesaleImage: row.wholesale_image ?? null,
+    shopImage: row.shop_image ?? '',
+    category: row.category ?? 'other',
+    wholesaleCategory: row.wholesale_category,
+    shopPrice: row.price ?? 0,
+    description: row.description,
+    wholesalePrice: row.wholesale_price,
+    rrp: row.rrp,
+    moq: row.moq,
+    sortOrder: row.sort_order,
+    published: row.published === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+const WHOLESALE_JOIN = `
+  SELECT w.id, w.sku, w.description, w.wholesale_price, w.rrp, w.moq,
+         w.sort_order, w.published, w.created_at, w.updated_at, w.wholesale_category,
+         w.image as wholesale_image,
+         w.title as wholesale_title,
+         s.title as shop_title, s.image as shop_image, s.price,
+         COALESCE(w.image, s.image) as image,
+         COALESCE(w.title, s.title) as title,
+         COALESCE(w.wholesale_category, s.category) as category
+  FROM wholesale_items w
+  LEFT JOIN shop_items s ON w.sku = s.sku
+`;
+
+export async function getPublishedWholesaleItems(db: D1Database): Promise<WholesaleItem[]> {
+  const { results } = await db
+    .prepare(WHOLESALE_JOIN + 'WHERE w.published = 1 ORDER BY w.sort_order ASC')
+    .all<WholesaleRow>();
+  return (results ?? []).map(rowToWholesaleItem);
+}
+
+export async function getAllWholesaleItems(db: D1Database): Promise<WholesaleItem[]> {
+  const { results } = await db
+    .prepare(WHOLESALE_JOIN + 'ORDER BY w.sort_order ASC')
+    .all<WholesaleRow>();
+  return (results ?? []).map(rowToWholesaleItem);
+}
+
+export async function getWholesaleItem(db: D1Database, id: number): Promise<WholesaleItem | null> {
+  const row = await db
+    .prepare(WHOLESALE_JOIN + 'WHERE w.id = ?')
+    .bind(id)
+    .first<WholesaleRow>();
+  return row ? rowToWholesaleItem(row) : null;
+}
+
+export interface WholesaleItemInput {
+  sku: string;
+  title?: string | null;
+  description: string;
+  wholesalePrice: number;
+  rrp: number;
+  moq: number;
+  published?: boolean;
+  sortOrder?: number;
+  wholesaleCategory?: string | null;
+  image?: string | null;
+}
+
+export async function createWholesaleItem(db: D1Database, item: WholesaleItemInput): Promise<number> {
+  const maxRow = await db
+    .prepare('SELECT MAX(sort_order) as max_order FROM wholesale_items')
+    .first<{ max_order: number | null }>();
+  const sortOrder = item.sortOrder ?? (maxRow?.max_order ?? 0) + 1;
+  const result = await db
+    .prepare(
+      `INSERT INTO wholesale_items (sku, title, image, description, wholesale_price, rrp, moq, published, sort_order, wholesale_category)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(item.sku, item.title ?? null, item.image ?? null, item.description, item.wholesalePrice, item.rrp, item.moq, item.published ? 1 : 0, sortOrder, item.wholesaleCategory ?? null)
+    .run();
+  return result.meta.last_row_id as number;
+}
+
+export async function updateWholesaleItem(db: D1Database, id: number, item: Partial<WholesaleItemInput>): Promise<void> {
+  const sets: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (item.sku !== undefined) { sets.push('sku = ?'); values.push(item.sku); }
+  if ('title' in item) { sets.push('title = ?'); values.push(item.title ?? null); }
+  if (item.description !== undefined) { sets.push('description = ?'); values.push(item.description); }
+  if (item.wholesalePrice !== undefined) { sets.push('wholesale_price = ?'); values.push(item.wholesalePrice); }
+  if (item.rrp !== undefined) { sets.push('rrp = ?'); values.push(item.rrp); }
+  if (item.moq !== undefined) { sets.push('moq = ?'); values.push(item.moq); }
+  if (item.published !== undefined) { sets.push('published = ?'); values.push(item.published ? 1 : 0); }
+  if (item.sortOrder !== undefined) { sets.push('sort_order = ?'); values.push(item.sortOrder); }
+  if ('image' in item) { sets.push('image = ?'); values.push(item.image ?? null); }
+  if ('wholesaleCategory' in item) { sets.push('wholesale_category = ?'); values.push(item.wholesaleCategory ?? null); }
+
+  if (sets.length === 0) return;
+
+  sets.push("updated_at = datetime('now')");
+  values.push(id);
+  await db
+    .prepare(`UPDATE wholesale_items SET ${sets.join(', ')} WHERE id = ?`)
+    .bind(...values)
+    .run();
+}
+
+export async function deleteWholesaleItem(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM wholesale_items WHERE id = ?').bind(id).run();
+}
+
+export async function reorderWholesaleItems(db: D1Database, ids: number[]): Promise<void> {
+  const stmts = ids.map((id, i) =>
+    db.prepare("UPDATE wholesale_items SET sort_order = ?, updated_at = datetime('now') WHERE id = ?").bind(i + 1, id)
+  );
+  await db.batch(stmts);
+}
+
+export async function batchUpdateWholesaleItems(
+  db: D1Database,
+  ids: number[],
+  fields: { wholesalePrice?: number; rrp?: number; moq?: number; category?: string | null; published?: boolean }
+): Promise<void> {
+  if (ids.length === 0) return;
+  const sets: string[] = ["updated_at = datetime('now')"];
+  const vals: (number | string | null)[] = [];
+  if (fields.wholesalePrice !== undefined) { sets.push('wholesale_price = ?'); vals.push(fields.wholesalePrice); }
+  if (fields.rrp !== undefined) { sets.push('rrp = ?'); vals.push(fields.rrp); }
+  if (fields.moq !== undefined) { sets.push('moq = ?'); vals.push(fields.moq); }
+  if ('category' in fields) { sets.push('wholesale_category = ?'); vals.push(fields.category ?? null); }
+  if (fields.published !== undefined) { sets.push('published = ?'); vals.push(fields.published ? 1 : 0); }
+  if (sets.length === 1) return;
+  const placeholders = ids.map(() => '?').join(',');
+  await db
+    .prepare(`UPDATE wholesale_items SET ${sets.join(', ')} WHERE id IN (${placeholders})`)
+    .bind(...vals, ...ids)
+    .run();
+}
+
+// ── Wholesale categories ─────────────────────────────────────────────────────
+
+export async function getWholesaleCategories(db: D1Database): Promise<WholesaleCategory[]> {
+  const { results } = await db
+    .prepare('SELECT slug, label, description, sort_order FROM wholesale_categories ORDER BY sort_order ASC, label ASC')
+    .all<{ slug: string; label: string; description: string; sort_order: number }>();
+  return (results ?? []).map(r => ({ slug: r.slug, label: r.label, description: r.description ?? '', sortOrder: r.sort_order }));
+}
+
+export async function updateWholesaleCategoryDescription(db: D1Database, slug: string, description: string): Promise<void> {
+  await db.prepare('UPDATE wholesale_categories SET description = ? WHERE slug = ?').bind(description, slug).run();
+}
+
+export async function createWholesaleCategory(db: D1Database, slug: string, label: string): Promise<void> {
+  const maxRow = await db
+    .prepare('SELECT MAX(sort_order) as m FROM wholesale_categories')
+    .first<{ m: number | null }>();
+  const sortOrder = (maxRow?.m ?? 0) + 1;
+  await db
+    .prepare('INSERT INTO wholesale_categories (slug, label, sort_order) VALUES (?, ?, ?)')
+    .bind(slug, label, sortOrder)
+    .run();
+}
+
+export async function updateWholesaleCategoryLabel(db: D1Database, slug: string, label: string): Promise<void> {
+  await db.prepare('UPDATE wholesale_categories SET label = ? WHERE slug = ?').bind(label, slug).run();
+}
+
+export async function deleteWholesaleCategory(db: D1Database, slug: string): Promise<void> {
+  await db.prepare('DELETE FROM wholesale_categories WHERE slug = ?').bind(slug).run();
+}
+
+export async function reorderWholesaleCategories(db: D1Database, slugs: string[]): Promise<void> {
+  const stmts = slugs.map((slug, i) =>
+    db.prepare('UPDATE wholesale_categories SET sort_order = ? WHERE slug = ?').bind(i + 1, slug)
+  );
+  await db.batch(stmts);
 }

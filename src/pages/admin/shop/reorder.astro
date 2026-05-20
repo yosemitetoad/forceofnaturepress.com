@@ -33,6 +33,13 @@ try {
     <button id="shuffleBtn" class="btn btn-shuffle">Shuffle</button>
     <button id="saveBtn" class="btn btn-primary">Save Order</button>
     <span id="saveStatus" class="save-status"></span>
+    <label class="page-size-label" for="pageSizeRef">Page breaks:</label>
+    <select id="pageSizeRef" class="control-select">
+      <option value="20">20 per page</option>
+      <option value="40">40 per page</option>
+      <option value="60">60 per page</option>
+      <option value="99999">Off</option>
+    </select>
   </div>
 
   <div id="reorderList" class="reorder-list">
@@ -123,6 +130,32 @@ try {
   .reorder-row[data-locked="true"] { background: rgba(61, 122, 110, 0.06); }
 
   .no-results { text-align: center; color: #6b4a2a; font-style: italic; padding: 1.5rem 0; }
+
+  .page-size-label { font-size: 0.85rem; font-weight: 700; color: #6b4a2a; margin-left: auto; white-space: nowrap; }
+
+  :global(.page-divider) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    background: #faf5ea;
+    border-bottom: 1px solid #e4d3b8;
+    user-select: none;
+    pointer-events: none;
+  }
+  :global(.page-divider-line) {
+    flex: 1;
+    height: 1px;
+    background: #d4b896;
+  }
+  :global(.page-divider-label) {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #a08060;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 </style>
 
 <script>
@@ -133,6 +166,22 @@ try {
   const saveStatus = document.getElementById('saveStatus')!;
   const visibleCount = document.getElementById('visibleCount')!;
   const noResults = document.getElementById('noResults')!;
+  const pageSizeRef = document.getElementById('pageSizeRef') as HTMLSelectElement;
+
+  function updatePageDividers() {
+    list.querySelectorAll('.page-divider').forEach(d => d.remove());
+    const pageSize = Number(pageSizeRef.value);
+    if (pageSize >= 99999) return;
+    const visibleRows = Array.from(list.querySelectorAll<HTMLElement>('.reorder-row'))
+      .filter(r => r.style.display !== 'none');
+    for (let i = pageSize; i < visibleRows.length; i += pageSize) {
+      const divider = document.createElement('div');
+      divider.className = 'page-divider';
+      divider.setAttribute('draggable', 'false');
+      divider.innerHTML = `<span class="page-divider-line"></span><span class="page-divider-label">Page ${Math.floor(i / pageSize) + 1}</span><span class="page-divider-line"></span>`;
+      visibleRows[i].before(divider);
+    }
+  }
 
   let dragEl: HTMLElement | null = null;
 
@@ -177,6 +226,7 @@ try {
     for (const row of result) {
       list.insertBefore(row, insertionPoint);
     }
+    updatePageDividers();
   });
 
   // ── Drag-to-reorder ──
@@ -190,6 +240,7 @@ try {
     dragEl?.classList.remove('dragging');
     list.querySelectorAll('.reorder-row').forEach(r => r.classList.remove('drag-over'));
     dragEl = null;
+    updatePageDividers();
   });
   list.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -222,8 +273,10 @@ try {
     });
     visibleCount.textContent = cat === 'all' ? `${visible} items` : `${visible} items in this category`;
     noResults.style.display = visible === 0 ? '' : 'none';
+    updatePageDividers();
   }
   catFilter.addEventListener('change', applyFilter);
+  pageSizeRef.addEventListener('change', updatePageDividers);
   applyFilter();
 
   // ── Save ──

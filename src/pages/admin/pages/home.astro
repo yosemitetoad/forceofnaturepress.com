@@ -2,19 +2,19 @@
 export const prerender = false;
 
 import Admin from '../../../layouts/Admin.astro';
-import { getPageContentMulti, getAllShopItems } from '../../../lib/db';
+import { getPageContentMulti, getAllShopItems, getActiveWhatsNewItems, getArchivedWhatsNewItems } from '../../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
 const content = await getPageContentMulti(db, [
-  'home_intro_p1', 'home_intro_p2', 'home_featured_skus', 'home_whats_new'
+  'home_intro_p1', 'home_intro_p2', 'home_featured_skus'
 ]);
 const allItems = await getAllShopItems(db);
+const activeNews = await getActiveWhatsNewItems(db);
+const archivedNews = await getArchivedWhatsNewItems(db);
 
 const introP1 = content.home_intro_p1 ?? '';
 const introP2 = content.home_intro_p2 ?? '';
 const featuredSkus = (content.home_featured_skus ?? '').split(',').map(s => s.trim()).filter(Boolean);
-let whatsNew: { title: string; text: string; linkText: string; linkUrl: string }[] = [];
-try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
 ---
 
 <Admin title="Home Page Content">
@@ -67,48 +67,90 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
       <input type="hidden" id="featuredSkusInput" name="home_featured_skus" value={featuredSkus.join(',')} />
     </section>
 
-    <!-- What's New -->
-    <section class="editor-section">
-      <h2>What's New</h2>
-      <p class="help-text">Supports basic markdown in the text field: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>.</p>
-      <div id="whatsNewItems">
-        {whatsNew.map((item, i) => (
-          <div class="news-editor" data-index={i}>
-            <div class="news-editor-header">
-              <span class="news-drag-handle" title="Drag to reorder">⠿</span>
-              <strong>Item {i + 1}</strong>
-              <button type="button" class="btn-sm btn-delete news-remove" data-index={i}>Remove</button>
-            </div>
-            <div class="field">
-              <label>Title</label>
-              <input type="text" class="news-title" value={item.title} />
-            </div>
-            <div class="field">
-              <label>Text</label>
-              <textarea class="news-text" rows="2">{item.text}</textarea>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label>Link Text</label>
-                <input type="text" class="news-link-text" value={item.linkText} />
-              </div>
-              <div class="field">
-                <label>Link URL</label>
-                <input type="text" class="news-link-url" value={item.linkUrl} />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <button type="button" id="addNewsItem" class="btn btn-outline">+ Add News Item</button>
-      <input type="hidden" id="whatsNewInput" name="home_whats_new" />
-    </section>
-
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
       <span id="saveStatus" class="save-status"></span>
     </div>
   </form>
+
+  <!-- What's New (managed separately from main form) -->
+  <section class="editor-section" id="whatsNewSection">
+    <h2>What's New</h2>
+    <p class="help-text">Supports basic markdown in the text field: <code>**bold**</code>, <code>*italic*</code>, <code>[link text](url)</code>. Each item saves individually. Drag the handle to reorder — order saves automatically on drop.</p>
+
+    <div id="whatsNewItems">
+      {activeNews.map((item) => (
+        <div class="news-editor" data-id={item.id}>
+          <div class="news-editor-header">
+            <span class="news-drag-handle" title="Drag to reorder">⠿</span>
+            <div class="news-meta">
+              Created: {new Date(item.createdAt + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {item.createdAt !== item.updatedAt && (
+                <> &middot; Edited: {new Date(item.updatedAt + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+              )}
+            </div>
+            <div class="news-header-actions">
+              <button type="button" class="btn-sm btn-save-item" data-id={item.id}>Save</button>
+              <button type="button" class="btn-sm btn-archive-item" data-id={item.id}>Archive</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Title</label>
+            <input type="text" class="news-title" value={item.title} />
+          </div>
+          <div class="field">
+            <label>Text</label>
+            <textarea class="news-text" rows="2">{item.text}</textarea>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Link Text</label>
+              <input type="text" class="news-link-text" value={item.linkText} />
+            </div>
+            <div class="field">
+              <label>Link URL</label>
+              <input type="text" class="news-link-url" value={item.linkUrl} />
+            </div>
+          </div>
+          <div class="news-item-status"></div>
+        </div>
+      ))}
+    </div>
+
+    <button type="button" id="addNewsItem" class="btn btn-outline">+ Add News Item</button>
+
+    {archivedNews.length > 0 && (
+      <details class="archive-section">
+        <summary>Archive ({archivedNews.length} item{archivedNews.length !== 1 ? 's' : ''})</summary>
+        <div class="archive-list">
+          {archivedNews.map((item) => (
+            <div class="archived-item" data-id={item.id}>
+              <div class="archived-item-info">
+                <strong>{item.title || '(untitled)'}</strong>
+                <span class="archived-meta">
+                  Archived: {new Date((item.archivedAt ?? item.updatedAt) + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  &nbsp;&middot;&nbsp;
+                  Created: {new Date(item.createdAt + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+                {item.text && <p class="archived-text">{item.text}</p>}
+              </div>
+              <div class="archived-item-actions">
+                <button type="button" class="btn-sm btn-restore-item" data-id={item.id}>Restore</button>
+                <button type="button" class="btn-sm btn-delete-item" data-id={item.id}>Delete</button>
+              </div>
+              <div class="archived-item-status"></div>
+            </div>
+          ))}
+        </div>
+      </details>
+    )}
+    {archivedNews.length === 0 && (
+      <details class="archive-section" id="archiveSection">
+        <summary>Archive (0 items)</summary>
+        <div class="archive-list" id="archiveList"></div>
+      </details>
+    )}
+  </section>
 </Admin>
 
 <style>
@@ -162,15 +204,50 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
   }
 
+  /* What's New section */
+  #whatsNewSection { margin-top: 1.5rem; }
+
   /* News items */
   .news-editor {
     background: #f0e6d0; border: 1px solid #d4b896; border-radius: 8px;
     padding: 1rem; margin-bottom: 0.8rem; cursor: default;
   }
   .news-editor.dragging { opacity: 0.4; }
-  .news-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
-  .news-drag-handle { cursor: grab; color: #a08060; font-size: 1.1rem; padding: 0 0.4rem; user-select: none; }
+  .news-editor-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; flex-wrap: wrap; }
+  .news-drag-handle { cursor: grab; color: #a08060; font-size: 1.1rem; padding: 0 0.2rem; user-select: none; flex-shrink: 0; }
   .news-drag-handle:active { cursor: grabbing; }
+  .news-meta { font-size: 0.78rem; color: #7a5a38; flex: 1; }
+  .news-header-actions { display: flex; gap: 0.4rem; margin-left: auto; }
+  .btn-save-item { background: #c87830; color: #faf5ea; }
+  .btn-save-item:hover { background: #a05e18; }
+  .btn-archive-item { background: #888; color: #faf5ea; }
+  .btn-archive-item:hover { background: #666; }
+  .news-item-status { font-size: 0.8rem; font-weight: 700; min-height: 1em; margin-top: 0.3rem; }
+  .news-item-status.success { color: #3d7a6e; }
+  .news-item-status.error { color: #b44; }
+
+  /* Archive section */
+  .archive-section { margin-top: 1rem; }
+  .archive-section summary {
+    cursor: pointer; font-weight: 700; font-size: 0.9rem; color: #6b4a2a;
+    padding: 0.4rem 0; user-select: none;
+  }
+  .archive-section summary:hover { color: #2d1f0e; }
+  .archive-list { margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .archived-item {
+    background: #e8dcc8; border: 1px solid #c8a878; border-radius: 8px;
+    padding: 0.8rem 1rem; display: flex; align-items: flex-start; gap: 1rem;
+  }
+  .archived-item-info { flex: 1; min-width: 0; }
+  .archived-item-info strong { font-size: 0.9rem; color: #2d1f0e; }
+  .archived-meta { display: block; font-size: 0.78rem; color: #7a5a38; margin-top: 0.15rem; }
+  .archived-text { font-size: 0.82rem; color: #5a3e1e; margin: 0.3rem 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .archived-item-actions { display: flex; flex-direction: column; gap: 0.35rem; flex-shrink: 0; }
+  .btn-restore-item { background: #5b7b6d; color: #faf5ea; }
+  .btn-restore-item:hover { background: #3d5a4e; }
+  .btn-delete-item { background: #b44; color: #faf5ea; }
+  .btn-delete-item:hover { background: #833; }
+  .archived-item-status { font-size: 0.78rem; font-weight: 700; min-height: 1em; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
@@ -252,25 +329,10 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
   // Make existing chips draggable
   featuredList.querySelectorAll('.featured-chip').forEach(c => (c as HTMLElement).draggable = true);
 
-  // ── What's New ──
-  function collectWhatsNew(): string {
-    const items: { title: string; text: string; linkText: string; linkUrl: string }[] = [];
-    document.querySelectorAll('.news-editor').forEach(el => {
-      items.push({
-        title: (el.querySelector('.news-title') as HTMLInputElement).value,
-        text: (el.querySelector('.news-text') as HTMLTextAreaElement).value,
-        linkText: (el.querySelector('.news-link-text') as HTMLInputElement).value,
-        linkUrl: (el.querySelector('.news-link-url') as HTMLInputElement).value,
-      });
-    });
-    return JSON.stringify(items);
-  }
-
   // ── What's New drag-to-reorder ──
   const newsContainer = document.getElementById('whatsNewItems')!;
   let newsDragEl: HTMLElement | null = null;
 
-  // Enable draggable only while holding the handle
   newsContainer.addEventListener('mousedown', (e) => {
     const handle = (e.target as HTMLElement).closest('.news-drag-handle');
     if (handle) {
@@ -283,20 +345,30 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
     newsDragEl = (e.target as HTMLElement).closest('.news-editor') as HTMLElement;
     if (newsDragEl) setTimeout(() => newsDragEl!.classList.add('dragging'), 0);
   });
-  newsContainer.addEventListener('dragend', () => {
+  newsContainer.addEventListener('dragend', async () => {
     if (newsDragEl) {
       newsDragEl.classList.remove('dragging');
       newsDragEl.draggable = false;
     }
     newsDragEl = null;
+    // Auto-save order
+    const ids = Array.from(newsContainer.querySelectorAll('.news-editor'))
+      .map(el => Number((el as HTMLElement).dataset.id))
+      .filter(Boolean);
+    if (ids.length > 0) {
+      await fetch('/api/admin/whats-new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', ids }),
+      });
+    }
   });
   newsContainer.addEventListener('dragover', (e) => {
     e.preventDefault();
     const target = (e.target as HTMLElement).closest('.news-editor') as HTMLElement;
     if (target && target !== newsDragEl) {
       const rect = target.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      if (e.clientY < mid) {
+      if (e.clientY < rect.top + rect.height / 2) {
         newsContainer.insertBefore(newsDragEl!, target);
       } else {
         target.after(newsDragEl!);
@@ -305,17 +377,29 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
   });
   newsContainer.addEventListener('drop', (e) => { e.preventDefault(); });
 
-  document.getElementById('addNewsItem')?.addEventListener('click', () => {
-    const container = document.getElementById('whatsNewItems')!;
-    const idx = container.children.length;
+  // ── Add new item ──
+  document.getElementById('addNewsItem')?.addEventListener('click', async () => {
+    const res = await fetch('/api/admin/whats-new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '', text: '', linkText: '', linkUrl: '' }),
+    });
+    if (!res.ok) return;
+    const { id, createdAt } = await res.json() as { id: number; createdAt: string; updatedAt: string };
+
+    const fmtDate = (iso: string) => new Date(iso + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
     const div = document.createElement('div');
     div.className = 'news-editor';
-    div.dataset.index = String(idx);
+    div.dataset.id = String(id);
     div.innerHTML = `
       <div class="news-editor-header">
         <span class="news-drag-handle" title="Drag to reorder">⠿</span>
-        <strong>Item ${idx + 1}</strong>
-        <button type="button" class="btn-sm btn-delete news-remove">Remove</button>
+        <div class="news-meta">Created: ${fmtDate(createdAt)}</div>
+        <div class="news-header-actions">
+          <button type="button" class="btn-sm btn-save-item" data-id="${id}">Save</button>
+          <button type="button" class="btn-sm btn-archive-item" data-id="${id}">Archive</button>
+        </div>
       </div>
       <div class="field"><label>Title</label><input type="text" class="news-title" value="" /></div>
       <div class="field"><label>Text</label><textarea class="news-text" rows="2"></textarea></div>
@@ -323,25 +407,167 @@ try { whatsNew = JSON.parse(content.home_whats_new ?? '[]'); } catch {}
         <div class="field"><label>Link Text</label><input type="text" class="news-link-text" value="" /></div>
         <div class="field"><label>Link URL</label><input type="text" class="news-link-url" value="" /></div>
       </div>
+      <div class="news-item-status"></div>
     `;
-    container.appendChild(div);
+    newsContainer.appendChild(div);
+    (div.querySelector('.news-title') as HTMLInputElement)?.focus();
   });
 
+  // ── Save individual item ──
+  async function saveNewsItem(card: HTMLElement) {
+    const id = Number(card.dataset.id);
+    const status = card.querySelector('.news-item-status') as HTMLElement;
+    const btn = card.querySelector('.btn-save-item') as HTMLButtonElement;
+    btn.disabled = true;
+    status.textContent = 'Saving...';
+    status.className = 'news-item-status';
+
+    const title = (card.querySelector('.news-title') as HTMLInputElement).value;
+    const text = (card.querySelector('.news-text') as HTMLTextAreaElement).value;
+    const linkText = (card.querySelector('.news-link-text') as HTMLInputElement).value;
+    const linkUrl = (card.querySelector('.news-link-url') as HTMLInputElement).value;
+
+    try {
+      const res = await fetch(`/api/admin/whats-new/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, text, linkText, linkUrl }),
+      });
+      if (!res.ok) throw new Error();
+      const { updatedAt } = await res.json() as { updatedAt: string };
+      // Update meta line
+      const meta = card.querySelector('.news-meta') as HTMLElement;
+      const createdText = meta.textContent?.split('·')[0]?.trim() ?? '';
+      const editedDate = new Date(updatedAt + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      meta.textContent = `${createdText} · Edited: ${editedDate}`;
+      status.textContent = 'Saved!';
+      status.className = 'news-item-status success';
+    } catch {
+      status.textContent = 'Error saving.';
+      status.className = 'news-item-status error';
+    }
+    btn.disabled = false;
+    setTimeout(() => { status.textContent = ''; }, 3000);
+  }
+
+  // ── Archive item ──
+  async function archiveNewsItem(card: HTMLElement) {
+    const id = Number(card.dataset.id);
+    if (!confirm('Archive this item? You can restore it from the archive below.')) return;
+
+    const res = await fetch(`/api/admin/whats-new/${id}`, { method: 'DELETE' });
+    if (!res.ok) { alert('Error archiving item.'); return; }
+
+    const title = (card.querySelector('.news-title') as HTMLInputElement)?.value || '(untitled)';
+    const text = (card.querySelector('.news-text') as HTMLTextAreaElement)?.value || '';
+    const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const createdText = (card.querySelector('.news-meta') as HTMLElement)?.textContent?.split('·')[0]?.trim() ?? '';
+
+    card.remove();
+
+    // Add to archive UI
+    const archiveSection = document.querySelector('.archive-section') as HTMLDetailsElement;
+    const archiveList = archiveSection?.querySelector('.archive-list') as HTMLElement;
+    if (!archiveSection || !archiveList) { location.reload(); return; }
+
+    // Update summary count
+    const summary = archiveSection.querySelector('summary')!;
+    const current = parseInt(summary.textContent?.match(/\d+/)?.[0] ?? '0');
+    summary.textContent = `Archive (${current + 1} item${current + 1 !== 1 ? 's' : ''})`;
+
+    const div = document.createElement('div');
+    div.className = 'archived-item';
+    div.dataset.id = String(id);
+    div.innerHTML = `
+      <div class="archived-item-info">
+        <strong>${title}</strong>
+        <span class="archived-meta">Archived: ${now} &nbsp;&middot;&nbsp; ${createdText}</span>
+        ${text ? `<p class="archived-text">${text}</p>` : ''}
+      </div>
+      <div class="archived-item-actions">
+        <button type="button" class="btn-sm btn-restore-item" data-id="${id}">Restore</button>
+        <button type="button" class="btn-sm btn-delete-item" data-id="${id}">Delete</button>
+      </div>
+      <div class="archived-item-status"></div>
+    `;
+    archiveList.prepend(div);
+    archiveSection.open = true;
+  }
+
+  // ── Restore item ──
+  async function restoreNewsItem(archivedCard: HTMLElement) {
+    const id = Number(archivedCard.dataset.id);
+    const res = await fetch(`/api/admin/whats-new/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'restore' }),
+    });
+    if (!res.ok) { alert('Error restoring item.'); return; }
+    // Reload to get fresh timestamps and correct placement
+    location.reload();
+  }
+
+  // ── Permanently delete archived item ──
+  async function deleteNewsItem(archivedCard: HTMLElement) {
+    const id = Number(archivedCard.dataset.id);
+    if (!confirm('Permanently delete this item? This cannot be undone.')) return;
+
+    const res = await fetch(`/api/admin/whats-new/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete' }),
+    });
+    if (!res.ok) { alert('Error deleting item.'); return; }
+
+    archivedCard.remove();
+    const archiveSection = document.querySelector('.archive-section') as HTMLDetailsElement;
+    const summary = archiveSection?.querySelector('summary');
+    if (summary) {
+      const current = parseInt(summary.textContent?.match(/\d+/)?.[0] ?? '1');
+      const next = Math.max(0, current - 1);
+      summary.textContent = `Archive (${next} item${next !== 1 ? 's' : ''})`;
+    }
+  }
+
+  // ── Event delegation for item buttons ──
   document.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).classList.contains('news-remove')) {
-      (e.target as HTMLElement).closest('.news-editor')?.remove();
+    const target = e.target as HTMLElement;
+
+    const saveBtn2 = target.closest('.btn-save-item') as HTMLElement | null;
+    if (saveBtn2) {
+      const card = saveBtn2.closest('.news-editor') as HTMLElement;
+      if (card) saveNewsItem(card);
+      return;
+    }
+
+    const archiveBtn = target.closest('.btn-archive-item') as HTMLElement | null;
+    if (archiveBtn) {
+      const card = archiveBtn.closest('.news-editor') as HTMLElement;
+      if (card) archiveNewsItem(card);
+      return;
+    }
+
+    const restoreBtn = target.closest('.btn-restore-item') as HTMLElement | null;
+    if (restoreBtn) {
+      const card = restoreBtn.closest('.archived-item') as HTMLElement;
+      if (card) restoreNewsItem(card);
+      return;
+    }
+
+    const deleteBtn = target.closest('.btn-delete-item') as HTMLElement | null;
+    if (deleteBtn) {
+      const card = deleteBtn.closest('.archived-item') as HTMLElement;
+      if (card) deleteNewsItem(card);
+      return;
     }
   });
 
-  // ── Save ──
+  // ── Save main form (intro + featured products only) ──
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     saveBtn.disabled = true;
     saveStatus.textContent = 'Saving...';
     saveStatus.className = 'save-status';
-
-    const whatsNewInput = document.getElementById('whatsNewInput') as HTMLInputElement;
-    whatsNewInput.value = collectWhatsNew();
 
     const updates: Record<string, string> = {};
     const formData = new FormData(form);

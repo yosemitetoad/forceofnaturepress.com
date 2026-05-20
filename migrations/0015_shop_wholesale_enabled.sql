@@ -1,0 +1,1 @@
+ALTER TABLE shop_items ADD COLUMN wholesale_enabled INTEGER NOT NULL DEFAULT 1;
