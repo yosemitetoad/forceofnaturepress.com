@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 
-import { getPublishedWholesaleItems, getPageContentMulti, getWholesaleCategories, validateSession } from '../../lib/db';
+import { getPublishedWholesaleItems, getPageContentMulti, getWholesaleCategories, validateSession, getWholesaleFormConfig } from '../../lib/db';
 import { md, mdInline } from '../../lib/markdown';
 import { SITE_TITLE } from '../../consts';
 
@@ -44,13 +44,19 @@ if (!isAuthenticated && !wholesalePassword) {
 }
 
 // Load page content and items (only if authenticated)
-const [items, wholesaleCategories] = isAuthenticated
-  ? await Promise.all([getPublishedWholesaleItems(db), getWholesaleCategories(db)])
-  : [[], []];
+const [items, wholesaleCategories, formConfig] = isAuthenticated
+  ? await Promise.all([getPublishedWholesaleItems(db), getWholesaleCategories(db), getWholesaleFormConfig(db)])
+  : [[], [], null];
 const termsHtml = isAuthenticated ? await md(content.wholesale_terms ?? '') : '';
 const contactIntro = content.wholesale_contact_intro ?? '';
 const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
+
+// Flatten visible fields for JS validation logic
+const visibleFieldIds = new Set(
+  (formConfig?.sections ?? []).flatMap(s => s.visible ? s.fields.filter(f => f.visible).map(f => f.id) : [])
+);
+const showWebsiteSocial = visibleFieldIds.has('website') || visibleFieldIds.has('social');
 
 // Group items by effective category, ordered by DB sort_order
 const catLabelMap = new Map(wholesaleCategories.map(c => [c.slug, c.label]));
@@ -176,161 +182,171 @@ function formatCat(cat: string) {
         <h2 class="section-heading">Wholesale Order Form</h2>
         {contactIntro && <p class="contact-intro">{contactIntro}</p>}
         {contactEmail && <p class="contact-email">Email: <a href={`mailto:${contactEmail}`}>{contactEmail}</a></p>}
-        {formUrl && (
+        {formUrl && formConfig && (
           <form id="orderForm" class="order-form" action={formUrl} method="POST" novalidate>
             <input type="hidden" name="_subject" value="Wholesale Order Request" />
 
-            <!-- Business Identification -->
-            <div class="order-section">
-              <h3 class="order-section-heading">Business Identification</h3>
+            {formConfig.sections.filter(s => s.visible).map(section => (
+              <div class="order-section">
+                <h3 class="order-section-heading">{section.heading}</h3>
 
-              <div class="form-row">
-                <div class="field">
-                  <label for="business_name">Business / Shop Name <span class="req">*</span></label>
-                  <input type="text" id="business_name" name="business_name" required />
-                </div>
-                <div class="field">
-                  <label for="contact_name">Contact Person Name <span class="req">*</span></label>
-                  <input type="text" id="contact_name" name="contact_name" required />
-                </div>
+                {/* Pair up inline fields (non-textarea, non-checkbox, non-address) two per row */}
+                {(() => {
+                  const visFields = section.fields.filter(f => f.visible);
+                  const rendered: any[] = [];
+                  let i = 0;
+                  while (i < visFields.length) {
+                    const f = visFields[i];
+
+                    if (f.type === 'address') {
+                      rendered.push(
+                        <div class="address-block">
+                          <h4 class="address-label">{f.label}{f.required && <span class="req"> *</span>}</h4>
+                          <input type="text" name="shipping_address" placeholder="Street address" required={f.required} class="address-input" />
+                          <div class="address-row">
+                            <input type="text" name="shipping_city" placeholder="City" required={f.required} class="address-input" />
+                            <input type="text" name="shipping_state" placeholder="State / Province" required={f.required} class="address-input" />
+                            <input type="text" name="shipping_zip" placeholder="ZIP / Postal code" required={f.required} class="address-input" />
+                          </div>
+                          <input type="text" name="shipping_country" placeholder="Country" required={f.required} class="address-input" />
+                        </div>
+                      );
+                      i++; continue;
+                    }
+
+                    if (f.type === 'address-billing') {
+                      rendered.push(
+                        <div class="address-block">
+                          <h4 class="address-label">{f.label}</h4>
+                          <label class="same-as-shipping checkbox-label">
+                            <input type="checkbox" id="sameAsShipping" />
+                            Same as shipping address
+                          </label>
+                          <div id="billingFields">
+                            <input type="text" name="billing_address" placeholder="Street address" class="address-input" />
+                            <div class="address-row">
+                              <input type="text" name="billing_city" placeholder="City" class="address-input" />
+                              <input type="text" name="billing_state" placeholder="State / Province" class="address-input" />
+                              <input type="text" name="billing_zip" placeholder="ZIP / Postal code" class="address-input" />
+                            </div>
+                            <input type="text" name="billing_country" placeholder="Country" class="address-input" />
+                          </div>
+                        </div>
+                      );
+                      i++; continue;
+                    }
+
+                    if (f.type === 'textarea') {
+                      rendered.push(
+                        <div class="field">
+                          <label for={f.id}>{f.label}{f.required && <span class="req"> *</span>}</label>
+                          {f.helpText && <p class="field-help">{f.helpText}</p>}
+                          <textarea id={f.id} name={f.id} rows={f.rows ?? 4} required={f.required} placeholder={f.placeholder ?? ''}></textarea>
+                        </div>
+                      );
+                      i++; continue;
+                    }
+
+                    if (f.type === 'select') {
+                      rendered.push(
+                        <div class="field">
+                          <label for={f.id}>{f.label}{f.required && <span class="req"> *</span>}</label>
+                          {f.helpText && <p class="field-help">{f.helpText}</p>}
+                          <select id={f.id} name={f.id} required={f.required}>
+                            <option value="">Select...</option>
+                            <option value="brick-and-mortar">Brick-and-mortar store</option>
+                            <option value="online-retailer">Online retailer</option>
+                            <option value="museum-institution">Museum or institution</option>
+                            <option value="nature-center">Nature center</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                      );
+                      i++; continue;
+                    }
+
+                    if (f.type === 'checkbox') {
+                      const isTerms = f.id === 'agree_terms';
+                      rendered.push(
+                        <div class="agreement-field">
+                          <label class="checkbox-label">
+                            <input type="checkbox" name={f.id} required={f.required} />
+                            {isTerms
+                              ? <span>I have read and agree to the <a href="#terms">Force of Nature Press wholesale terms</a>.</span>
+                              : f.label}
+                          </label>
+                        </div>
+                      );
+                      i++; continue;
+                    }
+
+                    // Inline fields: try to pair website+social together, otherwise pair consecutive inline fields
+                    const next = visFields[i + 1];
+                    const isWebsite = f.id === 'website';
+                    const isSocial = f.id === 'social';
+                    const nextIsSocial = next?.id === 'social';
+
+                    if (isWebsite && nextIsSocial) {
+                      rendered.push(
+                        <div class="field">
+                          <label>Website or Social Media{f.required || next.required ? <span class="req"> *</span> : ''}</label>
+                          <p class="field-help">{f.helpText || 'Please provide at least one.'}</p>
+                          <div class="form-row">
+                            <div class="field mb-0">
+                              <label for="website" class="sub-label">Website URL</label>
+                              <input type="url" id="website" name="website" placeholder={f.placeholder ?? 'https://...'} />
+                            </div>
+                            <div class="field mb-0">
+                              <label for="social" class="sub-label">Social Media Handle(s)</label>
+                              <input type="text" id="social" name="social" placeholder={next.placeholder ?? '@handle or profile link'} />
+                            </div>
+                          </div>
+                          <p id="social-error" class="field-error" hidden>Please provide a website URL or at least one social media handle.</p>
+                        </div>
+                      );
+                      i += 2; continue;
+                    }
+
+                    // Skip rendering social standalone if it follows website (already handled above)
+                    if (isSocial && visFields[i - 1]?.id === 'website') { i++; continue; }
+
+                    // Pair two consecutive inline fields in a form-row
+                    const canPair = next && !['textarea','select','checkbox','address','address-billing'].includes(next.type);
+                    if (canPair) {
+                      rendered.push(
+                        <div class="form-row">
+                          <div class="field">
+                            <label for={f.id}>{f.label}{f.required && <span class="req"> *</span>}</label>
+                            {f.helpText && <p class="field-help">{f.helpText}</p>}
+                            <input type={f.type as string} id={f.id} name={f.id} placeholder={f.placeholder ?? ''} required={f.required} />
+                          </div>
+                          <div class="field">
+                            <label for={next.id}>{next.label}{next.required && <span class="req"> *</span>}</label>
+                            {next.helpText && <p class="field-help">{next.helpText}</p>}
+                            <input type={next.type as string} id={next.id} name={next.id} placeholder={next.placeholder ?? ''} required={next.required} />
+                          </div>
+                        </div>
+                      );
+                      i += 2; continue;
+                    }
+
+                    // Single inline field
+                    rendered.push(
+                      <div class="field">
+                        <label for={f.id}>{f.label}{f.required && <span class="req"> *</span>}</label>
+                        {f.helpText && <p class="field-help">{f.helpText}</p>}
+                        <input type={f.type as string} id={f.id} name={f.id} placeholder={f.placeholder ?? ''} required={f.required} />
+                      </div>
+                    );
+                    i++;
+                  }
+                  return rendered;
+                })()}
               </div>
-
-              <div class="form-row">
-                <div class="field">
-                  <label for="email">Email <span class="req">*</span></label>
-                  <input type="email" id="email" name="email" required />
-                </div>
-                <div class="field">
-                  <label for="phone">Phone</label>
-                  <input type="tel" id="phone" name="phone" />
-                </div>
-              </div>
-
-              <div class="field">
-                <label>Website or Social Media <span class="req">*</span></label>
-                <p class="field-help">Please provide at least one.</p>
-                <div class="form-row">
-                  <div class="field mb-0">
-                    <label for="website" class="sub-label">Website URL</label>
-                    <input type="url" id="website" name="website" placeholder="https://..." />
-                  </div>
-                  <div class="field mb-0">
-                    <label for="social" class="sub-label">Social Media Handle(s)</label>
-                    <input type="text" id="social" name="social" placeholder="@handle or profile link" />
-                  </div>
-                </div>
-                <p id="social-error" class="field-error" hidden>Please provide a website URL or at least one social media handle.</p>
-              </div>
-
-              <div class="address-block">
-                <h4 class="address-label">Shipping Address <span class="req">*</span></h4>
-                <input type="text" name="shipping_address" placeholder="Street address" required class="address-input" />
-                <div class="address-row">
-                  <input type="text" name="shipping_city" placeholder="City" required class="address-input" />
-                  <input type="text" name="shipping_state" placeholder="State / Province" required class="address-input" />
-                  <input type="text" name="shipping_zip" placeholder="ZIP / Postal code" required class="address-input" />
-                </div>
-                <input type="text" name="shipping_country" placeholder="Country" required class="address-input" />
-              </div>
-
-              <div class="address-block">
-                <h4 class="address-label">Billing Address</h4>
-                <label class="same-as-shipping checkbox-label">
-                  <input type="checkbox" id="sameAsShipping" />
-                  Same as shipping address
-                </label>
-                <div id="billingFields">
-                  <input type="text" name="billing_address" placeholder="Street address" class="address-input" />
-                  <div class="address-row">
-                    <input type="text" name="billing_city" placeholder="City" class="address-input" />
-                    <input type="text" name="billing_state" placeholder="State / Province" class="address-input" />
-                    <input type="text" name="billing_zip" placeholder="ZIP / Postal code" class="address-input" />
-                  </div>
-                  <input type="text" name="billing_country" placeholder="Country" class="address-input" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Verification -->
-            <div class="order-section">
-              <h3 class="order-section-heading">Verification</h3>
-
-              <div class="form-row">
-                <div class="field">
-                  <label for="tax_id">Resale Certificate / Tax ID <span class="req">*</span></label>
-                  <input type="text" id="tax_id" name="tax_id" required />
-                </div>
-                <div class="field">
-                  <label for="business_type">Type of Business <span class="req">*</span></label>
-                  <select id="business_type" name="business_type" required>
-                    <option value="">Select...</option>
-                    <option value="brick-and-mortar">Brick-and-mortar store</option>
-                    <option value="online-retailer">Online retailer</option>
-                    <option value="museum-institution">Museum or institution</option>
-                    <option value="nature-center">Nature center</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="sell_where">Where will you sell our products? <span class="req">*</span></label>
-                <textarea id="sell_where" name="sell_where" rows="3" required placeholder="e.g. Online shop at mystore.com, physical store in Portland OR, etc."></textarea>
-              </div>
-
-              <div class="field">
-                <label for="heard_about">How did you hear about us?</label>
-                <input type="text" id="heard_about" name="heard_about" placeholder="e.g. Instagram, a trade show, word of mouth..." />
-              </div>
-            </div>
-
-            <!-- Order Request -->
-            <div class="order-section">
-              <h3 class="order-section-heading">Order Request</h3>
-
-              <div class="field">
-                <label for="products">Products and Quantities <span class="req">*</span></label>
-                <p class="field-help">List each product and how many units you'd like to order. You can also attach an order sheet below.</p>
-                <textarea id="products" name="products" rows="8" required placeholder={"e.g.\nBeetle print A3 — 10 units\nMushroom sticker sheet — 20 units"}></textarea>
-              </div>
-
-              <div class="field">
-                <label for="delivery_timeframe">Estimated Delivery Timeframe</label>
-                <input type="text" id="delivery_timeframe" name="delivery_timeframe" placeholder="e.g. Before September, no rush, etc." />
-              </div>
-
-              <div class="field">
-                <label for="notes">Special Requests / Notes</label>
-                <textarea id="notes" name="notes" rows="4"></textarea>
-              </div>
-            </div>
-
-            <!-- Agreement -->
-            <div class="order-section agreement-section">
-              <h3 class="order-section-heading">Agreement</h3>
-
-              <div class="agreement-field">
-                <label class="checkbox-label">
-                  <input type="checkbox" name="agree_resale" required />
-                  I confirm my business has a valid resale certificate or tax ID.
-                </label>
-              </div>
-              <div class="agreement-field">
-                <label class="checkbox-label">
-                  <input type="checkbox" name="agree_terms" required />
-                  I have read and agree to the <a href="#terms">Force of Nature Press wholesale terms</a>.
-                </label>
-              </div>
-              <div class="agreement-field">
-                <label class="checkbox-label">
-                  <input type="checkbox" name="agree_markets" required />
-                  I understand wholesale products may not be resold at art markets, craft fairs, or conventions without prior written approval.
-                </label>
-              </div>
-            </div>
+            ))}
 
             <div class="form-submit-row">
-              <button type="submit" class="submit-btn" id="orderSubmitBtn">Submit Order Request</button>
+              <button type="submit" class="submit-btn" id="orderSubmitBtn">{formConfig.submitButtonText}</button>
               <span id="orderFormStatus" class="order-form-status"></span>
             </div>
           </form>
@@ -609,15 +625,18 @@ function formatCat(cat: string) {
     orderForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Validate website/social — at least one required
-      const website = websiteInput?.value.trim() ?? '';
-      const social = socialInput?.value.trim() ?? '';
-      if (!website && !social) {
-        socialError.removeAttribute('hidden');
-        socialError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
+      // Validate website/social — at least one required (only if both fields are present)
+      const showWebsiteSocial = !!(websiteInput || socialInput);
+      if (showWebsiteSocial) {
+        const website = websiteInput?.value.trim() ?? '';
+        const social = socialInput?.value.trim() ?? '';
+        if (!website && !social) {
+          socialError?.removeAttribute('hidden');
+          socialError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+        socialError?.setAttribute('hidden', '');
       }
-      socialError.setAttribute('hidden', '');
 
       // Validate required checkboxes and fields via browser API
       if (!orderForm.checkValidity()) {

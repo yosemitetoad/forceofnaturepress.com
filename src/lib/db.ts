@@ -869,6 +869,85 @@ export async function getAllPageContent(db: D1Database): Promise<Record<string, 
   return map;
 }
 
+// ── Wholesale Form Config ─────────────────────────────────────────────────
+
+export interface WholesaleFormField {
+  id: string;
+  type: 'text' | 'email' | 'tel' | 'url' | 'textarea' | 'select' | 'checkbox' | 'address' | 'address-billing';
+  label: string;
+  placeholder?: string;
+  helpText?: string;
+  rows?: number;
+  required: boolean;
+  visible: boolean;
+}
+
+export interface WholesaleFormSection {
+  id: string;
+  heading: string;
+  visible: boolean;
+  fields: WholesaleFormField[];
+}
+
+export interface WholesaleFormConfig {
+  submitButtonText: string;
+  sections: WholesaleFormSection[];
+}
+
+export const DEFAULT_WHOLESALE_FORM_CONFIG: WholesaleFormConfig = {
+  submitButtonText: 'Submit Order Request',
+  sections: [
+    {
+      id: 'business', heading: 'Business Identification', visible: true,
+      fields: [
+        { id: 'business_name', type: 'text', label: 'Business / Shop Name', placeholder: '', helpText: '', required: true, visible: true },
+        { id: 'contact_name', type: 'text', label: 'Contact Person Name', placeholder: '', helpText: '', required: true, visible: true },
+        { id: 'email', type: 'email', label: 'Email', placeholder: '', helpText: '', required: true, visible: true },
+        { id: 'phone', type: 'tel', label: 'Phone', placeholder: '', helpText: '', required: false, visible: true },
+        { id: 'website', type: 'url', label: 'Website URL', placeholder: 'https://...', helpText: 'Please provide a website or social media handle — at least one is required.', required: false, visible: true },
+        { id: 'social', type: 'text', label: 'Social Media Handle(s)', placeholder: '@handle or profile link', helpText: '', required: false, visible: true },
+        { id: 'shipping_address', type: 'address', label: 'Shipping Address', required: true, visible: true },
+        { id: 'billing_address', type: 'address-billing', label: 'Billing Address', required: false, visible: true },
+      ],
+    },
+    {
+      id: 'verification', heading: 'Verification', visible: true,
+      fields: [
+        { id: 'tax_id', type: 'text', label: 'Resale Certificate / Tax ID', placeholder: '', helpText: '', required: true, visible: true },
+        { id: 'business_type', type: 'select', label: 'Type of Business', helpText: '', required: true, visible: true },
+        { id: 'sell_where', type: 'textarea', label: 'Where will you sell our products?', placeholder: 'e.g. Online shop at mystore.com, physical store in Portland OR, etc.', helpText: '', rows: 3, required: true, visible: true },
+        { id: 'heard_about', type: 'text', label: 'How did you hear about us?', placeholder: 'e.g. Instagram, a trade show, word of mouth...', helpText: '', required: false, visible: true },
+      ],
+    },
+    {
+      id: 'order', heading: 'Order Request', visible: true,
+      fields: [
+        { id: 'products', type: 'textarea', label: 'Products and Quantities', placeholder: 'e.g.\nBeetle print A3 — 10 units\nMushroom sticker sheet — 20 units', helpText: "List each product and how many units you'd like to order.", rows: 8, required: true, visible: true },
+        { id: 'delivery_timeframe', type: 'text', label: 'Estimated Delivery Timeframe', placeholder: 'e.g. Before September, no rush, etc.', helpText: '', required: false, visible: true },
+        { id: 'notes', type: 'textarea', label: 'Special Requests / Notes', placeholder: '', helpText: '', rows: 4, required: false, visible: true },
+      ],
+    },
+    {
+      id: 'agreement', heading: 'Agreement', visible: true,
+      fields: [
+        { id: 'agree_resale', type: 'checkbox', label: 'I confirm my business has a valid resale certificate or tax ID.', required: true, visible: true },
+        { id: 'agree_terms', type: 'checkbox', label: 'I have read and agree to the Force of Nature Press wholesale terms.', required: true, visible: true },
+        { id: 'agree_markets', type: 'checkbox', label: 'I understand wholesale products may not be resold at art markets, craft fairs, or conventions without prior written approval.', required: true, visible: true },
+      ],
+    },
+  ],
+};
+
+export async function getWholesaleFormConfig(db: D1Database): Promise<WholesaleFormConfig> {
+  const raw = await getPageContent(db, 'wholesale_form_config');
+  if (!raw) return DEFAULT_WHOLESALE_FORM_CONFIG;
+  try { return JSON.parse(raw) as WholesaleFormConfig; } catch { return DEFAULT_WHOLESALE_FORM_CONFIG; }
+}
+
+export async function saveWholesaleFormConfig(db: D1Database, config: WholesaleFormConfig): Promise<void> {
+  await setPageContent(db, 'wholesale_form_config', JSON.stringify(config));
+}
+
 // ── Game Cards ────────────────────────────────────────────────────────────
 
 export interface GameCard {

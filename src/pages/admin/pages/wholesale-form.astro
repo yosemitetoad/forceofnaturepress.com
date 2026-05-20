@@ -1,0 +1,435 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getWholesaleFormConfig } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const config = await getWholesaleFormConfig(db);
+const configJson = JSON.stringify(config);
+---
+
+<Admin title="Wholesale Order Form Editor">
+  <div class="page-header">
+    <h1>Order Form Editor</h1>
+    <div class="header-actions">
+      <a href="/admin/pages/wholesale" class="btn btn-outline">&larr; Wholesale Page</a>
+      <div class="view-tabs">
+        <button id="tabEdit" class="tab-btn active">Edit</button>
+        <button id="tabPreview" class="tab-btn">Preview</button>
+      </div>
+      <button id="saveBtn" class="btn btn-primary">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </div>
+
+  <div id="editorView">
+    <div class="editor-meta">
+      <div class="field-inline">
+        <label>Submit button label</label>
+        <input type="text" id="submitButtonText" value={config.submitButtonText} />
+      </div>
+    </div>
+
+    <div id="sectionList">
+      {config.sections.map((section, si) => (
+        <div class="section-card" data-section-index={si}>
+          <div class="section-header">
+            <span class="drag-handle section-drag" title="Drag to reorder">&#8597;</span>
+            <input type="text" class="section-heading-input" value={section.heading} data-section={si} />
+            <label class="toggle-label" title="Section visible">
+              <input type="checkbox" class="section-visible" data-section={si} checked={section.visible} />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-text">Visible</span>
+            </label>
+            <button class="collapse-btn" data-section={si} aria-expanded="true">&#8964;</button>
+          </div>
+          <div class="field-list" data-section={si}>
+            {section.fields.map((field, fi) => (
+              <div class="field-row" data-field-index={fi} data-section={si}>
+                <span class="drag-handle field-drag" title="Drag to reorder">&#8597;</span>
+                <span class={`type-badge type-${field.type}`}>{field.type}</span>
+                <span class="field-label-display">{field.label}</span>
+                <div class="field-row-controls">
+                  <label class="toggle-label req-toggle" title="Required">
+                    <input type="checkbox" class="field-required" data-section={si} data-field={fi} checked={field.required} />
+                    <span class="toggle-track sm"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-text">Req</span>
+                  </label>
+                  <label class="toggle-label" title="Visible">
+                    <input type="checkbox" class="field-visible" data-section={si} data-field={fi} checked={field.visible} />
+                    <span class="toggle-track sm"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-text">Show</span>
+                  </label>
+                  <button class="expand-field-btn" data-section={si} data-field={fi} aria-expanded="false">&#8964;</button>
+                </div>
+                <div class="field-detail" hidden>
+                  <div class="detail-grid">
+                    <label>Label
+                      <input type="text" class="field-label-input" data-section={si} data-field={fi} value={field.label} />
+                    </label>
+                    {field.type !== 'checkbox' && field.type !== 'address' && field.type !== 'address-billing' && field.type !== 'select' && (
+                      <label>Placeholder
+                        <input type="text" class="field-placeholder-input" data-section={si} data-field={fi} value={field.placeholder ?? ''} />
+                      </label>
+                    )}
+                    {field.type !== 'checkbox' && field.type !== 'address' && field.type !== 'address-billing' && (
+                      <label class="full-width">Help text
+                        <input type="text" class="field-helptext-input" data-section={si} data-field={fi} value={field.helpText ?? ''} />
+                      </label>
+                    )}
+                    {field.type === 'textarea' && (
+                      <label>Rows
+                        <input type="number" class="field-rows-input" data-section={si} data-field={fi} value={field.rows ?? 4} min="2" max="20" style="width:80px" />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div id="previewView" hidden>
+    <div class="preview-wrapper">
+      <p class="preview-note">This is how the form will look to visitors. Interactions are disabled.</p>
+      <div id="formPreview" class="form-preview-box"></div>
+    </div>
+  </div>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.8rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .header-actions { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+
+  .view-tabs { display: flex; border: 2px solid #d4b896; border-radius: 8px; overflow: hidden; }
+  .tab-btn { padding: 0.4em 1em; border: none; background: transparent; font-family: inherit; font-weight: 700; font-size: 0.88rem; cursor: pointer; color: #6b4a2a; }
+  .tab-btn.active { background: #c87830; color: #faf5ea; }
+  .tab-btn:hover:not(.active) { background: #e4d3b8; }
+
+  .save-status { font-size: 0.88rem; font-weight: 700; min-width: 60px; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+
+  .editor-meta { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1rem 1.5rem; margin-bottom: 1rem; }
+  .field-inline { display: flex; align-items: center; gap: 0.8rem; }
+  .field-inline label { font-weight: 700; font-size: 0.88rem; color: #6b4a2a; white-space: nowrap; }
+  .field-inline input { flex: 1; max-width: 320px; padding: 0.45em 0.8em; border: 2px solid #d4b896; border-radius: 8px; font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; }
+  .field-inline input:focus { border-color: #c87830; outline: none; }
+
+  /* Section cards */
+  .section-card { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; margin-bottom: 1rem; overflow: hidden; }
+  .section-card.dragging { opacity: 0.4; }
+  .section-card.drag-over { border-color: #c87830; box-shadow: 0 0 0 2px #c87830; }
+
+  .section-header { display: flex; align-items: center; gap: 0.7rem; padding: 0.9rem 1.2rem; background: #f0e6d0; border-bottom: 2px solid #d4b896; }
+  .section-heading-input { flex: 1; padding: 0.4em 0.7em; border: 2px solid #d4b896; border-radius: 7px; font-family: inherit; font-size: 1rem; font-weight: 800; background: #faf5ea; color: #2d1f0e; }
+  .section-heading-input:focus { border-color: #c87830; outline: none; }
+
+  .collapse-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #a08060; padding: 0.1rem 0.3rem; line-height: 1; transition: transform 0.18s; }
+  .collapse-btn.collapsed { transform: rotate(-90deg); }
+
+  /* Field rows */
+  .field-list { padding: 0.5rem 0; }
+  .field-row { border-bottom: 1px solid #ede3cf; padding: 0.5rem 1.2rem; }
+  .field-row:last-child { border-bottom: none; }
+  .field-row.dragging { opacity: 0.4; }
+  .field-row.drag-over { background: #f5eedd; border-top: 2px solid #c87830; }
+  .field-row > *:not(.field-detail) { display: inline-flex; align-items: center; }
+
+  .field-row-top { display: flex; align-items: center; gap: 0.6rem; }
+  .field-label-display { flex: 1; font-size: 0.9rem; color: #2d1f0e; margin: 0 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+  .field-row-controls { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+
+  .drag-handle { cursor: grab; color: #b8a080; font-size: 1.1rem; user-select: none; flex-shrink: 0; }
+  .drag-handle:active { cursor: grabbing; }
+
+  .type-badge { font-size: 0.72rem; font-weight: 700; padding: 0.15em 0.5em; border-radius: 4px; background: #e4d3b8; color: #6b4a2a; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+  .type-badge.type-text, .type-badge.type-email, .type-badge.type-tel, .type-badge.type-url { background: #dbeaf5; color: #2a5a7a; }
+  .type-badge.type-textarea { background: #e8f0ee; color: #2d5a4e; }
+  .type-badge.type-select { background: #f0e8f5; color: #5a2a7a; }
+  .type-badge.type-checkbox { background: #f5e8e8; color: #7a2a2a; }
+  .type-badge.type-address, .type-badge.type-address-billing { background: #f5f0e8; color: #7a5a2a; }
+
+  .expand-field-btn { background: none; border: none; cursor: pointer; font-size: 1rem; color: #a08060; padding: 0.1rem 0.3rem; line-height: 1; transition: transform 0.18s; }
+  .expand-field-btn[aria-expanded="true"] { transform: rotate(180deg); }
+
+  .field-detail { padding: 0.8rem 0 0.4rem 1.8rem; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+  .detail-grid label { display: flex; flex-direction: column; font-size: 0.8rem; font-weight: 700; color: #6b4a2a; gap: 0.25rem; }
+  .detail-grid label.full-width { grid-column: 1 / -1; }
+  .detail-grid input[type="text"], .detail-grid input[type="url"], .detail-grid input[type="number"] {
+    padding: 0.4em 0.7em; border: 2px solid #d4b896; border-radius: 7px;
+    font-family: inherit; font-size: 0.88rem; background: #f0e6d0; color: #2d1f0e;
+  }
+  .detail-grid input:focus { border-color: #c87830; outline: none; }
+
+  /* Toggle */
+  .toggle-label { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; user-select: none; }
+  .toggle-label input[type="checkbox"] { display: none; }
+  .toggle-track { width: 32px; height: 18px; background: #d4b896; border-radius: 999px; position: relative; flex-shrink: 0; transition: background 0.18s; }
+  .toggle-track.sm { width: 26px; height: 15px; }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left 0.18s; }
+  .toggle-track.sm .toggle-thumb { width: 11px; height: 11px; }
+  input[type="checkbox"]:checked + .toggle-track { background: #c87830; }
+  input[type="checkbox"]:checked + .toggle-track .toggle-thumb,
+  input[type="checkbox"]:checked + .toggle-track.sm .toggle-thumb { left: calc(100% - 16px); }
+  .toggle-track.sm input[type="checkbox"]:checked + .toggle-track.sm .toggle-thumb { left: calc(100% - 13px); }
+  .toggle-text { font-size: 0.78rem; font-weight: 700; color: #6b4a2a; }
+
+  /* Preview */
+  .preview-wrapper { max-width: 860px; }
+  .preview-note { font-size: 0.85rem; color: #6b4a2a; font-style: italic; margin: 0 0 1rem; }
+  .form-preview-box { pointer-events: none; }
+
+  /* Preview form styles (mirrors public page) */
+  .form-preview-box :global(.p-order-section) { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem 2rem; margin-bottom: 1.5rem; }
+  .form-preview-box :global(.p-section-heading) { font-size: 1.05rem; font-weight: 800; color: #2d1f0e; margin: 0 0 1.2rem; padding-bottom: 0.5rem; border-bottom: 1px solid #d4b896; font-family: 'Nunito', sans-serif; }
+  .form-preview-box :global(.p-field) { margin-bottom: 1rem; }
+  .form-preview-box :global(.p-field:last-child) { margin-bottom: 0; }
+  .form-preview-box :global(.p-label) { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; color: #6b4a2a; font-family: 'Nunito', sans-serif; }
+  .form-preview-box :global(.p-req) { color: #b44; }
+  .form-preview-box :global(.p-help) { font-size: 0.82rem; color: #6b4a2a; margin: 0.1rem 0 0.4rem; }
+  .form-preview-box :global(.p-input) { width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box; }
+  .form-preview-box :global(.p-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-preview-box :global(.p-address-block) { border: 1.5px solid #d4b896; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+  .form-preview-box :global(.p-address-label) { font-size: 0.85rem; font-weight: 800; color: #6b4a2a; margin: 0 0 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; font-family: 'Nunito', sans-serif; }
+  .form-preview-box :global(.p-address-row) { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem; }
+  .form-preview-box :global(.p-address-input) { width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; margin-bottom: 0.5rem; box-sizing: border-box; display: block; }
+  .form-preview-box :global(.p-checkbox-label) { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; line-height: 1.5; font-family: 'Nunito', sans-serif; }
+  .form-preview-box :global(.p-agreement-field) { margin-bottom: 0.8rem; }
+  .form-preview-box :global(.p-submit) { padding: 0.65em 1.6em; border: none; border-radius: 8px; background: #c87830; color: #faf5ea; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+  .form-preview-box :global(.p-hidden) { display: none; }
+</style>
+
+<script define:vars={{ configJson }}>
+  let config = JSON.parse(configJson);
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  const tabEdit = document.getElementById('tabEdit');
+  const tabPreview = document.getElementById('tabPreview');
+  const editorView = document.getElementById('editorView');
+  const previewView = document.getElementById('previewView');
+
+  tabEdit.addEventListener('click', () => {
+    tabEdit.classList.add('active'); tabPreview.classList.remove('active');
+    editorView.removeAttribute('hidden'); previewView.setAttribute('hidden', '');
+  });
+  tabPreview.addEventListener('click', () => {
+    tabPreview.classList.add('active'); tabEdit.classList.remove('active');
+    previewView.removeAttribute('hidden'); editorView.setAttribute('hidden', '');
+    renderPreview();
+  });
+
+  // ── Sync config from DOM ───────────────────────────────────────────────────
+  function syncConfig() {
+    config.submitButtonText = document.getElementById('submitButtonText').value.trim() || 'Submit Order Request';
+
+    document.querySelectorAll('.section-card').forEach((card, si) => {
+      config.sections[si].heading = card.querySelector('.section-heading-input').value;
+      config.sections[si].visible = card.querySelector('.section-visible').checked;
+      card.querySelectorAll('.field-row').forEach((row, fi) => {
+        const f = config.sections[si].fields[fi];
+        const labelInput = row.querySelector('.field-label-input');
+        const placeholderInput = row.querySelector('.field-placeholder-input');
+        const helptextInput = row.querySelector('.field-helptext-input');
+        const rowsInput = row.querySelector('.field-rows-input');
+        if (labelInput) { f.label = labelInput.value; row.querySelector('.field-label-display').textContent = labelInput.value; }
+        if (placeholderInput) f.placeholder = placeholderInput.value;
+        if (helptextInput) f.helpText = helptextInput.value;
+        if (rowsInput) f.rows = parseInt(rowsInput.value) || 4;
+        f.required = row.querySelector('.field-required').checked;
+        f.visible = row.querySelector('.field-visible').checked;
+      });
+    });
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  const saveBtn = document.getElementById('saveBtn');
+  const saveStatus = document.getElementById('saveStatus');
+  saveBtn.addEventListener('click', async () => {
+    syncConfig();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...'; saveStatus.className = 'save-status';
+    try {
+      const res = await fetch('/api/admin/wholesale-form', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config }),
+      });
+      if (!res.ok) throw new Error();
+      saveStatus.textContent = 'Saved!'; saveStatus.className = 'save-status success';
+    } catch {
+      saveStatus.textContent = 'Error saving.'; saveStatus.className = 'save-status error';
+    }
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+
+  // ── Collapse sections ──────────────────────────────────────────────────────
+  document.querySelectorAll('.collapse-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const si = btn.dataset.section;
+      const list = document.querySelector(`.field-list[data-section="${si}"]`);
+      const collapsed = list.style.display === 'none';
+      list.style.display = collapsed ? '' : 'none';
+      btn.classList.toggle('collapsed', !collapsed);
+    });
+  });
+
+  // ── Expand field detail ────────────────────────────────────────────────────
+  document.querySelectorAll('.expand-field-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.field-row');
+      const detail = row.querySelector('.field-detail');
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      detail.hidden = expanded;
+      btn.setAttribute('aria-expanded', String(!expanded));
+    });
+  });
+
+  // ── Drag-to-reorder sections ───────────────────────────────────────────────
+  let dragSrc = null;
+  document.querySelectorAll('.section-card').forEach(card => {
+    card.querySelector('.section-drag').addEventListener('mousedown', () => { card.draggable = true; });
+    card.addEventListener('dragstart', e => { dragSrc = card; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); card.draggable = false; dragSrc = null; document.querySelectorAll('.section-card').forEach(c => c.classList.remove('drag-over')); });
+    card.addEventListener('dragover', e => { e.preventDefault(); if (card !== dragSrc) card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', e => {
+      e.preventDefault(); card.classList.remove('drag-over');
+      if (!dragSrc || dragSrc === card) return;
+      const list = document.getElementById('sectionList');
+      const cards = [...list.querySelectorAll(':scope > .section-card')];
+      const fromIdx = cards.indexOf(dragSrc);
+      const toIdx = cards.indexOf(card);
+      if (fromIdx < toIdx) card.after(dragSrc); else card.before(dragSrc);
+      // Reorder config
+      const [moved] = config.sections.splice(fromIdx, 1);
+      config.sections.splice(toIdx, 0, moved);
+      // Re-sync section indices in DOM
+      document.querySelectorAll('.section-card').forEach((c, i) => {
+        c.dataset.sectionIndex = i;
+        c.querySelector('.section-heading-input').dataset.section = i;
+        c.querySelector('.section-visible').dataset.section = i;
+        c.querySelector('.collapse-btn').dataset.section = i;
+        const fl = c.querySelector('.field-list'); fl.dataset.section = i;
+        fl.querySelectorAll('.field-row').forEach(r => { r.dataset.section = i; r.querySelectorAll('[data-section]').forEach(el => { el.dataset.section = i; }); });
+      });
+    });
+  });
+
+  // ── Drag-to-reorder fields within sections ─────────────────────────────────
+  let dragFieldSrc = null;
+  document.querySelectorAll('.field-row').forEach(row => {
+    row.querySelector('.field-drag').addEventListener('mousedown', () => { row.draggable = true; });
+    row.addEventListener('dragstart', e => { dragFieldSrc = row; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); row.draggable = false; dragFieldSrc = null; document.querySelectorAll('.field-row').forEach(r => r.classList.remove('drag-over')); });
+    row.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); if (row !== dragFieldSrc) row.classList.add('drag-over'); });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation(); row.classList.remove('drag-over');
+      if (!dragFieldSrc || dragFieldSrc === row) return;
+      const fromSi = parseInt(dragFieldSrc.dataset.section);
+      const toSi = parseInt(row.dataset.section);
+      if (fromSi !== toSi) return; // Only allow within same section
+      const list = row.closest('.field-list');
+      const rows = [...list.querySelectorAll(':scope > .field-row')];
+      const fromFi = rows.indexOf(dragFieldSrc);
+      const toFi = rows.indexOf(row);
+      if (fromFi < toFi) row.after(dragFieldSrc); else row.before(dragFieldSrc);
+      const [moved] = config.sections[fromSi].fields.splice(fromFi, 1);
+      config.sections[toSi].fields.splice(toFi, 0, moved);
+    });
+  });
+
+  // ── Preview renderer ───────────────────────────────────────────────────────
+  function renderPreview() {
+    syncConfig();
+    const box = document.getElementById('formPreview');
+    let html = '';
+
+    for (const section of config.sections) {
+      if (!section.visible) continue;
+      html += `<div class="p-order-section"><h3 class="p-section-heading">${esc(section.heading)}</h3>`;
+
+      const visFields = section.fields.filter(f => f.visible);
+      let i = 0;
+      while (i < visFields.length) {
+        const f = visFields[i];
+        const req = f.required ? '<span class="p-req"> *</span>' : '';
+        const help = f.helpText ? `<p class="p-help">${esc(f.helpText)}</p>` : '';
+
+        if (f.type === 'address') {
+          html += `<div class="p-address-block"><p class="p-address-label">${esc(f.label)}${req}</p>
+            <input class="p-address-input" placeholder="Street address" />
+            <div class="p-address-row"><input class="p-address-input" placeholder="City" /><input class="p-address-input" placeholder="State / Province" /><input class="p-address-input" placeholder="ZIP" /></div>
+            <input class="p-address-input" placeholder="Country" /></div>`;
+          i++; continue;
+        }
+        if (f.type === 'address-billing') {
+          html += `<div class="p-address-block"><p class="p-address-label">${esc(f.label)}</p>
+            <label class="p-checkbox-label" style="margin-bottom:0.7rem"><input type="checkbox" /> Same as shipping address</label>
+            <input class="p-address-input" placeholder="Street address" />
+            <div class="p-address-row"><input class="p-address-input" placeholder="City" /><input class="p-address-input" placeholder="State" /><input class="p-address-input" placeholder="ZIP" /></div>
+            <input class="p-address-input" placeholder="Country" /></div>`;
+          i++; continue;
+        }
+        if (f.type === 'textarea') {
+          html += `<div class="p-field"><label class="p-label">${esc(f.label)}${req}</label>${help}<textarea class="p-input" rows="${f.rows || 4}" placeholder="${esc(f.placeholder || '')}" style="resize:vertical"></textarea></div>`;
+          i++; continue;
+        }
+        if (f.type === 'select') {
+          html += `<div class="p-field"><label class="p-label">${esc(f.label)}${req}</label>${help}<select class="p-input"><option>Select...</option><option>Brick-and-mortar store</option><option>Online retailer</option><option>Museum or institution</option><option>Nature center</option><option>Other</option></select></div>`;
+          i++; continue;
+        }
+        if (f.type === 'checkbox') {
+          html += `<div class="p-agreement-field"><label class="p-checkbox-label"><input type="checkbox" style="margin-top:0.18rem;flex-shrink:0" /> ${esc(f.label)}</label></div>`;
+          i++; continue;
+        }
+
+        // Inline: website+social pair
+        const next = visFields[i + 1];
+        if (f.id === 'website' && next?.id === 'social') {
+          html += `<div class="p-field"><label class="p-label">Website or Social Media<span class="p-req"> *</span></label><p class="p-help">${esc(f.helpText || 'Please provide at least one.')}</p>
+            <div class="p-row">
+              <div class="p-field" style="margin-bottom:0"><label class="p-label" style="font-weight:600;font-size:0.82rem">Website URL</label><input class="p-input" placeholder="${esc(f.placeholder || 'https://...')}" /></div>
+              <div class="p-field" style="margin-bottom:0"><label class="p-label" style="font-weight:600;font-size:0.82rem">Social Media Handle(s)</label><input class="p-input" placeholder="${esc(next.placeholder || '@handle')}" /></div>
+            </div></div>`;
+          i += 2; continue;
+        }
+        if (f.id === 'social' && visFields[i - 1]?.id === 'website') { i++; continue; }
+
+        // Pair two inline fields
+        const canPair = next && !['textarea','select','checkbox','address','address-billing'].includes(next.type);
+        if (canPair) {
+          const nreq = next.required ? '<span class="p-req"> *</span>' : '';
+          html += `<div class="p-row">
+            <div class="p-field"><label class="p-label">${esc(f.label)}${req}</label>${f.helpText ? `<p class="p-help">${esc(f.helpText)}</p>` : ''}<input class="p-input" placeholder="${esc(f.placeholder || '')}" /></div>
+            <div class="p-field"><label class="p-label">${esc(next.label)}${nreq}</label>${next.helpText ? `<p class="p-help">${esc(next.helpText)}</p>` : ''}<input class="p-input" placeholder="${esc(next.placeholder || '')}" /></div>
+          </div>`;
+          i += 2; continue;
+        }
+
+        html += `<div class="p-field"><label class="p-label">${esc(f.label)}${req}</label>${help}<input class="p-input" placeholder="${esc(f.placeholder || '')}" /></div>`;
+        i++;
+      }
+      html += '</div>';
+    }
+    html += `<div style="margin-top:0.5rem"><button class="p-submit">${esc(config.submitButtonText)}</button></div>`;
+    box.innerHTML = html;
+  }
+
+  function esc(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
