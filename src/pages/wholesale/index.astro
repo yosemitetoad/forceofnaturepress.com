@@ -259,14 +259,13 @@ function formatCat(cat: string) {
                           <label for="orderCategorySelect">{f.label}{f.required && <span class="req"> *</span>}</label>
                           <p class="field-help">Pick a category from the dropdown, enter quantities for what you'd like, then switch to another category if needed. Your quantities are saved as you go.</p>
                           <select id="orderCategorySelect" class="order-cat-select">
-                            <option value="">— Select a category —</option>
-                            {sortedCats.map(cat => (
-                              <option value={cat}>{formatCat(cat)}</option>
+                            {sortedCats.map((cat, idx) => (
+                              <option value={cat} selected={idx === 0}>{formatCat(cat)}</option>
                             ))}
                           </select>
                           <div id="orderGrids">
-                            {sortedCats.map(cat => (
-                              <div class="order-product-grid" data-cat={cat} hidden>
+                            {sortedCats.map((cat, idx) => (
+                              <div class="order-product-grid" data-cat={cat} hidden={idx !== 0}>
                                 {(groupedItems.get(cat) ?? []).map(item => (
                                   <div class="order-product-card">
                                     <div class="order-card-img">
@@ -275,9 +274,9 @@ function formatCat(cat: string) {
                                     <div class="order-card-body">
                                       <span class="order-card-title">{item.title}</span>
                                       <div class="order-card-meta">
-                                        <span class="order-card-ws">WS: <strong>${item.wholesalePrice.toFixed(2)}</strong></span>
-                                        <span>RRP: ${item.rrp.toFixed(2)}</span>
-                                        <span>Min: {item.moq}</span>
+                                        <span><strong>WSP:</strong> ${item.wholesalePrice.toFixed(2)}</span>
+                                        <span><strong>RRP:</strong> ${item.rrp.toFixed(2)}</span>
+                                        <span><strong>MOQ:</strong> {item.moq}</span>
                                       </div>
                                     </div>
                                     <div class="order-card-qty-row">
@@ -471,6 +470,24 @@ function formatCat(cat: string) {
             </dl>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Order Review Modal -->
+    <div id="reviewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle" hidden>
+      <div class="modal-backdrop" id="reviewModalBackdrop"></div>
+      <div class="modal-box review-modal-box">
+        <h3 class="review-modal-heading" id="reviewModalTitle">Review Your Order</h3>
+        <div id="reviewItemsList" class="review-items-list"></div>
+        <div class="review-total-row">
+          <span class="review-total-label">Estimated wholesale total:</span>
+          <span class="review-total-value" id="reviewTotalValue">$0.00</span>
+        </div>
+        <div class="review-actions">
+          <button type="button" class="review-edit-btn" id="reviewEditBtn">Edit Order</button>
+          <button type="button" class="review-confirm-btn" id="reviewConfirmBtn">Confirm &amp; Submit</button>
+        </div>
+        <p id="reviewSubmitStatus" class="order-form-status" style="margin-top:0.8rem"></p>
       </div>
     </div>
   </>
@@ -731,6 +748,25 @@ function formatCat(cat: string) {
     .modal-img { width: 100%; height: 220px; }
     .form-row { grid-template-columns: 1fr; }
   }
+
+  /* Review modal */
+  .review-modal-box { padding: 2rem; max-width: 560px; }
+  .review-modal-heading { font-size: 1.2rem; font-weight: 800; margin: 0 0 1.2rem; color: #2d1f0e; padding-bottom: 0.5rem; border-bottom: 2px solid #d4b896; }
+  .review-items-list { margin-bottom: 1rem; max-height: 45vh; overflow-y: auto; }
+  .review-item-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid #f0e6d0; gap: 1rem; }
+  .review-item-row:last-child { border-bottom: none; }
+  .review-item-name { font-size: 0.88rem; color: #2d1f0e; flex: 1; }
+  .review-item-qty { font-size: 0.85rem; color: #6b4a2a; white-space: nowrap; }
+  .review-item-total { font-size: 0.88rem; font-weight: 700; color: #2d1f0e; white-space: nowrap; }
+  .review-total-row { display: flex; justify-content: space-between; align-items: center; background: #f0e6d0; border: 2px solid #d4b896; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1.2rem; }
+  .review-total-label { font-size: 0.85rem; font-weight: 700; color: #6b4a2a; }
+  .review-total-value { font-size: 1.1rem; font-weight: 800; color: #2d1f0e; }
+  .review-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+  .review-edit-btn { padding: 0.6em 1.4em; border: 2px solid #d4b896; border-radius: 8px; background: transparent; color: #6b4a2a; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+  .review-edit-btn:hover { background: #e4d3b8; }
+  .review-confirm-btn { padding: 0.6em 1.4em; border: none; border-radius: 8px; background: #c87830; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+  .review-confirm-btn:hover { background: #a05e18; }
+  .review-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
 
 <script>
@@ -799,6 +835,13 @@ function formatCat(cat: string) {
     }
     document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
       input.addEventListener('input', updateOrderTotal);
+      input.addEventListener('change', () => {
+        const qty = parseInt(input.value) || 0;
+        const moq = parseInt(input.dataset.moq || '1');
+        if (qty < 0) input.value = '0';
+        else if (qty > 0 && qty < moq) input.value = String(moq);
+        updateOrderTotal();
+      });
     });
 
     const businessTypeSelect = document.getElementById('business_type') as HTMLSelectElement;
@@ -813,20 +856,92 @@ function formatCat(cat: string) {
       }
     });
 
-    orderForm.addEventListener('submit', async (e) => {
+    // ── Order review modal ────────────────────────────────────────────────────
+    const reviewModal = document.getElementById('reviewModal') as HTMLElement;
+    const reviewItemsList = document.getElementById('reviewItemsList')!;
+    const reviewTotalValue = document.getElementById('reviewTotalValue')!;
+    const reviewEditBtn = document.getElementById('reviewEditBtn') as HTMLButtonElement;
+    const reviewConfirmBtn = document.getElementById('reviewConfirmBtn') as HTMLButtonElement;
+    const reviewSubmitStatus = document.getElementById('reviewSubmitStatus')!;
+
+    function closeReviewModal() {
+      reviewModal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    }
+
+    reviewEditBtn?.addEventListener('click', closeReviewModal);
+    document.getElementById('reviewModalBackdrop')?.addEventListener('click', closeReviewModal);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !reviewModal.hasAttribute('hidden')) closeReviewModal();
+    });
+
+    function showReviewModal(orderLines: { title: string; qty: number; ws: number }[], formData: FormData) {
+      reviewItemsList.innerHTML = '';
+      let total = 0;
+      orderLines.forEach(({ title, qty, ws }) => {
+        const lineTotal = qty * ws;
+        total += lineTotal;
+        const row = document.createElement('div');
+        row.className = 'review-item-row';
+        row.innerHTML = `<span class="review-item-name">${title}</span><span class="review-item-qty">× ${qty}</span><span class="review-item-total">$${lineTotal.toFixed(2)}</span>`;
+        reviewItemsList.appendChild(row);
+      });
+      reviewTotalValue.textContent = `$${total.toFixed(2)}`;
+      reviewSubmitStatus.textContent = '';
+      reviewSubmitStatus.className = 'order-form-status';
+      reviewConfirmBtn.disabled = false;
+      reviewModal.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+
+      reviewConfirmBtn.onclick = async () => {
+        reviewConfirmBtn.disabled = true;
+        reviewSubmitStatus.textContent = 'Submitting...';
+        reviewSubmitStatus.className = 'order-form-status';
+        try {
+          const res = await fetch(orderForm.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' },
+            body: formData,
+          });
+          if (res.ok) {
+            closeReviewModal();
+            orderFormStatus.textContent = 'Thank you! Your order request has been submitted. We\'ll be in touch soon.';
+            orderFormStatus.className = 'order-form-status success';
+            orderForm.reset();
+            if (billingFields) billingFields.style.display = '';
+            updateOrderTotal();
+          } else {
+            const data: any = await res.json().catch(() => ({}));
+            reviewSubmitStatus.textContent = data.error ?? 'Something went wrong. Please try again or email us directly.';
+            reviewSubmitStatus.className = 'order-form-status error';
+            reviewConfirmBtn.disabled = false;
+          }
+        } catch {
+          reviewSubmitStatus.textContent = 'Network error. Please check your connection and try again.';
+          reviewSubmitStatus.className = 'order-form-status error';
+          reviewConfirmBtn.disabled = false;
+        }
+      };
+    }
+
+    orderForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
       // Validate order items — at least one qty > 0
+      const orderLines: { title: string; qty: number; ws: number }[] = [];
       if (productsHidden) {
         const lines: string[] = [];
         document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
           const qty = parseInt(input.value) || 0;
-          if (qty > 0) lines.push(`${input.dataset.title} × ${qty}`);
+          const ws = parseFloat(input.dataset.ws || '0');
+          if (qty > 0) {
+            lines.push(`${input.dataset.title} × ${qty}`);
+            orderLines.push({ title: input.dataset.title || '', qty, ws });
+          }
         });
         if (lines.length === 0) {
           orderItemsError?.removeAttribute('hidden');
           orderItemsError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          orderSubmitBtn.disabled = false;
           return;
         }
         orderItemsError?.setAttribute('hidden', '');
@@ -846,15 +961,11 @@ function formatCat(cat: string) {
         presenceError.setAttribute('hidden', '');
       }
 
-      // Validate required checkboxes and fields via browser API
+      // Validate required fields via browser API
       if (!orderForm.checkValidity()) {
         orderForm.reportValidity();
         return;
       }
-
-      orderSubmitBtn.disabled = true;
-      orderFormStatus.textContent = 'Submitting...';
-      orderFormStatus.className = 'order-form-status';
 
       const formData = new FormData(orderForm);
       if (sameAsShipping?.checked) {
@@ -865,27 +976,7 @@ function formatCat(cat: string) {
         formData.delete('billing_country');
       }
 
-      try {
-        const res = await fetch(orderForm.action, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          body: formData,
-        });
-        if (res.ok) {
-          orderFormStatus.textContent = 'Thank you! Your order request has been submitted. We\'ll be in touch soon.';
-          orderFormStatus.className = 'order-form-status success';
-          orderForm.reset();
-          billingFields.style.display = '';
-        } else {
-          const data: any = await res.json().catch(() => ({}));
-          orderFormStatus.textContent = data.error ?? 'Something went wrong. Please try again or email us directly.';
-          orderFormStatus.className = 'order-form-status error';
-        }
-      } catch {
-        orderFormStatus.textContent = 'Network error. Please check your connection and try again.';
-        orderFormStatus.className = 'order-form-status error';
-      }
-      orderSubmitBtn.disabled = false;
+      showReviewModal(orderLines, formData);
     });
   }
 
