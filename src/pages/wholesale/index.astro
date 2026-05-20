@@ -1,53 +1,20 @@
 ---
 export const prerender = false;
 
-import { getPublishedWholesaleItems, getPageContentMulti, getWholesaleCategories, validateSession, getWholesaleFormConfig } from '../../lib/db';
-import { md, mdInline } from '../../lib/markdown';
+import { getPublishedWholesaleItems, getPageContentMulti, getWholesaleCategories, getWholesaleFormConfig } from '../../lib/db';
+import { md } from '../../lib/markdown';
 import { SITE_TITLE } from '../../consts';
 
 const db = Astro.locals.runtime.env.DB;
 
-// ── Auth check ────────────────────────────────────────────────────────────────
-const adminToken = Astro.cookies.get('admin_session')?.value;
-const wholesaleToken = Astro.cookies.get('wholesale_session')?.value;
-const isAdmin = adminToken ? await validateSession(db, adminToken) : false;
-const isWholesaleAuth = wholesaleToken === 'wholesale_ok';
-const isAuthenticated = isAdmin || isWholesaleAuth;
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro']);
 
-const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro']);
-const wholesalePassword = content.wholesale_password ?? '';
-
-// Handle password form POST
-let passwordError = '';
-if (!isAuthenticated && Astro.request.method === 'POST') {
-  const form = await Astro.request.formData();
-  const entered = form.get('password')?.toString() ?? '';
-  if (!wholesalePassword) {
-    passwordError = 'This page is not yet available.';
-  } else if (entered === wholesalePassword) {
-    Astro.cookies.set('wholesale_session', 'wholesale_ok', {
-      path: '/',
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-    });
-    return Astro.redirect('/wholesale');
-  } else {
-    passwordError = 'Incorrect password.';
-  }
-}
-
-// If not authenticated and no password set, don't reveal the page exists
-if (!isAuthenticated && !wholesalePassword) {
-  return Astro.redirect('/');
-}
-
-// Load page content and items (only if authenticated)
-const [items, wholesaleCategories, formConfig] = isAuthenticated
-  ? await Promise.all([getPublishedWholesaleItems(db), getWholesaleCategories(db), getWholesaleFormConfig(db)])
-  : [[], [], null];
-const termsHtml = isAuthenticated ? await md(content.wholesale_terms ?? '') : '';
+const [items, wholesaleCategories, formConfig] = await Promise.all([
+  getPublishedWholesaleItems(db),
+  getWholesaleCategories(db),
+  getWholesaleFormConfig(db),
+]);
+const termsHtml = await md(content.wholesale_terms ?? '');
 const contactIntro = content.wholesale_contact_intro ?? '';
 const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
@@ -98,30 +65,13 @@ function formatCat(cat: string) {
 </head>
 <body>
 
-{!isAuthenticated ? (
-  <!-- Password gate -->
-  <div class="gate-wrap">
-    <div class="gate-box">
-      <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press" class="gate-logo" />
-      <h1>Wholesale</h1>
-      <p class="gate-subtitle">Force of Nature Press</p>
-      <form method="POST">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required autofocus />
-        {passwordError && <p class="gate-error">{passwordError}</p>}
-        <button type="submit">Enter</button>
-      </form>
-    </div>
-  </div>
-) : (
-  <!-- Full wholesale page -->
-  <>
     <header class="site-header">
       <div class="container">
         <a href="/" class="header-brand">
           <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press" width="36" height="36" />
           Force of Nature Press
         </a>
+        <a href="/" class="header-back">&#8592; Back to homepage</a>
         <span class="header-tag">Wholesale</span>
       </div>
     </header>
@@ -445,6 +395,7 @@ function formatCat(cat: string) {
 
     <footer class="site-footer">
       <div class="container">
+        <a href="/" class="footer-back">&#8592; Back to homepage</a>
         <p>&copy; {new Date().getFullYear()} Force of Nature Press. All rights reserved.</p>
       </div>
     </footer>
@@ -492,8 +443,6 @@ function formatCat(cat: string) {
         <p id="reviewSubmitStatus" class="order-form-status" style="margin-top:0.8rem"></p>
       </div>
     </div>
-  </>
-)}
 
 </body>
 </html>
@@ -503,37 +452,13 @@ function formatCat(cat: string) {
   body { font-family: 'Nunito', sans-serif; margin: 0; background: #f0e6d0; color: #2d1f0e; line-height: 1.6; }
   .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
 
-  /* Gate */
-  .gate-wrap {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: url('/plainstarbanner.webp') center / cover no-repeat fixed;
-    background-color: #f0e6d0;
-  }
-  .gate-box {
-    background: rgba(240, 230, 208, 0.94); border: 2px solid #d4b896; border-radius: 14px;
-    padding: 2.5rem; width: 100%; max-width: 400px; text-align: center;
-  }
-  .gate-logo { width: 72px; height: 72px; margin-bottom: 1rem; border-radius: 8px; }
-  .gate-box h1 { font-size: 1.6rem; font-weight: 800; margin: 0 0 0.2rem; }
-  .gate-subtitle { color: #6b4a2a; font-size: 0.9rem; margin: 0 0 1.5rem; }
-  .gate-box label { display: block; text-align: left; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; }
-  .gate-box input[type="password"] {
-    width: 100%; padding: 0.7em 1em; border: 2px solid #d4b896; border-radius: 8px;
-    font-family: inherit; font-size: 1rem; background: #faf5ea; color: #2d1f0e; outline: none;
-  }
-  .gate-box input[type="password"]:focus { border-color: #c87830; }
-  .gate-error { color: #b44; font-size: 0.88rem; margin: 0.4rem 0 0; text-align: left; }
-  .gate-box button {
-    display: block; width: 100%; margin-top: 1.2rem; padding: 0.7em; border: none; border-radius: 8px;
-    background: #c87830; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
-  }
-  .gate-box button:hover { background: #a05e18; }
-
   /* Header */
   .site-header { background: #2d1f0e; color: #faf5ea; padding: 0 0; }
   .site-header .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
   .header-brand { display: flex; align-items: center; gap: 0.6rem; color: #faf5ea; text-decoration: none; font-weight: 800; font-size: 1rem; }
   .header-brand img { border-radius: 4px; }
+  .header-back { color: #c8a878; text-decoration: none; font-size: 0.82rem; font-weight: 700; margin-right: auto; margin-left: 1rem; transition: color 0.15s; }
+  .header-back:hover { color: #faf5ea; }
   .header-tag { background: rgba(255,255,255,0.12); color: #e4d3b8; font-size: 0.8rem; font-weight: 800; padding: 0.25em 0.8em; border-radius: 999px; letter-spacing: 0.05em; text-transform: uppercase; }
 
   /* Sections */
@@ -716,6 +641,8 @@ function formatCat(cat: string) {
 
   /* Footer */
   .site-footer { background: #2d1f0e; color: #a08060; padding: 1.5rem 0; font-size: 0.85rem; text-align: center; }
+  .footer-back { display: inline-block; color: #c8a878; text-decoration: none; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.6rem; transition: color 0.15s; }
+  .footer-back:hover { color: #faf5ea; }
 
   /* Modal */
   .modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
