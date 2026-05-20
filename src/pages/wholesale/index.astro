@@ -71,8 +71,12 @@ function formatCat(cat: string) {
           <img src="/beetleshopiconsquare.webp" alt="Force of Nature Press" width="36" height="36" />
           Force of Nature Press
         </a>
-        <a href="/" class="header-back">&#8592; Back to homepage</a>
-        <span class="header-tag">Wholesale</span>
+        <nav class="header-nav">
+          <a href="#terms">Terms &amp; Conditions</a>
+          <a href="#catalog">Catalog</a>
+          <a href="#order-form">Order Form</a>
+        </nav>
+        <a href="/" class="header-back">&#8592; Homepage</a>
       </div>
     </header>
 
@@ -90,7 +94,7 @@ function formatCat(cat: string) {
       )}
 
       <!-- Catalog -->
-      <section class="catalog-section container">
+      <section class="catalog-section container" id="catalog">
         <details class="section-details" open>
           <summary class="section-heading">Catalog</summary>
           {catalogIntro && <p class="catalog-intro">{catalogIntro}</p>}
@@ -142,7 +146,7 @@ function formatCat(cat: string) {
       </section>
 
       <!-- Contact / Order Form -->
-      <section class="contact-section container">
+      <section class="contact-section container" id="order-form">
         <h2 class="section-heading">Wholesale Order Form</h2>
         {contactIntro && <p class="contact-intro">{contactIntro}</p>}
         {contactEmail && <p class="contact-email">Email: <a href={`mailto:${contactEmail}`}>{contactEmail}</a></p>}
@@ -454,12 +458,19 @@ function formatCat(cat: string) {
 
   /* Header */
   .site-header { background: #2d1f0e; color: #faf5ea; padding: 0 0; }
-  .site-header .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
-  .header-brand { display: flex; align-items: center; gap: 0.6rem; color: #faf5ea; text-decoration: none; font-weight: 800; font-size: 1rem; }
+  .site-header .container { display: flex; align-items: center; height: 56px; gap: 1rem; }
+  .header-brand { display: flex; align-items: center; gap: 0.6rem; color: #faf5ea; text-decoration: none; font-weight: 800; font-size: 1rem; flex-shrink: 0; }
   .header-brand img { border-radius: 4px; }
-  .header-back { color: #c8a878; text-decoration: none; font-size: 0.82rem; font-weight: 700; margin-right: auto; margin-left: 1rem; transition: color 0.15s; }
+  .header-nav { display: flex; align-items: center; gap: 1.4rem; flex: 1; justify-content: center; }
+  .header-nav a { color: #c8a878; text-decoration: none; font-size: 0.82rem; font-weight: 700; white-space: nowrap; transition: color 0.15s; }
+  .header-nav a:hover { color: #faf5ea; }
+  .header-back { color: #a08060; text-decoration: none; font-size: 0.78rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; transition: color 0.15s; }
   .header-back:hover { color: #faf5ea; }
-  .header-tag { background: rgba(255,255,255,0.12); color: #e4d3b8; font-size: 0.8rem; font-weight: 800; padding: 0.25em 0.8em; border-radius: 999px; letter-spacing: 0.05em; text-transform: uppercase; }
+  @media (max-width: 600px) {
+    .header-nav { gap: 0.8rem; }
+    .header-nav a { font-size: 0.72rem; }
+    .header-back { display: none; }
+  }
 
   /* Sections */
   .terms-section { padding: 3rem 1.5rem 2rem; }
