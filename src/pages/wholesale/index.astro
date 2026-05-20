@@ -93,7 +93,8 @@ function formatCat(cat: string) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="icon" type="image/png" href="/beetleshopiconsquare.webp" />
 </head>
 <body>
 
@@ -265,7 +266,7 @@ function formatCat(cat: string) {
                           </select>
                           <div id="orderGrids">
                             {sortedCats.map((cat, idx) => (
-                              <div class="order-product-grid" data-cat={cat} hidden={idx !== 0}>
+                              <div class="order-product-grid" data-cat={cat} style={idx !== 0 ? 'display:none' : ''}>
                                 {(groupedItems.get(cat) ?? []).map(item => (
                                   <div class="order-product-card">
                                     <div class="order-card-img">
@@ -297,6 +298,7 @@ function formatCat(cat: string) {
                             <span class="order-total-label">Estimated wholesale total:</span>
                             <span class="order-total-value" id="orderTotalValue">$0.00</span>
                           </div>
+                          <p class="order-minimum-note">Opening orders: $150 minimum &bull; Reorders: $100 minimum</p>
                           <p id="order-items-error" class="field-error" hidden>Please add at least one item to your order.</p>
                           <input type="hidden" name="products" id="productsHidden" />
                         </div>
@@ -430,8 +432,8 @@ function formatCat(cat: string) {
             ))}
 
             <div class="form-submit-row">
+              <button type="button" class="view-order-btn" id="viewOrderBtn">Review Order</button>
               <button type="submit" class="submit-btn" id="orderSubmitBtn">{formConfig.submitButtonText}</button>
-              <button type="button" class="view-order-btn" id="viewOrderBtn">View Order</button>
               <span id="orderFormStatus" class="order-form-status"></span>
             </div>
           </form>
@@ -654,7 +656,7 @@ function formatCat(cat: string) {
   .order-card-meta { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.72rem; color: #6b4a2a; line-height: 1.5; }
   .order-card-ws strong { color: #2d1f0e; }
   .order-card-qty-row {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
     padding: 0.4rem 0.6rem; border-top: 1px solid #e4d3b8; background: #f5edd8;
   }
   .qty-label { font-size: 0.78rem; font-weight: 700; color: #6b4a2a; }
@@ -747,9 +749,10 @@ function formatCat(cat: string) {
     .form-row { grid-template-columns: 1fr; }
   }
 
-  /* View Order button */
-  .view-order-btn { padding: 0.65em 1.4em; border: 2px solid #d4b896; border-radius: 8px; background: transparent; color: #6b4a2a; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
-  .view-order-btn:hover { background: #e4d3b8; border-color: #c8a878; }
+  /* Review Order button */
+  .view-order-btn { padding: 0.65em 1.4em; border: none; border-radius: 8px; background: #5b7b6d; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+  .view-order-btn:hover { background: #3d5a4e; }
+  .order-minimum-note { font-size: 0.78rem; color: #6b4a2a; margin: 0.3rem 0 0; }
 
   /* Review modal */
   .review-modal-box { padding: 2rem; max-width: 680px; display: flex; flex-direction: column; }
@@ -828,7 +831,7 @@ function formatCat(cat: string) {
 
     orderCatSelect?.addEventListener('change', () => {
       document.querySelectorAll<HTMLElement>('.order-product-grid').forEach(grid => {
-        grid.hidden = grid.dataset.cat !== orderCatSelect.value;
+        grid.style.display = grid.dataset.cat !== orderCatSelect.value ? 'none' : '';
       });
     });
 
@@ -843,12 +846,19 @@ function formatCat(cat: string) {
       if (orderTotalValue) orderTotalValue.textContent = `$${total.toFixed(2)}`;
     }
     document.querySelectorAll<HTMLInputElement>('.qty-input').forEach(input => {
+      let lastQty = 0;
+      input.addEventListener('focus', () => { lastQty = parseInt(input.value) || 0; });
       input.addEventListener('input', updateOrderTotal);
       input.addEventListener('change', () => {
         const qty = parseInt(input.value) || 0;
         const moq = parseInt(input.dataset.moq || '1');
-        if (qty < 0) input.value = '0';
-        else if (qty > 0 && qty < moq) input.value = String(moq);
+        if (qty < 0) {
+          input.value = '0';
+        } else if (qty > 0 && qty < moq) {
+          // Going up from 0: snap to MOQ. Lowering below MOQ: snap to 0.
+          input.value = lastQty === 0 ? String(moq) : '0';
+        }
+        lastQty = parseInt(input.value) || 0;
         updateOrderTotal();
       });
     });
