@@ -942,7 +942,25 @@ export const DEFAULT_WHOLESALE_FORM_CONFIG: WholesaleFormConfig = {
 export async function getWholesaleFormConfig(db: D1Database): Promise<WholesaleFormConfig> {
   const raw = await getPageContent(db, 'wholesale_form_config');
   if (!raw) return DEFAULT_WHOLESALE_FORM_CONFIG;
-  try { return JSON.parse(raw) as WholesaleFormConfig; } catch { return DEFAULT_WHOLESALE_FORM_CONFIG; }
+  let stored: WholesaleFormConfig;
+  try { stored = JSON.parse(raw) as WholesaleFormConfig; } catch { return DEFAULT_WHOLESALE_FORM_CONFIG; }
+
+  // Merge: add any fields/sections present in the default but missing from the stored config,
+  // inserting each new field after its predecessor in the default order.
+  for (const defaultSection of DEFAULT_WHOLESALE_FORM_CONFIG.sections) {
+    const storedSection = stored.sections.find(s => s.id === defaultSection.id);
+    if (!storedSection) { stored.sections.push(defaultSection); continue; }
+    for (const defaultField of defaultSection.fields) {
+      if (storedSection.fields.some(f => f.id === defaultField.id)) continue;
+      const defaultIdx = defaultSection.fields.findIndex(f => f.id === defaultField.id);
+      const predecessorId = defaultIdx > 0 ? defaultSection.fields[defaultIdx - 1].id : null;
+      const insertAfter = predecessorId ? storedSection.fields.findIndex(f => f.id === predecessorId) : -1;
+      if (insertAfter !== -1) storedSection.fields.splice(insertAfter + 1, 0, defaultField);
+      else storedSection.fields.push(defaultField);
+    }
+  }
+
+  return stored;
 }
 
 export async function saveWholesaleFormConfig(db: D1Database, config: WholesaleFormConfig): Promise<void> {
