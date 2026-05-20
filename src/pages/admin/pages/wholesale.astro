@@ -5,14 +5,14 @@ import Admin from '../../../layouts/Admin.astro';
 import { getPageContentMulti } from '../../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
-const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_password', 'wholesale_catalog_intro']);
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro', 'wholesale_under_construction']);
 
 const terms = content.wholesale_terms ?? '';
 const catalogIntro = content.wholesale_catalog_intro ?? '';
 const contactIntro = content.wholesale_contact_intro ?? '';
 const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
-const passwordSet = !!(content.wholesale_password);
+const underConstruction = content.wholesale_under_construction === '1';
 ---
 
 <Admin title="Wholesale Page Content">
@@ -23,6 +23,18 @@ const passwordSet = !!(content.wholesale_password);
       <a href="/admin/wholesale" class="btn btn-outline">Catalog Items</a>
       <a href="/admin/pages/wholesale-form" class="btn btn-outline">Order Form</a>
     </div>
+  </div>
+
+  <div class="status-bar" id="status-bar" data-enabled={underConstruction ? 'true' : 'false'}>
+    <div class="status-info">
+      <span class="status-label">Wholesale Page</span>
+      <span class="status-text" id="status-text">
+        {underConstruction ? 'Under Construction — visitors see a coming soon message' : 'Live — wholesale page is visible to everyone'}
+      </span>
+    </div>
+    <button class="btn status-btn" id="status-toggle" data-enabled={underConstruction ? 'true' : 'false'}>
+      {underConstruction ? 'Take Live' : 'Enable Under Construction'}
+    </button>
   </div>
 
   <form id="contentForm">
@@ -66,25 +78,6 @@ const passwordSet = !!(content.wholesale_password);
       <span id="saveStatus" class="save-status"></span>
     </div>
   </form>
-
-  <section class="editor-section password-section">
-    <h2>Page Password</h2>
-    <p class="help-text">
-      The <code>/wholesale</code> page is password-protected. Share this password with wholesale contacts.
-      {passwordSet ? 'A password is currently set.' : <strong class="no-password">No password is set — the page is inaccessible to the public until you set one.</strong>}
-      If you are logged into the admin panel, you can always view the page without the password.
-    </p>
-    <form id="passwordForm">
-      <div class="field password-row">
-        <input type="password" id="newPassword" placeholder="Enter new password..." autocomplete="new-password" />
-        <button type="submit" class="btn btn-primary">Set Password</button>
-      </div>
-      {passwordSet && (
-        <button type="button" id="clearPasswordBtn" class="btn btn-outline btn-sm-clear">Clear password (makes page inaccessible)</button>
-      )}
-      <span id="passwordStatus" class="save-status"></span>
-    </form>
-  </section>
 </Admin>
 
 <style>
@@ -98,19 +91,33 @@ const passwordSet = !!(content.wholesale_password);
   .btn-primary:hover { background: #a05e18; }
   .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
   .btn-outline:hover { background: #e4d3b8; }
-  .btn-sm-clear { font-size: 0.8rem; padding: 0.35em 0.9em; margin-top: 0.5rem; }
+
+  /* Under construction toggle bar */
+  .status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px;
+    padding: 1rem 1.5rem; margin-bottom: 1.5rem; gap: 1rem;
+  }
+  .status-bar[data-enabled='true'] { background: #fff3cd; border-color: #e0b840; }
+  .status-info { display: flex; flex-direction: column; gap: 0.2rem; }
+  .status-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #6b4a2a; }
+  .status-text { font-size: 0.95rem; font-weight: 700; color: #2d1f0e; }
+  .status-btn { white-space: nowrap; }
+  .status-btn[data-enabled='false'] { background: #6b4a2a; color: #faf5ea; }
+  .status-btn[data-enabled='false']:hover { background: #4a2f12; }
+  .status-btn[data-enabled='true'] { background: #3d7a6e; color: #faf5ea; }
+  .status-btn[data-enabled='true']:hover { background: #2a5a50; }
 
   .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .password-section { margin-top: 2rem; }
 
   .field { margin-bottom: 0; }
+  .field + .field { margin-top: 1rem; }
   .field textarea {
     width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
     box-sizing: border-box; resize: vertical;
   }
   .field textarea:focus { border-color: #c87830; outline: none; }
-
   .field label { display: block; font-weight: 700; font-size: 0.85rem; color: #6b4a2a; margin-bottom: 0.2rem; }
   .field input[type="email"], .field input[type="url"] {
     width: 100%; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
@@ -120,14 +127,6 @@ const passwordSet = !!(content.wholesale_password);
   .field input[type="email"]:focus, .field input[type="url"]:focus { border-color: #c87830; outline: none; }
   .help-text { font-size: 0.85rem; color: #6b4a2a; margin: 0 0 0.6rem; line-height: 1.5; }
   .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
-  .no-password { color: #b44; }
-
-  .password-row { display: flex; gap: 0.6rem; align-items: center; }
-  .password-row input {
-    flex: 1; padding: 0.6em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
-    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
-  }
-  .password-row input:focus { border-color: #c87830; outline: none; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; display: block; margin-top: 0.5rem; min-height: 1.3em; }
@@ -167,38 +166,32 @@ const passwordSet = !!(content.wholesale_password);
     setTimeout(() => { saveStatus.textContent = ''; }, 3000);
   });
 
-  const passwordForm = document.getElementById('passwordForm') as HTMLFormElement;
-  const passwordStatus = document.getElementById('passwordStatus')!;
-  const newPasswordInput = document.getElementById('newPassword') as HTMLInputElement;
+  // Under construction toggle
+  const bar = document.getElementById('status-bar')!;
+  const btn = document.getElementById('status-toggle') as HTMLButtonElement;
+  const statusText = document.getElementById('status-text')!;
 
-  async function savePassword(value: string) {
-    passwordStatus.textContent = 'Saving...';
-    passwordStatus.className = 'save-status';
+  btn.addEventListener('click', async () => {
+    const current = btn.dataset.enabled === 'true';
+    const next = !current;
+    btn.disabled = true;
     try {
       const res = await fetch('/api/admin/pages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ updates: { wholesale_password: value } }),
+        body: JSON.stringify({ updates: { wholesale_under_construction: next ? '1' : '0' } }),
       });
       if (!res.ok) throw new Error();
-      passwordStatus.textContent = value ? 'Password set!' : 'Password cleared.';
-      passwordStatus.className = 'save-status success';
-      setTimeout(() => location.reload(), 1200);
+      const enabled = String(next);
+      btn.dataset.enabled = enabled;
+      bar.dataset.enabled = enabled;
+      btn.textContent = next ? 'Take Live' : 'Enable Under Construction';
+      statusText.textContent = next
+        ? 'Under Construction — visitors see a coming soon message'
+        : 'Live — wholesale page is visible to everyone';
     } catch {
-      passwordStatus.textContent = 'Error saving.';
-      passwordStatus.className = 'save-status error';
+      alert('Failed to update status. Please try again.');
     }
-  }
-
-  passwordForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pw = newPasswordInput.value.trim();
-    if (!pw) { passwordStatus.textContent = 'Enter a password.'; passwordStatus.className = 'save-status error'; return; }
-    await savePassword(pw);
-  });
-
-  document.getElementById('clearPasswordBtn')?.addEventListener('click', async () => {
-    if (!confirm('Clear the password? The wholesale page will be inaccessible to the public until you set a new one.')) return;
-    await savePassword('');
+    btn.disabled = false;
   });
 </script>
