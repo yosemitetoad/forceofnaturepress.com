@@ -98,6 +98,17 @@ function getCatLabel(slug: string) {
             <span class="desc-status" data-cat={cat.slug}></span>
           </div>
 
+          <div class="cat-group-row" data-cat={cat.slug}>
+            <span class="cat-group-label">Group:</span>
+            <span class="cat-group-text" data-cat={cat.slug}>{cat.group || ''}</span>
+            {!cat.group && <span class="cat-group-empty">none — </span>}
+            <button class="btn-edit-group" data-cat={cat.slug} type="button">edit</button>
+            <input type="text" class="cat-group-input" data-cat={cat.slug} value={cat.group || ''} placeholder="e.g. Paper Goods" hidden />
+            <button class="btn-group-save" data-cat={cat.slug} type="button" hidden>Save</button>
+            <button class="btn-group-cancel" data-cat={cat.slug} type="button" hidden>Cancel</button>
+            <span class="group-status" data-cat={cat.slug}></span>
+          </div>
+
           <div class="item-list" data-category={cat.slug}>
             {catItems.map(item => (
               <div class="item-row" draggable="true" data-id={item.id}>
@@ -295,6 +306,35 @@ function getCatLabel(slug: string) {
   .btn-desc-save:hover { background: rgba(61,122,110,0.1); }
   .btn-desc-cancel { color: #a08060; }
   .desc-status { font-size: 0.75rem; font-weight: 700; }
+
+  /* Category group row */
+  .cat-group-row {
+    background: #f0ead8; border-left: 2px solid #d4b896; border-right: 2px solid #d4b896;
+    padding: 0.3rem 0.85rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+    font-size: 0.78rem; color: #5a3e1e;
+  }
+  .cat-group-label { font-weight: 700; color: #8b6040; flex-shrink: 0; }
+  .cat-group-text { color: #3d5a4e; font-weight: 700; }
+  .cat-group-empty { color: #a08060; font-style: italic; }
+  .btn-edit-group {
+    background: none; border: none; color: #a08060; cursor: pointer; font-size: 0.75rem;
+    font-family: inherit; padding: 0.05em 0.3em; border-radius: 4px; flex-shrink: 0;
+    text-decoration: underline;
+  }
+  .btn-edit-group:hover { color: #2d1f0e; }
+  .cat-group-input {
+    font-family: inherit; font-size: 0.82rem; color: #2d1f0e;
+    background: #faf5ea; border: 2px solid #c87830; border-radius: 5px;
+    padding: 0.25em 0.6em; outline: none; width: 220px;
+  }
+  .btn-group-save, .btn-group-cancel {
+    background: none; border: none; font-family: inherit; font-weight: 700; font-size: 0.75rem;
+    cursor: pointer; padding: 0.2em 0.5em; border-radius: 5px; flex-shrink: 0;
+  }
+  .btn-group-save { color: #3d7a6e; }
+  .btn-group-save:hover { background: rgba(61,122,110,0.1); }
+  .btn-group-cancel { color: #a08060; }
+  .group-status { font-size: 0.75rem; font-weight: 700; }
 
   /* Item list */
   .item-list { background: #faf5ea; border: 2px solid #d4b896; border-radius: 0 0 10px 10px; overflow: hidden; }
@@ -885,6 +925,77 @@ function getCatLabel(slug: string) {
         const cat = ta.dataset.cat!;
         ta.value = document.querySelector<HTMLElement>(`.cat-desc-text[data-cat="${cat}"]`)?.textContent ?? '';
         hideDescEdit(cat);
+      }
+    });
+  });
+
+  // ── Category group editing ─────────────────────────────────────────────────
+  function showGroupEdit(cat: string) {
+    const row = document.querySelector<HTMLElement>(`.cat-group-row[data-cat="${cat}"]`)!;
+    row.querySelector<HTMLElement>('.cat-group-text')!.hidden = true;
+    row.querySelector<HTMLElement>('.cat-group-empty')?.setAttribute('hidden', '');
+    row.querySelector<HTMLElement>('.btn-edit-group')!.hidden = true;
+    row.querySelector<HTMLElement>('.cat-group-input')!.hidden = false;
+    row.querySelector<HTMLElement>('.btn-group-save')!.hidden = false;
+    row.querySelector<HTMLElement>('.btn-group-cancel')!.hidden = false;
+    row.querySelector<HTMLInputElement>('.cat-group-input')!.focus();
+  }
+  function hideGroupEdit(cat: string) {
+    const row = document.querySelector<HTMLElement>(`.cat-group-row[data-cat="${cat}"]`)!;
+    const currentGroup = row.querySelector<HTMLElement>('.cat-group-text')!.textContent ?? '';
+    row.querySelector<HTMLElement>('.cat-group-text')!.hidden = false;
+    if (!currentGroup) row.querySelector<HTMLElement>('.cat-group-empty')?.removeAttribute('hidden');
+    row.querySelector<HTMLElement>('.btn-edit-group')!.hidden = false;
+    row.querySelector<HTMLElement>('.cat-group-input')!.hidden = true;
+    row.querySelector<HTMLElement>('.btn-group-save')!.hidden = true;
+    row.querySelector<HTMLElement>('.btn-group-cancel')!.hidden = true;
+  }
+  async function saveGroup(cat: string) {
+    const row = document.querySelector<HTMLElement>(`.cat-group-row[data-cat="${cat}"]`)!;
+    const input = row.querySelector<HTMLInputElement>('.cat-group-input')!;
+    const status = row.querySelector<HTMLElement>('.group-status')!;
+    const newGroup = input.value.trim();
+    const saveBtn = row.querySelector<HTMLButtonElement>('.btn-group-save')!;
+    saveBtn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/wholesale', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-category-group', slug: cat, group: newGroup }),
+      });
+      if (!res.ok) throw new Error();
+      const textEl = row.querySelector<HTMLElement>('.cat-group-text')!;
+      const emptyEl = row.querySelector<HTMLElement>('.cat-group-empty');
+      textEl.textContent = newGroup;
+      if (emptyEl) emptyEl.hidden = !!newGroup;
+      status.textContent = 'Saved!'; status.style.color = '#3d7a6e';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+      hideGroupEdit(cat);
+    } catch {
+      status.textContent = 'Error'; status.style.color = '#b44';
+    }
+    saveBtn.disabled = false;
+  }
+  document.querySelectorAll<HTMLButtonElement>('.btn-edit-group').forEach(btn => {
+    btn.addEventListener('click', () => showGroupEdit(btn.dataset.cat!));
+  });
+  document.querySelectorAll<HTMLButtonElement>('.btn-group-save').forEach(btn => {
+    btn.addEventListener('click', () => saveGroup(btn.dataset.cat!));
+  });
+  document.querySelectorAll<HTMLButtonElement>('.btn-group-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat!;
+      const row = document.querySelector<HTMLElement>(`.cat-group-row[data-cat="${cat}"]`)!;
+      row.querySelector<HTMLInputElement>('.cat-group-input')!.value =
+        row.querySelector<HTMLElement>('.cat-group-text')!.textContent ?? '';
+      hideGroupEdit(cat);
+    });
+  });
+  document.querySelectorAll<HTMLInputElement>('.cat-group-input').forEach(input => {
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveGroup(input.dataset.cat!);
+      if (e.key === 'Escape') {
+        input.value = document.querySelector<HTMLElement>(`.cat-group-text[data-cat="${input.dataset.cat}"]`)?.textContent ?? '';
+        hideGroupEdit(input.dataset.cat!);
       }
     });
   });

@@ -4,7 +4,7 @@ import type { APIRoute } from 'astro';
 import {
   createWholesaleItem, reorderWholesaleItems, batchUpdateWholesaleItems,
   createWholesaleCategory, updateWholesaleCategoryLabel, updateWholesaleCategoryDescription,
-  deleteWholesaleCategory, reorderWholesaleCategories, syncWholesaleFromShop,
+  updateWholesaleCategoryGroup, deleteWholesaleCategory, reorderWholesaleCategories, syncWholesaleFromShop,
 } from '../../../../lib/db';
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -61,6 +61,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { slug, label } = body;
     if (!slug || !label) return new Response(JSON.stringify({ error: 'slug and label required' }), { status: 400 });
     await updateWholesaleCategoryLabel(db, String(slug), String(label).trim());
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  }
+
+  if (body.action === 'update-category-group') {
+    const { slug, group } = body;
+    if (!slug) return new Response(JSON.stringify({ error: 'slug required' }), { status: 400 });
+    await updateWholesaleCategoryGroup(db, String(slug), String(group ?? '').trim());
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }
 

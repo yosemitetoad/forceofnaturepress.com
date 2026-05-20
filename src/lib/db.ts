@@ -1224,6 +1224,7 @@ export interface WholesaleCategory {
   slug: string;
   label: string;
   description: string;
+  group: string;
   sortOrder: number;
 }
 
@@ -1416,13 +1417,17 @@ export async function batchUpdateWholesaleItems(
 
 export async function getWholesaleCategories(db: D1Database): Promise<WholesaleCategory[]> {
   const { results } = await db
-    .prepare('SELECT slug, label, description, sort_order FROM wholesale_categories ORDER BY sort_order ASC, label ASC')
-    .all<{ slug: string; label: string; description: string; sort_order: number }>();
-  return (results ?? []).map(r => ({ slug: r.slug, label: r.label, description: r.description ?? '', sortOrder: r.sort_order }));
+    .prepare('SELECT slug, label, description, cat_group, sort_order FROM wholesale_categories ORDER BY sort_order ASC, label ASC')
+    .all<{ slug: string; label: string; description: string; cat_group: string | null; sort_order: number }>();
+  return (results ?? []).map(r => ({ slug: r.slug, label: r.label, description: r.description ?? '', group: r.cat_group ?? '', sortOrder: r.sort_order }));
 }
 
 export async function updateWholesaleCategoryDescription(db: D1Database, slug: string, description: string): Promise<void> {
   await db.prepare('UPDATE wholesale_categories SET description = ? WHERE slug = ?').bind(description, slug).run();
+}
+
+export async function updateWholesaleCategoryGroup(db: D1Database, slug: string, group: string): Promise<void> {
+  await db.prepare('UPDATE wholesale_categories SET cat_group = ? WHERE slug = ?').bind(group || null, slug).run();
 }
 
 export async function createWholesaleCategory(db: D1Database, slug: string, label: string): Promise<void> {

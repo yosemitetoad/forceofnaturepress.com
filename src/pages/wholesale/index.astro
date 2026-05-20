@@ -63,6 +63,9 @@ const showWebsiteSocial = visibleFieldIds.has('website') || visibleFieldIds.has(
 const catLabelMap = new Map(wholesaleCategories.map(c => [c.slug, c.label]));
 const catOrderMap = new Map(wholesaleCategories.map(c => [c.slug, c.sortOrder]));
 const catDescMap = new Map(wholesaleCategories.map(c => [c.slug, c.description]));
+const catGroupMap = new Map(wholesaleCategories.map(c => [c.slug, c.group ?? '']));
+// Ordered unique groups (preserving first-appearance order)
+const catalogGroups = [...new Map(wholesaleCategories.filter(c => c.group).map(c => [c.group, c.group])).values()];
 const groupedItems = new Map<string, typeof items>();
 for (const item of items) {
   const cat = item.category || 'other';
@@ -140,13 +143,21 @@ function formatCat(cat: string) {
         <details class="section-details" open>
           <summary class="section-heading">Catalog</summary>
           {catalogIntro && <p class="catalog-intro">{catalogIntro}</p>}
+          {catalogGroups.length > 0 && (
+            <div class="catalog-tabs" role="tablist">
+              <button class="catalog-tab active" data-tab="all" role="tab" aria-selected="true">All</button>
+              {catalogGroups.map(g => (
+                <button class="catalog-tab" data-tab={g} role="tab" aria-selected="false">{g}</button>
+              ))}
+            </div>
+          )}
           {items.length === 0 ? (
             <p class="empty-catalog">No items available yet — check back soon.</p>
           ) : (
             sortedCats.map(cat => {
               const catItems = groupedItems.get(cat)!;
               return (
-                <details class="catalog-category" open>
+                <details class="catalog-category" open data-group={catGroupMap.get(cat) ?? ''}>
                   <summary class="category-heading">{formatCat(cat)}</summary>
                   {catDescMap.get(cat) && <p class="category-description">{catDescMap.get(cat)}</p>}
                   <div class="product-grid">
@@ -496,7 +507,15 @@ function formatCat(cat: string) {
   .terms-body :global(strong) { color: #2d1f0e; }
 
   /* Grid */
-  .catalog-intro { color: #5a3e1e; font-size: 0.95rem; margin: 0 0 1.5rem; line-height: 1.7; }
+  .catalog-intro { color: #5a3e1e; font-size: 0.95rem; margin: 0 0 1.2rem; line-height: 1.7; }
+  .catalog-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
+  .catalog-tab {
+    padding: 0.4em 1.1em; border: 2px solid #d4b896; border-radius: 999px;
+    background: transparent; color: #6b4a2a; font-family: inherit; font-weight: 700;
+    font-size: 0.85rem; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .catalog-tab:hover { background: #e4d3b8; border-color: #c8a878; }
+  .catalog-tab.active { background: #c87830; border-color: #c87830; color: #faf5ea; }
   .empty-catalog { color: #6b4a2a; font-style: italic; }
   .catalog-category { margin-bottom: 2.5rem; }
   .catalog-category:last-child { margin-bottom: 0; }
@@ -628,6 +647,21 @@ function formatCat(cat: string) {
   const modalWholesalePrice = document.getElementById('modalWholesalePrice')!;
   const modalRrp = document.getElementById('modalRrp')!;
   const modalMoq = document.getElementById('modalMoq')!;
+
+  // ── Catalog filter tabs ────────────────────────────────────────────────────
+  const catalogTabs = document.querySelectorAll<HTMLButtonElement>('.catalog-tab');
+  const catalogCategories = document.querySelectorAll<HTMLElement>('.catalog-category');
+  catalogTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      catalogTabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+      const selected = tab.dataset.tab!;
+      catalogCategories.forEach(cat => {
+        const matches = selected === 'all' || cat.dataset.group === selected;
+        cat.style.display = matches ? '' : 'none';
+      });
+    });
+  });
 
   // Order form
   const orderForm = document.getElementById('orderForm') as HTMLFormElement | null;
