@@ -8,78 +8,97 @@ const db = Astro.locals.runtime.env.DB;
 const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents(db)]);
 ---
 
-<Base title="Events — Force of Nature Press" description="Upcoming and past events for Force of Nature Press.">
-  <div class="events-page">
-    <h1>Events</h1>
-    <p class="intro">Find Force of Nature Press at markets, fairs, and festivals. Check back for updates on where we'll be next!</p>
+<Base title="Events — Force of Nature Press" description="Upcoming and past events for Force of Nature Press." fullWidth>
+  <div class="events-wrap">
+    <div class="container events-body">
 
-    <section class="event-section">
-      <h2>Upcoming Events</h2>
-      {upcoming.length === 0 ? (
-        <p class="empty">No upcoming events scheduled yet — check back soon!</p>
-      ) : (
-        <ul class="event-list">
-          {upcoming.map(e => (
-            <li class="event-card">
-              <div class="event-info">
-                <span class="event-name">
-                  {e.url ? <a href={e.url} target="_blank" rel="noopener">{e.name}</a> : e.name}
-                </span>
-                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
-                {e.location && <span class="event-location">{e.location}</span>}
-              </div>
-              <span class="event-badge upcoming">Upcoming</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+      <div class="events-box">
+        <h1>Events</h1>
+        <p class="intro">Find Force of Nature Press at markets, fairs, and festivals. Check back for updates on where we'll be next!</p>
+      </div>
 
-    <section class="event-section">
-      <h2>Past Events</h2>
-      {past.length === 0 ? (
-        <p class="empty">No past events listed yet.</p>
-      ) : (
-        <ul class="event-list">
-          {past.map(e => (
-            <li class="event-card past">
-              <div class="event-info">
-                <span class="event-name">{e.name}</span>
-                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
-                {e.location && <span class="event-location">{e.location}</span>}
-              </div>
-              <span class="event-badge past-badge">Past</span>
-            </li>
-          ))}
-        </ul>
+      <div class="events-box">
+        <h2>Upcoming Events</h2>
+        {upcoming.length === 0 ? (
+          <p class="empty">No upcoming events scheduled yet — check back soon!</p>
+        ) : (
+          <ul class="event-list">
+            {upcoming.map(e => (
+              <li class="event-card">
+                <div class="event-info">
+                  {e.url
+                    ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
+                    : <span class="event-name">{e.name}</span>
+                  }
+                  {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                  {e.location && <span class="event-location">{e.location}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {past.length > 0 && (
+        <div class="events-box past-box">
+          <h2>Past Events</h2>
+          <ul class="event-list">
+            {past.map(e => (
+              <li class="event-card">
+                <div class="event-info">
+                  {e.url
+                    ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
+                    : <span class="event-name">{e.name}</span>
+                  }
+                  {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                  {e.location && <span class="event-location">{e.location}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
-    </section>
+
+    </div>
   </div>
 </Base>
 
 <style>
-  .events-page {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem 4rem;
+  .events-wrap {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    min-height: calc(100vh - 72px - 120px);
+    padding: 2.5rem 0 4rem;
+    margin-bottom: -4rem;
   }
+
+  .events-body {
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .events-box {
+    background: rgba(240, 230, 208, 0.88);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem 2.2rem;
+  }
+
+  .past-box { opacity: 0.82; }
 
   h1 {
     font-size: 2.2rem;
     font-weight: 800;
     color: var(--brown);
-    margin: 0 0 0.6rem;
+    margin: 0 0 0.5rem;
   }
 
   .intro {
     color: var(--brown-mid);
     font-size: 1rem;
     line-height: 1.7;
-    margin: 0 0 2.5rem;
-  }
-
-  .event-section {
-    margin-bottom: 2.5rem;
+    margin: 0;
   }
 
   h2 {
@@ -106,42 +125,32 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.6rem;
   }
 
   .event-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--cream-light);
-    border: 2px solid var(--border);
+    padding: 0.85rem 1rem;
+    background: rgba(250, 245, 234, 0.7);
+    border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 1rem 1.2rem;
-    gap: 1rem;
-  }
-
-  .event-card.past {
-    opacity: 0.7;
   }
 
   .event-info {
     display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem 0.8rem;
   }
 
   .event-name {
     font-weight: 800;
     font-size: 1rem;
     color: var(--brown);
-  }
-
-  .event-name a {
-    color: var(--orange);
     text-decoration: none;
   }
-  .event-name a:hover {
-    color: var(--orange-dark);
+
+  a.event-name:hover {
+    color: var(--orange);
     text-decoration: underline;
   }
 
@@ -154,28 +163,5 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
   .event-location {
     font-size: 0.85rem;
     color: var(--brown-mid);
-  }
-
-  .event-badge {
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    padding: 0.25em 0.7em;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .event-badge.upcoming {
-    background: rgba(61, 122, 110, 0.15);
-    color: var(--teal);
-    border: 1px solid var(--teal);
-  }
-
-  .event-badge.past-badge {
-    background: var(--cream-dark);
-    color: var(--brown-mid);
-    border: 1px solid var(--border);
   }
 </style>
