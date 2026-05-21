@@ -21,7 +21,7 @@ const infoActive = isActive('/about') || isActive('/events');
 
     <nav class="nav-right" aria-label="Main navigation right">
       <div class:list={['nav-dropdown', { active: infoActive }]}>
-        <button class="nav-link dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+        <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
           Info <span class="dropdown-arrow">▾</span>
         </button>
         <div class="dropdown-menu" role="menu">
@@ -63,9 +63,14 @@ const infoActive = isActive('/about') || isActive('/events');
     const path = window.location.pathname;
     document.querySelectorAll('.nav-link, .mobile-link').forEach(link => {
       const href = link.getAttribute('href') || '';
+      if (!href) return;
       const isActive = href === '/' ? path === '/' : path.startsWith(href);
       link.classList.toggle('active', isActive);
     });
+    const dropdown = document.querySelector('.nav-dropdown');
+    if (dropdown) {
+      dropdown.classList.toggle('active', path.startsWith('/about') || path.startsWith('/events'));
+    }
   }
   document.addEventListener('astro:after-swap', updateActiveNav);
 </script>
@@ -240,6 +245,14 @@ const infoActive = isActive('/about') || isActive('/events');
     box-shadow: 0 4px 14px var(--shadow);
     z-index: 200;
     flex-direction: column;
+  }
+  .dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 0;
+    right: 0;
+    height: 12px;
   }
   .nav-dropdown:hover .dropdown-menu,
   .nav-dropdown:focus-within .dropdown-menu {
