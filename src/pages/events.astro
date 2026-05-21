@@ -9,105 +9,94 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
 ---
 
 <Base title="Events — Force of Nature Press" description="Upcoming and past events for Force of Nature Press." fullWidth>
-  <div class="events-wrap">
-    <div class="container events-body">
 
-      <div class="events-box">
-        <h1>Events</h1>
-        <p class="intro">Find Force of Nature Press at markets, fairs, and festivals. Check back for updates on where we'll be next!</p>
-      </div>
-
-      <div class="events-box">
-        <h2>Upcoming Events</h2>
-        {upcoming.length === 0 ? (
-          <p class="empty">No upcoming events scheduled yet — check back soon!</p>
-        ) : (
-          <ul class="event-list">
-            {upcoming.map(e => (
-              <li class="event-card">
-                <div class="event-info">
-                  {e.url
-                    ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
-                    : <span class="event-name">{e.name}</span>
-                  }
-                  {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
-                  {e.location && <span class="event-location">{e.location}</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {past.length > 0 && (
-        <div class="events-box past-box">
-          <h2>Past Events</h2>
-          <ul class="event-list">
-            {past.map(e => (
-              <li class="event-card">
-                <div class="event-info">
-                  {e.url
-                    ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
-                    : <span class="event-name">{e.name}</span>
-                  }
-                  {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
-                  {e.location && <span class="event-location">{e.location}</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
+  <div class="events-header">
+    <div class="container">
+      <h1>Events</h1>
+      <p>Find Force of Nature Press at markets, fairs, and festivals. Check back for updates on where we'll be next!</p>
     </div>
   </div>
+
+  <div class="container events-body">
+
+    <section class="events-section">
+      <h2>Upcoming Events</h2>
+      {upcoming.length === 0 ? (
+        <p class="empty">No upcoming events scheduled yet — check back soon!</p>
+      ) : (
+        <ul class="event-list">
+          {upcoming.map(e => (
+            <li class="event-card">
+              <div class="event-info">
+                {e.url
+                  ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
+                  : <span class="event-name">{e.name}</span>
+                }
+                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                {e.location && <span class="event-location">{e.location}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    {past.length > 0 && (
+      <section class="events-section past-section">
+        <h2>Past Events</h2>
+        <ul class="event-list">
+          {past.map(e => (
+            <li class="event-card past-card">
+              <div class="event-info">
+                {e.url
+                  ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
+                  : <span class="event-name">{e.name}</span>
+                }
+                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                {e.location && <span class="event-location">{e.location}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+  </div>
+
 </Base>
 
 <style>
-  .events-wrap {
+  .events-header {
     background: url('/plainstarbanner.webp') center / cover no-repeat;
-    min-height: calc(100vh - 72px - 120px);
-    padding: 2.5rem 0 4rem;
-    margin-bottom: -4rem;
+    border-bottom: 2px solid var(--border);
+    padding: 2.5rem 0 1.5rem;
+    position: relative;
   }
+  .events-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(250, 245, 234, 0.75);
+  }
+  .events-header .container { position: relative; }
+  .events-header h1 { margin-bottom: 0.3em; }
+  .events-header p { color: var(--brown-mid); margin: 0; }
 
   .events-body {
-    max-width: 700px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 5rem;
+    max-width: 720px;
   }
 
-  .events-box {
-    background: rgba(240, 230, 208, 0.88);
-    border: 2px solid var(--border);
-    border-radius: 14px;
-    padding: 2rem 2.2rem;
-  }
-
-  .past-box { opacity: 0.82; }
-
-  h1 {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: var(--brown);
-    margin: 0 0 0.5rem;
-  }
-
-  .intro {
-    color: var(--brown-mid);
-    font-size: 1rem;
-    line-height: 1.7;
-    margin: 0;
-  }
+  .events-section { margin-bottom: 2.5rem; }
 
   h2 {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     color: var(--brown-mid);
-    margin: 0 0 1rem;
+    margin: 0 0 0.9rem;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid var(--border);
   }
@@ -129,17 +118,24 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
   }
 
   .event-card {
-    padding: 0.85rem 1rem;
-    background: rgba(250, 245, 234, 0.7);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    background: var(--cream-light);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem 1.2rem;
+    transition: border-color 0.15s;
   }
+
+  .event-card:has(a.event-name):hover {
+    border-color: var(--orange);
+  }
+
+  .past-card { opacity: 0.65; }
 
   .event-info {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.3rem 0.8rem;
+    gap: 0.25rem 0.8rem;
   }
 
   .event-name {
