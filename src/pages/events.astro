@@ -1,13 +1,11 @@
 ---
+export const prerender = false;
+
 import Base from '../layouts/Base.astro';
+import { getUpcomingEvents, getPastEvents } from '../lib/db';
 
-const upcoming = [
-  // { name: 'Example Market', date: 'June 14, 2026', location: 'Portland, OR', url: 'https://example.com' },
-];
-
-const past = [
-  // { name: 'Example Festival', date: 'March 2, 2025', location: 'Seattle, WA' },
-];
+const db = Astro.locals.runtime.env.DB;
+const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents(db)]);
 ---
 
 <Base title="Events — Force of Nature Press" description="Upcoming and past events for Force of Nature Press.">
@@ -24,9 +22,11 @@ const past = [
           {upcoming.map(e => (
             <li class="event-card">
               <div class="event-info">
-                <span class="event-name">{e.url ? <a href={e.url} target="_blank" rel="noopener">{e.name}</a> : e.name}</span>
-                <span class="event-date">{e.date}</span>
-                <span class="event-location">{e.location}</span>
+                <span class="event-name">
+                  {e.url ? <a href={e.url} target="_blank" rel="noopener">{e.name}</a> : e.name}
+                </span>
+                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                {e.location && <span class="event-location">{e.location}</span>}
               </div>
               <span class="event-badge upcoming">Upcoming</span>
             </li>
@@ -45,8 +45,8 @@ const past = [
             <li class="event-card past">
               <div class="event-info">
                 <span class="event-name">{e.name}</span>
-                <span class="event-date">{e.date}</span>
-                <span class="event-location">{e.location}</span>
+                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                {e.location && <span class="event-location">{e.location}</span>}
               </div>
               <span class="event-badge past-badge">Past</span>
             </li>

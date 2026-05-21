@@ -1463,3 +1463,105 @@ export async function reorderWholesaleCategories(db: D1Database, slugs: string[]
   );
   await db.batch(stmts);
 }
+
+// ── Events ────────────────────────────────────────────────────────────────────
+
+export interface Event {
+  id: number;
+  name: string;
+  dateLabel: string;
+  location: string;
+  url: string | null;
+  isUpcoming: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+interface EventRow {
+  id: number;
+  name: string;
+  date_label: string;
+  location: string;
+  url: string | null;
+  is_upcoming: number;
+  sort_order: number;
+  created_at: string;
+}
+
+function rowToEvent(row: EventRow): Event {
+  return {
+    id: row.id,
+    name: row.name,
+    dateLabel: row.date_label,
+    location: row.location,
+    url: row.url,
+    isUpcoming: row.is_upcoming === 1,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getAllEvents(db: D1Database): Promise<Event[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM events ORDER BY is_upcoming DESC, sort_order ASC, id ASC')
+    .all<EventRow>();
+  return (results ?? []).map(rowToEvent);
+}
+
+export async function getUpcomingEvents(db: D1Database): Promise<Event[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM events WHERE is_upcoming = 1 ORDER BY sort_order ASC, id ASC')
+    .all<EventRow>();
+  return (results ?? []).map(rowToEvent);
+}
+
+export async function getPastEvents(db: D1Database): Promise<Event[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM events WHERE is_upcoming = 0 ORDER BY sort_order ASC, id ASC')
+    .all<EventRow>();
+  return (results ?? []).map(rowToEvent);
+}
+
+export async function createEvent(
+  db: D1Database,
+  data: { name: string; dateLabel: string; location: string; url: string | null; isUpcoming: boolean }
+): Promise<number> {
+  const maxRow = await db
+    .prepare('SELECT MAX(sort_order) as m FROM events WHERE is_upcoming = ?')
+    .bind(data.isUpcoming ? 1 : 0)
+    .first<{ m: number | null }>();
+  const sortOrder = (maxRow?.m ?? 0) + 1;
+  const result = await db
+    .prepare('INSERT INTO events (name, date_label, location, url, is_upcoming, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(data.name, data.dateLabel, data.location, data.url, data.isUpcoming ? 1 : 0, sortOrder)
+    .run();
+  return result.meta.last_row_id as number;
+}
+
+export async function updateEvent(
+  db: D1Database,
+  id: number,
+  data: Partial<{ name: string; dateLabel: string; location: string; url: string | null; isUpcoming: boolean }>
+): Promise<void> {
+  const sets: string[] = [];
+  const vals: unknown[] = [];
+  if (data.name !== undefined) { sets.push('name = ?'); vals.push(data.name); }
+  if (data.dateLabel !== undefined) { sets.push('date_label = ?'); vals.push(data.dateLabel); }
+  if (data.location !== undefined) { sets.push('location = ?'); vals.push(data.location); }
+  if (data.url !== undefined) { sets.push('url = ?'); vals.push(data.url || null); }
+  if (data.isUpcoming !== undefined) { sets.push('is_upcoming = ?'); vals.push(data.isUpcoming ? 1 : 0); }
+  if (sets.length === 0) return;
+  vals.push(id);
+  await db.prepare(`UPDATE events SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();
+}
+
+export async function deleteEvent(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM events WHERE id = ?').bind(id).run();
+}
+
+export async function reorderEvents(db: D1Database, ids: number[]): Promise<void> {
+  const stmts = ids.map((id, i) =>
+    db.prepare('UPDATE events SET sort_order = ? WHERE id = ?').bind(i + 1, id)
+  );
+  await db.batch(stmts);
+}

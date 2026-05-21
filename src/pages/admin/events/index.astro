@@ -1,0 +1,328 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAllEvents } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const events = await getAllEvents(db);
+const upcoming = events.filter(e => e.isUpcoming);
+const past = events.filter(e => !e.isUpcoming);
+---
+
+<Admin title="Events">
+  <div class="page-header">
+    <h1>Events</h1>
+    <div class="header-actions">
+      <a href="/events" target="_blank" class="btn btn-outline">View Page &nearr;</a>
+      <button class="btn btn-primary" id="addBtn">+ Add Event</button>
+    </div>
+  </div>
+
+  <!-- Add / Edit form (hidden by default) -->
+  <div class="event-form-wrap" id="formWrap" hidden>
+    <form id="eventForm" class="event-form">
+      <input type="hidden" name="id" id="formId" />
+      <h2 id="formTitle">Add Event</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="formName">Event name *</label>
+          <input type="text" id="formName" name="name" required placeholder="e.g. Portland Saturday Market" />
+        </div>
+        <div class="field">
+          <label for="formDate">Date</label>
+          <input type="text" id="formDate" name="dateLabel" placeholder="e.g. June 14, 2026" />
+        </div>
+        <div class="field">
+          <label for="formLocation">Location</label>
+          <input type="text" id="formLocation" name="location" placeholder="e.g. Portland, OR" />
+        </div>
+        <div class="field">
+          <label for="formUrl">Link URL (optional)</label>
+          <input type="url" id="formUrl" name="url" placeholder="https://..." />
+        </div>
+        <div class="field field-check">
+          <label class="check-label">
+            <input type="checkbox" id="formUpcoming" name="isUpcoming" checked />
+            Mark as upcoming (uncheck for past)
+          </label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveBtn">Save Event</button>
+        <span class="form-status" id="formStatus"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Upcoming events -->
+  <section class="events-section">
+    <h2>Upcoming Events <span class="count">{upcoming.length}</span></h2>
+    <div class="event-list" id="upcomingList" data-section="upcoming">
+      {upcoming.length === 0 && <p class="empty">No upcoming events yet.</p>}
+      {upcoming.map(e => (
+        <div class="event-row" data-id={e.id} draggable="true">
+          <span class="drag-handle" aria-hidden="true">⠿</span>
+          <div class="event-info">
+            <span class="event-name">{e.name}</span>
+            {e.dateLabel && <span class="event-meta">{e.dateLabel}</span>}
+            {e.location && <span class="event-meta">{e.location}</span>}
+            {e.url && <span class="event-meta event-url">{e.url}</span>}
+          </div>
+          <div class="event-actions">
+            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-url={e.url ?? ''} data-upcoming="true">Edit</button>
+            <button class="action-btn move-btn" data-id={e.id} data-upcoming="true">Move to Past</button>
+            <button class="action-btn delete-btn" data-id={e.id}>Delete</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- Past events -->
+  <section class="events-section">
+    <h2>Past Events <span class="count">{past.length}</span></h2>
+    <div class="event-list" id="pastList" data-section="past">
+      {past.length === 0 && <p class="empty">No past events yet.</p>}
+      {past.map(e => (
+        <div class="event-row" data-id={e.id} draggable="true">
+          <span class="drag-handle" aria-hidden="true">⠿</span>
+          <div class="event-info">
+            <span class="event-name">{e.name}</span>
+            {e.dateLabel && <span class="event-meta">{e.dateLabel}</span>}
+            {e.location && <span class="event-meta">{e.location}</span>}
+            {e.url && <span class="event-meta event-url">{e.url}</span>}
+          </div>
+          <div class="event-actions">
+            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-url={e.url ?? ''} data-upcoming="false">Edit</button>
+            <button class="action-btn move-btn" data-id={e.id} data-upcoming="false">Move to Upcoming</button>
+            <button class="action-btn delete-btn" data-id={e.id}>Delete</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .header-actions { display: flex; gap: 0.6rem; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; border: none; text-decoration: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+
+  /* Form */
+  .event-form-wrap { background: #faf5ea; border: 2px solid #c87830; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .event-form-wrap[hidden] { display: none; }
+  h2 { font-size: 1.2rem; font-weight: 800; margin: 0 0 1rem; color: #2d1f0e; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .field-check { justify-content: flex-end; }
+  .field label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; }
+  .field input[type="text"], .field input[type="url"] {
+    padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+  }
+  .field input:focus { border-color: #c87830; outline: none; }
+  .check-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #2d1f0e; cursor: pointer; }
+  .form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; }
+  .form-status { font-size: 0.88rem; font-weight: 700; }
+  .form-status.success { color: #3d7a6e; }
+  .form-status.error { color: #b44; }
+
+  /* Sections */
+  .events-section { margin-bottom: 2rem; }
+  .events-section h2 { display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+  .count { background: #d4b896; color: #2d1f0e; font-size: 0.75rem; font-weight: 800; border-radius: 20px; padding: 0.1em 0.6em; }
+
+  .event-list { display: flex; flex-direction: column; gap: 0.5rem; min-height: 2rem; }
+  .empty { color: #6b4a2a; font-size: 0.9rem; font-style: italic; margin: 0; }
+
+  .event-row {
+    display: flex; align-items: center; gap: 0.8rem;
+    background: #faf5ea; border: 2px solid #d4b896; border-radius: 8px; padding: 0.7rem 1rem;
+    cursor: grab;
+  }
+  .event-row.dragging { opacity: 0.4; }
+  .event-row.drag-over { border-color: #c87830; background: rgba(200,120,48,0.08); }
+
+  .drag-handle { color: #a08060; font-size: 1.1rem; cursor: grab; flex-shrink: 0; }
+  .event-info { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; min-width: 0; }
+  .event-name { font-weight: 800; font-size: 0.95rem; color: #2d1f0e; }
+  .event-meta { font-size: 0.82rem; color: #6b4a2a; }
+  .event-url { color: #5b5b9e; word-break: break-all; }
+
+  .event-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+  .action-btn { padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: 1px solid #d4b896; background: transparent; color: #2d1f0e; white-space: nowrap; }
+  .action-btn:hover { background: #e4d3b8; }
+  .delete-btn { border-color: #c9a0a0; color: #b44; }
+  .delete-btn:hover { background: #f8e8e8; }
+</style>
+
+<script>
+  const API = '/api/admin/events';
+
+  // ── Form ────────────────────────────────────────────────────────────────────
+  const formWrap = document.getElementById('formWrap')!;
+  const form = document.getElementById('eventForm') as HTMLFormElement;
+  const formTitle = document.getElementById('formTitle')!;
+  const formId = document.getElementById('formId') as HTMLInputElement;
+  const formName = document.getElementById('formName') as HTMLInputElement;
+  const formDate = document.getElementById('formDate') as HTMLInputElement;
+  const formLocation = document.getElementById('formLocation') as HTMLInputElement;
+  const formUrl = document.getElementById('formUrl') as HTMLInputElement;
+  const formUpcoming = document.getElementById('formUpcoming') as HTMLInputElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const formStatus = document.getElementById('formStatus')!;
+
+  function openForm(data?: { id: string; name: string; date: string; location: string; url: string; upcoming: string }) {
+    formId.value = data?.id ?? '';
+    formName.value = data?.name ?? '';
+    formDate.value = data?.date ?? '';
+    formLocation.value = data?.location ?? '';
+    formUrl.value = data?.url ?? '';
+    formUpcoming.checked = data ? data.upcoming === 'true' : true;
+    formTitle.textContent = data ? 'Edit Event' : 'Add Event';
+    formStatus.textContent = '';
+    formStatus.className = 'form-status';
+    formWrap.removeAttribute('hidden');
+    formName.focus();
+    formWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeForm() {
+    formWrap.setAttribute('hidden', '');
+    form.reset();
+    formId.value = '';
+  }
+
+  document.getElementById('addBtn')?.addEventListener('click', () => openForm());
+  document.getElementById('cancelBtn')?.addEventListener('click', closeForm);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    formStatus.textContent = 'Saving...';
+    formStatus.className = 'form-status';
+
+    const id = formId.value;
+    const body = {
+      action: id ? 'update' : 'create',
+      ...(id ? { id: Number(id) } : {}),
+      name: formName.value.trim(),
+      dateLabel: formDate.value.trim(),
+      location: formLocation.value.trim(),
+      url: formUrl.value.trim() || null,
+      isUpcoming: formUpcoming.checked,
+    };
+
+    try {
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error();
+      formStatus.textContent = 'Saved!';
+      formStatus.className = 'form-status success';
+      setTimeout(() => location.reload(), 600);
+    } catch {
+      formStatus.textContent = 'Error saving.';
+      formStatus.className = 'form-status error';
+      saveBtn.disabled = false;
+    }
+  });
+
+  // ── Edit / Move / Delete buttons ────────────────────────────────────────────
+  document.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+
+    if (target.classList.contains('edit-btn')) {
+      openForm({
+        id: target.dataset.id!,
+        name: target.dataset.name!,
+        date: target.dataset.date!,
+        location: target.dataset.location!,
+        url: target.dataset.url!,
+        upcoming: target.dataset.upcoming!,
+      });
+      return;
+    }
+
+    if (target.classList.contains('move-btn')) {
+      const id = Number(target.dataset.id);
+      const currentlyUpcoming = target.dataset.upcoming === 'true';
+      target.disabled = true;
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update', id, isUpcoming: !currentlyUpcoming }),
+        });
+        if (!res.ok) throw new Error();
+        location.reload();
+      } catch {
+        alert('Error moving event. Please try again.');
+        (target as HTMLButtonElement).disabled = false;
+      }
+      return;
+    }
+
+    if (target.classList.contains('delete-btn')) {
+      const row = target.closest('.event-row') as HTMLElement;
+      const name = row?.querySelector('.event-name')?.textContent ?? 'this event';
+      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      target.disabled = true;
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', id: Number(target.dataset.id) }),
+        });
+        if (!res.ok) throw new Error();
+        row?.remove();
+      } catch {
+        alert('Error deleting. Please try again.');
+        (target as HTMLButtonElement).disabled = false;
+      }
+    }
+  });
+
+  // ── Drag-to-reorder ────────────────────────────────────────────────────────
+  let dragSrc: HTMLElement | null = null;
+
+  document.querySelectorAll('.event-list').forEach(list => {
+    list.addEventListener('dragstart', (e) => {
+      dragSrc = (e.target as HTMLElement).closest('.event-row');
+      dragSrc?.classList.add('dragging');
+    });
+    list.addEventListener('dragend', () => {
+      dragSrc?.classList.remove('dragging');
+      list.querySelectorAll('.event-row').forEach(r => r.classList.remove('drag-over'));
+    });
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const over = (e.target as HTMLElement).closest('.event-row') as HTMLElement | null;
+      if (!over || over === dragSrc) return;
+      list.querySelectorAll('.event-row').forEach(r => r.classList.remove('drag-over'));
+      over.classList.add('drag-over');
+      const rows = [...list.querySelectorAll('.event-row')];
+      const srcIdx = rows.indexOf(dragSrc!);
+      const overIdx = rows.indexOf(over);
+      if (srcIdx < overIdx) over.after(dragSrc!);
+      else over.before(dragSrc!);
+    });
+    list.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      list.querySelectorAll('.event-row').forEach(r => r.classList.remove('drag-over'));
+      const ids = [...list.querySelectorAll('.event-row')].map(r => Number((r as HTMLElement).dataset.id));
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', ids }),
+      });
+    });
+  });
+</script>
