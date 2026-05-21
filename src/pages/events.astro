@@ -1,0 +1,181 @@
+---
+import Base from '../layouts/Base.astro';
+
+const upcoming = [
+  // { name: 'Example Market', date: 'June 14, 2026', location: 'Portland, OR', url: 'https://example.com' },
+];
+
+const past = [
+  // { name: 'Example Festival', date: 'March 2, 2025', location: 'Seattle, WA' },
+];
+---
+
+<Base title="Events — Force of Nature Press" description="Upcoming and past events for Force of Nature Press.">
+  <div class="events-page">
+    <h1>Events</h1>
+    <p class="intro">Find Force of Nature Press at markets, fairs, and festivals. Check back for updates on where we'll be next!</p>
+
+    <section class="event-section">
+      <h2>Upcoming Events</h2>
+      {upcoming.length === 0 ? (
+        <p class="empty">No upcoming events scheduled yet — check back soon!</p>
+      ) : (
+        <ul class="event-list">
+          {upcoming.map(e => (
+            <li class="event-card">
+              <div class="event-info">
+                <span class="event-name">{e.url ? <a href={e.url} target="_blank" rel="noopener">{e.name}</a> : e.name}</span>
+                <span class="event-date">{e.date}</span>
+                <span class="event-location">{e.location}</span>
+              </div>
+              <span class="event-badge upcoming">Upcoming</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section class="event-section">
+      <h2>Past Events</h2>
+      {past.length === 0 ? (
+        <p class="empty">No past events listed yet.</p>
+      ) : (
+        <ul class="event-list">
+          {past.map(e => (
+            <li class="event-card past">
+              <div class="event-info">
+                <span class="event-name">{e.name}</span>
+                <span class="event-date">{e.date}</span>
+                <span class="event-location">{e.location}</span>
+              </div>
+              <span class="event-badge past-badge">Past</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>
+</Base>
+
+<style>
+  .events-page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--brown);
+    margin: 0 0 0.6rem;
+  }
+
+  .intro {
+    color: var(--brown-mid);
+    font-size: 1rem;
+    line-height: 1.7;
+    margin: 0 0 2.5rem;
+  }
+
+  .event-section {
+    margin-bottom: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brown-mid);
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .empty {
+    color: var(--brown-mid);
+    font-size: 0.95rem;
+    font-style: italic;
+    margin: 0;
+  }
+
+  .event-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .event-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--cream-light);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    gap: 1rem;
+  }
+
+  .event-card.past {
+    opacity: 0.7;
+  }
+
+  .event-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .event-name {
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--brown);
+  }
+
+  .event-name a {
+    color: var(--orange);
+    text-decoration: none;
+  }
+  .event-name a:hover {
+    color: var(--orange-dark);
+    text-decoration: underline;
+  }
+
+  .event-date {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--orange);
+  }
+
+  .event-location {
+    font-size: 0.85rem;
+    color: var(--brown-mid);
+  }
+
+  .event-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 0.25em 0.7em;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .event-badge.upcoming {
+    background: rgba(61, 122, 110, 0.15);
+    color: var(--teal);
+    border: 1px solid var(--teal);
+  }
+
+  .event-badge.past-badge {
+    background: var(--cream-dark);
+    color: var(--brown-mid);
+    border: 1px solid var(--border);
+  }
+</style>
