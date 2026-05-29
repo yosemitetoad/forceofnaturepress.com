@@ -1471,6 +1471,7 @@ export interface Event {
   name: string;
   dateLabel: string;
   location: string;
+  description: string;
   url: string | null;
   isUpcoming: boolean;
   sortOrder: number;
@@ -1482,6 +1483,7 @@ interface EventRow {
   name: string;
   date_label: string;
   location: string;
+  description: string;
   url: string | null;
   is_upcoming: number;
   sort_order: number;
@@ -1494,6 +1496,7 @@ function rowToEvent(row: EventRow): Event {
     name: row.name,
     dateLabel: row.date_label,
     location: row.location,
+    description: row.description ?? '',
     url: row.url,
     isUpcoming: row.is_upcoming === 1,
     sortOrder: row.sort_order,
@@ -1524,7 +1527,7 @@ export async function getPastEvents(db: D1Database): Promise<Event[]> {
 
 export async function createEvent(
   db: D1Database,
-  data: { name: string; dateLabel: string; location: string; url: string | null; isUpcoming: boolean }
+  data: { name: string; dateLabel: string; location: string; description: string; url: string | null; isUpcoming: boolean }
 ): Promise<number> {
   const maxRow = await db
     .prepare('SELECT MAX(sort_order) as m FROM events WHERE is_upcoming = ?')
@@ -1532,8 +1535,8 @@ export async function createEvent(
     .first<{ m: number | null }>();
   const sortOrder = (maxRow?.m ?? 0) + 1;
   const result = await db
-    .prepare('INSERT INTO events (name, date_label, location, url, is_upcoming, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(data.name, data.dateLabel, data.location, data.url, data.isUpcoming ? 1 : 0, sortOrder)
+    .prepare('INSERT INTO events (name, date_label, location, description, url, is_upcoming, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(data.name, data.dateLabel, data.location, data.description, data.url, data.isUpcoming ? 1 : 0, sortOrder)
     .run();
   return result.meta.last_row_id as number;
 }
@@ -1541,13 +1544,14 @@ export async function createEvent(
 export async function updateEvent(
   db: D1Database,
   id: number,
-  data: Partial<{ name: string; dateLabel: string; location: string; url: string | null; isUpcoming: boolean }>
+  data: Partial<{ name: string; dateLabel: string; location: string; description: string; url: string | null; isUpcoming: boolean }>
 ): Promise<void> {
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (data.name !== undefined) { sets.push('name = ?'); vals.push(data.name); }
   if (data.dateLabel !== undefined) { sets.push('date_label = ?'); vals.push(data.dateLabel); }
   if (data.location !== undefined) { sets.push('location = ?'); vals.push(data.location); }
+  if (data.description !== undefined) { sets.push('description = ?'); vals.push(data.description); }
   if (data.url !== undefined) { sets.push('url = ?'); vals.push(data.url || null); }
   if (data.isUpcoming !== undefined) { sets.push('is_upcoming = ?'); vals.push(data.isUpcoming ? 1 : 0); }
   if (sets.length === 0) return;

@@ -41,6 +41,10 @@ const past = events.filter(e => !e.isUpcoming);
           <label for="formUrl">Link URL (optional)</label>
           <input type="url" id="formUrl" name="url" placeholder="https://..." />
         </div>
+        <div class="field field-full">
+          <label for="formDesc">Details (optional)</label>
+          <textarea id="formDesc" name="description" rows="2" placeholder="e.g. Booth #42, free entry, indoor market"></textarea>
+        </div>
         <div class="field field-check">
           <label class="check-label">
             <input type="checkbox" id="formUpcoming" name="isUpcoming" checked />
@@ -71,7 +75,7 @@ const past = events.filter(e => !e.isUpcoming);
             {e.url && <span class="event-meta event-url">{e.url}</span>}
           </div>
           <div class="event-actions">
-            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-url={e.url ?? ''} data-upcoming="true">Edit</button>
+            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-description={e.description} data-url={e.url ?? ''} data-upcoming="true">Edit</button>
             <button class="action-btn move-btn" data-id={e.id} data-upcoming="true">Move to Past</button>
             <button class="action-btn delete-btn" data-id={e.id}>Delete</button>
           </div>
@@ -95,7 +99,7 @@ const past = events.filter(e => !e.isUpcoming);
             {e.url && <span class="event-meta event-url">{e.url}</span>}
           </div>
           <div class="event-actions">
-            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-url={e.url ?? ''} data-upcoming="false">Edit</button>
+            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-description={e.description} data-url={e.url ?? ''} data-upcoming="false">Edit</button>
             <button class="action-btn move-btn" data-id={e.id} data-upcoming="false">Move to Upcoming</button>
             <button class="action-btn delete-btn" data-id={e.id}>Delete</button>
           </div>
@@ -125,6 +129,13 @@ const past = events.filter(e => !e.isUpcoming);
   .field { display: flex; flex-direction: column; gap: 0.25rem; }
   .field-check { justify-content: flex-end; }
   .field label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; }
+  .field-full { grid-column: 1 / -1; }
+  .field textarea {
+    padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+    resize: vertical; width: 100%; box-sizing: border-box;
+  }
+  .field textarea:focus { border-color: #c87830; outline: none; }
   .field input[type="text"], .field input[type="url"] {
     padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
@@ -177,15 +188,17 @@ const past = events.filter(e => !e.isUpcoming);
   const formDate = document.getElementById('formDate') as HTMLInputElement;
   const formLocation = document.getElementById('formLocation') as HTMLInputElement;
   const formUrl = document.getElementById('formUrl') as HTMLInputElement;
+  const formDesc = document.getElementById('formDesc') as HTMLTextAreaElement;
   const formUpcoming = document.getElementById('formUpcoming') as HTMLInputElement;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   const formStatus = document.getElementById('formStatus')!;
 
-  function openForm(data?: { id: string; name: string; date: string; location: string; url: string; upcoming: string }) {
+  function openForm(data?: { id: string; name: string; date: string; location: string; description: string; url: string; upcoming: string }) {
     formId.value = data?.id ?? '';
     formName.value = data?.name ?? '';
     formDate.value = data?.date ?? '';
     formLocation.value = data?.location ?? '';
+    formDesc.value = data?.description ?? '';
     formUrl.value = data?.url ?? '';
     formUpcoming.checked = data ? data.upcoming === 'true' : true;
     formTitle.textContent = data ? 'Edit Event' : 'Add Event';
@@ -218,6 +231,7 @@ const past = events.filter(e => !e.isUpcoming);
       name: formName.value.trim(),
       dateLabel: formDate.value.trim(),
       location: formLocation.value.trim(),
+      description: formDesc.value.trim(),
       url: formUrl.value.trim() || null,
       isUpcoming: formUpcoming.checked,
     };
@@ -245,6 +259,7 @@ const past = events.filter(e => !e.isUpcoming);
         name: target.dataset.name!,
         date: target.dataset.date!,
         location: target.dataset.location!,
+        description: target.dataset.description!,
         url: target.dataset.url!,
         upcoming: target.dataset.upcoming!,
       });

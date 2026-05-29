@@ -35,6 +35,7 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
                 {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
                 {e.location && <span class="event-location">{e.location}</span>}
               </div>
+              {e.description && <p class="event-description">{e.description}</p>}
             </li>
           ))}
         </ul>
@@ -55,6 +56,7 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
                 {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
                 {e.location && <span class="event-location">{e.location}</span>}
               </div>
+              {e.description && <p class="event-description">{e.description}</p>}
             </li>
           ))}
         </ul>
@@ -159,5 +161,12 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
   .event-location {
     font-size: 0.85rem;
     color: var(--brown-mid);
+  }
+
+  .event-description {
+    margin: 0.45rem 0 0;
+    font-size: 0.88rem;
+    color: var(--brown-mid);
+    line-height: 1.5;
   }
 </style>

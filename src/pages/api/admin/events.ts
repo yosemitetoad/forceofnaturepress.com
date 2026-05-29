@@ -18,6 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       name,
       dateLabel: String(body.dateLabel ?? '').trim(),
       location: String(body.location ?? '').trim(),
+      description: String(body.description ?? '').trim(),
       url: String(body.url ?? '').trim() || null,
       isUpcoming: body.isUpcoming !== false,
     });
@@ -31,6 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (body.name !== undefined) fields.name = String(body.name).trim();
     if (body.dateLabel !== undefined) fields.dateLabel = String(body.dateLabel).trim();
     if (body.location !== undefined) fields.location = String(body.location).trim();
+    if (body.description !== undefined) fields.description = String(body.description).trim();
     if (body.url !== undefined) fields.url = String(body.url).trim() || null;
     if (body.isUpcoming !== undefined) fields.isUpcoming = Boolean(body.isUpcoming);
     await updateEvent(db, id, fields);
