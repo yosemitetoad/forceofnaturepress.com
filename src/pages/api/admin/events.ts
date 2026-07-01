@@ -17,9 +17,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const id = await createEvent(db, {
       name,
       dateLabel: String(body.dateLabel ?? '').trim(),
+      hours: String(body.hours ?? '').trim(),
       location: String(body.location ?? '').trim(),
       description: String(body.description ?? '').trim(),
       url: String(body.url ?? '').trim() || null,
+      venueType: String(body.venueType ?? '').trim(),
+      entryType: String(body.entryType ?? '').trim(),
       isUpcoming: body.isUpcoming !== false,
     });
     return new Response(JSON.stringify({ ok: true, id }), { status: 201 });
@@ -31,9 +34,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const fields: Parameters<typeof updateEvent>[2] = {};
     if (body.name !== undefined) fields.name = String(body.name).trim();
     if (body.dateLabel !== undefined) fields.dateLabel = String(body.dateLabel).trim();
+    if (body.hours !== undefined) fields.hours = String(body.hours).trim();
     if (body.location !== undefined) fields.location = String(body.location).trim();
     if (body.description !== undefined) fields.description = String(body.description).trim();
     if (body.url !== undefined) fields.url = String(body.url).trim() || null;
+    if (body.venueType !== undefined) fields.venueType = String(body.venueType).trim();
+    if (body.entryType !== undefined) fields.entryType = String(body.entryType).trim();
     if (body.isUpcoming !== undefined) fields.isUpcoming = Boolean(body.isUpcoming);
     await updateEvent(db, id, fields);
     return new Response(JSON.stringify({ ok: true }), { status: 200 });

@@ -1470,9 +1470,12 @@ export interface Event {
   id: number;
   name: string;
   dateLabel: string;
+  hours: string;
   location: string;
   description: string;
   url: string | null;
+  venueType: string;
+  entryType: string;
   isUpcoming: boolean;
   sortOrder: number;
   createdAt: string;
@@ -1482,9 +1485,12 @@ interface EventRow {
   id: number;
   name: string;
   date_label: string;
+  hours: string;
   location: string;
   description: string;
   url: string | null;
+  venue_type: string;
+  entry_type: string;
   is_upcoming: number;
   sort_order: number;
   created_at: string;
@@ -1495,9 +1501,12 @@ function rowToEvent(row: EventRow): Event {
     id: row.id,
     name: row.name,
     dateLabel: row.date_label,
+    hours: row.hours ?? '',
     location: row.location,
     description: row.description ?? '',
     url: row.url,
+    venueType: row.venue_type ?? '',
+    entryType: row.entry_type ?? '',
     isUpcoming: row.is_upcoming === 1,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
@@ -1527,7 +1536,7 @@ export async function getPastEvents(db: D1Database): Promise<Event[]> {
 
 export async function createEvent(
   db: D1Database,
-  data: { name: string; dateLabel: string; location: string; description: string; url: string | null; isUpcoming: boolean }
+  data: { name: string; dateLabel: string; hours: string; location: string; description: string; url: string | null; venueType: string; entryType: string; isUpcoming: boolean }
 ): Promise<number> {
   const maxRow = await db
     .prepare('SELECT MAX(sort_order) as m FROM events WHERE is_upcoming = ?')
@@ -1535,8 +1544,8 @@ export async function createEvent(
     .first<{ m: number | null }>();
   const sortOrder = (maxRow?.m ?? 0) + 1;
   const result = await db
-    .prepare('INSERT INTO events (name, date_label, location, description, url, is_upcoming, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(data.name, data.dateLabel, data.location, data.description, data.url, data.isUpcoming ? 1 : 0, sortOrder)
+    .prepare('INSERT INTO events (name, date_label, hours, location, description, url, venue_type, entry_type, is_upcoming, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(data.name, data.dateLabel, data.hours, data.location, data.description, data.url, data.venueType, data.entryType, data.isUpcoming ? 1 : 0, sortOrder)
     .run();
   return result.meta.last_row_id as number;
 }
@@ -1544,15 +1553,18 @@ export async function createEvent(
 export async function updateEvent(
   db: D1Database,
   id: number,
-  data: Partial<{ name: string; dateLabel: string; location: string; description: string; url: string | null; isUpcoming: boolean }>
+  data: Partial<{ name: string; dateLabel: string; hours: string; location: string; description: string; url: string | null; venueType: string; entryType: string; isUpcoming: boolean }>
 ): Promise<void> {
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (data.name !== undefined) { sets.push('name = ?'); vals.push(data.name); }
   if (data.dateLabel !== undefined) { sets.push('date_label = ?'); vals.push(data.dateLabel); }
+  if (data.hours !== undefined) { sets.push('hours = ?'); vals.push(data.hours); }
   if (data.location !== undefined) { sets.push('location = ?'); vals.push(data.location); }
   if (data.description !== undefined) { sets.push('description = ?'); vals.push(data.description); }
   if (data.url !== undefined) { sets.push('url = ?'); vals.push(data.url || null); }
+  if (data.venueType !== undefined) { sets.push('venue_type = ?'); vals.push(data.venueType); }
+  if (data.entryType !== undefined) { sets.push('entry_type = ?'); vals.push(data.entryType); }
   if (data.isUpcoming !== undefined) { sets.push('is_upcoming = ?'); vals.push(data.isUpcoming ? 1 : 0); }
   if (sets.length === 0) return;
   vals.push(id);

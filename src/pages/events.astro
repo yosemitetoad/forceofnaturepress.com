@@ -3,9 +3,18 @@ export const prerender = false;
 
 import Base from '../layouts/Base.astro';
 import { getUpcomingEvents, getPastEvents } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 const db = Astro.locals.runtime.env.DB;
-const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents(db)]);
+const [upcomingRaw, pastRaw] = await Promise.all([getUpcomingEvents(db), getPastEvents(db)]);
+
+const renderEvents = async (evts: typeof upcomingRaw) =>
+  Promise.all(evts.map(async e => ({ ...e, descHtml: e.description ? await mdInline(e.description) : '' })));
+
+const [upcoming, past] = await Promise.all([renderEvents(upcomingRaw), renderEvents(pastRaw)]);
+
+const VENUE_LABEL: Record<string, string> = { indoor: 'Indoors', outdoor: 'Outdoors', both: 'In & Outdoors' };
+const ENTRY_LABEL: Record<string, string> = { free: 'Free Entry', paid: 'Paid Entry' };
 ---
 
 <Base title="Events — Force of Nature Press" description="Upcoming and past events for Force of Nature Press." fullWidth>
@@ -27,15 +36,24 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
         <ul class="event-list">
           {upcoming.map(e => (
             <li class="event-card">
-              <div class="event-info">
-                {e.url
-                  ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
-                  : <span class="event-name">{e.name}</span>
-                }
-                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
-                {e.location && <span class="event-location">{e.location}</span>}
+              <div class="event-main">
+                <div class="event-info">
+                  {e.url
+                    ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
+                    : <span class="event-name">{e.name}</span>
+                  }
+                  {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                  {e.hours && <span class="event-hours">{e.hours}</span>}
+                  {e.location && <span class="event-location">{e.location}</span>}
+                </div>
+                {(e.venueType || e.entryType) && (
+                  <div class="event-tags">
+                    {e.venueType && VENUE_LABEL[e.venueType] && <span class="event-tag">{VENUE_LABEL[e.venueType]}</span>}
+                    {e.entryType && ENTRY_LABEL[e.entryType] && <span class={`event-tag entry-tag-${e.entryType}`}>{ENTRY_LABEL[e.entryType]}</span>}
+                  </div>
+                )}
               </div>
-              {e.description && <p class="event-description">{e.description}</p>}
+              {e.descHtml && <p class="event-description"><Fragment set:html={e.descHtml} /></p>}
             </li>
           ))}
         </ul>
@@ -48,15 +66,24 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
         <ul class="event-list">
           {past.map(e => (
             <li class="event-card past-card">
-              <div class="event-info">
-                {e.url
-                  ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
-                  : <span class="event-name">{e.name}</span>
-                }
-                {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
-                {e.location && <span class="event-location">{e.location}</span>}
+              <div class="event-main">
+                <div class="event-info">
+                  {e.url
+                    ? <a href={e.url} target="_blank" rel="noopener" class="event-name">{e.name}</a>
+                    : <span class="event-name">{e.name}</span>
+                  }
+                  {e.dateLabel && <span class="event-date">{e.dateLabel}</span>}
+                  {e.hours && <span class="event-hours">{e.hours}</span>}
+                  {e.location && <span class="event-location">{e.location}</span>}
+                </div>
+                {(e.venueType || e.entryType) && (
+                  <div class="event-tags">
+                    {e.venueType && VENUE_LABEL[e.venueType] && <span class="event-tag">{VENUE_LABEL[e.venueType]}</span>}
+                    {e.entryType && ENTRY_LABEL[e.entryType] && <span class={`event-tag entry-tag-${e.entryType}`}>{ENTRY_LABEL[e.entryType]}</span>}
+                  </div>
+                )}
               </div>
-              {e.description && <p class="event-description">{e.description}</p>}
+              {e.descHtml && <p class="event-description"><Fragment set:html={e.descHtml} /></p>}
             </li>
           ))}
         </ul>
@@ -91,6 +118,7 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
   }
 
   .events-section { margin-bottom: 2.5rem; }
+  .past-section { opacity: 0.72; }
 
   h2 {
     font-size: 1rem;
@@ -126,18 +154,21 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
     padding: 0.9rem 1.2rem;
     transition: border-color 0.15s;
   }
+  .event-card:has(a.event-name):hover { border-color: var(--orange); }
 
-  .event-card:has(a.event-name):hover {
-    border-color: var(--orange);
+  .event-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
-
-  .past-card { opacity: 0.65; }
 
   .event-info {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.25rem 0.8rem;
+    gap: 0.25rem 0.75rem;
   }
 
   .event-name {
@@ -146,11 +177,7 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
     color: var(--brown);
     text-decoration: none;
   }
-
-  a.event-name:hover {
-    color: var(--orange);
-    text-decoration: underline;
-  }
+  a.event-name:hover { color: var(--orange); text-decoration: underline; }
 
   .event-date {
     font-size: 0.88rem;
@@ -158,15 +185,45 @@ const [upcoming, past] = await Promise.all([getUpcomingEvents(db), getPastEvents
     color: var(--orange);
   }
 
+  .event-hours {
+    font-size: 0.85rem;
+    color: var(--brown-mid);
+  }
+
   .event-location {
     font-size: 0.85rem;
     color: var(--brown-mid);
   }
 
+  .event-tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .event-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2em 0.6em;
+    border-radius: 20px;
+    background: var(--cream-dark);
+    color: var(--brown-mid);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .entry-tag-free { background: rgba(61, 122, 110, 0.12); color: var(--teal); border-color: var(--teal); }
+  .entry-tag-paid { background: rgba(200, 120, 48, 0.1); color: var(--orange-dark); border-color: var(--orange); }
+
   .event-description {
-    margin: 0.45rem 0 0;
+    margin: 0.5rem 0 0;
     font-size: 0.88rem;
     color: var(--brown-mid);
-    line-height: 1.5;
+    line-height: 1.55;
   }
+  .event-description :global(a) { color: var(--teal); text-decoration: underline; }
+  .event-description :global(a:hover) { color: var(--teal-dark); }
+  .event-description :global(strong) { color: var(--brown); }
 </style>

@@ -19,38 +19,71 @@ const past = events.filter(e => !e.isUpcoming);
     </div>
   </div>
 
-  <!-- Add / Edit form (hidden by default) -->
+  <!-- Add / Edit form -->
   <div class="event-form-wrap" id="formWrap" hidden>
-    <form id="eventForm" class="event-form">
+    <form id="eventForm">
       <input type="hidden" name="id" id="formId" />
       <h2 id="formTitle">Add Event</h2>
       <div class="form-grid">
+
         <div class="field">
           <label for="formName">Event name *</label>
           <input type="text" id="formName" name="name" required placeholder="e.g. Portland Saturday Market" />
         </div>
-        <div class="field">
-          <label for="formDate">Date</label>
-          <input type="text" id="formDate" name="dateLabel" placeholder="e.g. June 14, 2026" />
-        </div>
+
         <div class="field">
           <label for="formLocation">Location</label>
           <input type="text" id="formLocation" name="location" placeholder="e.g. Portland, OR" />
         </div>
+
+        <div class="field">
+          <label for="formDate">Date</label>
+          <input type="text" id="formDate" name="dateLabel" placeholder="e.g. June 14, 2026" />
+        </div>
+
+        <div class="field">
+          <label for="formHours">Hours</label>
+          <input type="text" id="formHours" name="hours" placeholder="e.g. 10am – 5pm" />
+        </div>
+
         <div class="field">
           <label for="formUrl">Link URL (optional)</label>
           <input type="url" id="formUrl" name="url" placeholder="https://..." />
         </div>
-        <div class="field field-full">
-          <label for="formDesc">Details (optional)</label>
-          <textarea id="formDesc" name="description" rows="2" placeholder="e.g. Booth #42, free entry, indoor market"></textarea>
+
+        <div class="field toggles-field">
+          <label>Venue</label>
+          <div class="toggle-group" id="venueToggle">
+            <button type="button" class="toggle-btn" data-value="">—</button>
+            <button type="button" class="toggle-btn" data-value="indoor">Indoor</button>
+            <button type="button" class="toggle-btn" data-value="outdoor">Outdoor</button>
+            <button type="button" class="toggle-btn" data-value="both">Both</button>
+          </div>
+          <input type="hidden" id="formVenue" name="venueType" value="" />
         </div>
+
+        <div class="field toggles-field">
+          <label>Entry</label>
+          <div class="toggle-group" id="entryToggle">
+            <button type="button" class="toggle-btn" data-value="">—</button>
+            <button type="button" class="toggle-btn" data-value="free">Free</button>
+            <button type="button" class="toggle-btn" data-value="paid">Paid</button>
+          </div>
+          <input type="hidden" id="formEntry" name="entryType" value="" />
+        </div>
+
+        <div class="field field-full">
+          <label for="formDesc">Details (optional — supports **bold**, *italic*, [links](url))</label>
+          <textarea id="formDesc" name="description" rows="3" placeholder="e.g. Booth #42 — [Get tickets](https://...)"></textarea>
+        </div>
+
         <div class="field field-check">
           <label class="check-label">
             <input type="checkbox" id="formUpcoming" name="isUpcoming" checked />
             Mark as upcoming (uncheck for past)
           </label>
         </div>
+
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-outline" id="cancelBtn">Cancel</button>
@@ -63,7 +96,7 @@ const past = events.filter(e => !e.isUpcoming);
   <!-- Upcoming events -->
   <section class="events-section">
     <h2>Upcoming Events <span class="count">{upcoming.length}</span></h2>
-    <div class="event-list" id="upcomingList" data-section="upcoming">
+    <div class="event-list" id="upcomingList">
       {upcoming.length === 0 && <p class="empty">No upcoming events yet.</p>}
       {upcoming.map(e => (
         <div class="event-row" data-id={e.id} draggable="true">
@@ -71,11 +104,16 @@ const past = events.filter(e => !e.isUpcoming);
           <div class="event-info">
             <span class="event-name">{e.name}</span>
             {e.dateLabel && <span class="event-meta">{e.dateLabel}</span>}
+            {e.hours && <span class="event-meta">{e.hours}</span>}
             {e.location && <span class="event-meta">{e.location}</span>}
-            {e.url && <span class="event-meta event-url">{e.url}</span>}
+            {e.venueType && <span class="event-tag">{e.venueType}</span>}
+            {e.entryType && <span class="event-tag">{e.entryType}</span>}
           </div>
           <div class="event-actions">
-            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-description={e.description} data-url={e.url ?? ''} data-upcoming="true">Edit</button>
+            <button class="action-btn edit-btn"
+              data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-hours={e.hours}
+              data-location={e.location} data-description={e.description} data-url={e.url ?? ''}
+              data-venue={e.venueType} data-entry={e.entryType} data-upcoming="true">Edit</button>
             <button class="action-btn move-btn" data-id={e.id} data-upcoming="true">Move to Past</button>
             <button class="action-btn delete-btn" data-id={e.id}>Delete</button>
           </div>
@@ -87,7 +125,7 @@ const past = events.filter(e => !e.isUpcoming);
   <!-- Past events -->
   <section class="events-section">
     <h2>Past Events <span class="count">{past.length}</span></h2>
-    <div class="event-list" id="pastList" data-section="past">
+    <div class="event-list" id="pastList">
       {past.length === 0 && <p class="empty">No past events yet.</p>}
       {past.map(e => (
         <div class="event-row" data-id={e.id} draggable="true">
@@ -95,11 +133,16 @@ const past = events.filter(e => !e.isUpcoming);
           <div class="event-info">
             <span class="event-name">{e.name}</span>
             {e.dateLabel && <span class="event-meta">{e.dateLabel}</span>}
+            {e.hours && <span class="event-meta">{e.hours}</span>}
             {e.location && <span class="event-meta">{e.location}</span>}
-            {e.url && <span class="event-meta event-url">{e.url}</span>}
+            {e.venueType && <span class="event-tag">{e.venueType}</span>}
+            {e.entryType && <span class="event-tag">{e.entryType}</span>}
           </div>
           <div class="event-actions">
-            <button class="action-btn edit-btn" data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-location={e.location} data-description={e.description} data-url={e.url ?? ''} data-upcoming="false">Edit</button>
+            <button class="action-btn edit-btn"
+              data-id={e.id} data-name={e.name} data-date={e.dateLabel} data-hours={e.hours}
+              data-location={e.location} data-description={e.description} data-url={e.url ?? ''}
+              data-venue={e.venueType} data-entry={e.entryType} data-upcoming="false">Edit</button>
             <button class="action-btn move-btn" data-id={e.id} data-upcoming="false">Move to Upcoming</button>
             <button class="action-btn delete-btn" data-id={e.id}>Delete</button>
           </div>
@@ -127,25 +170,35 @@ const past = events.filter(e => !e.isUpcoming);
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
   @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
   .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .field-full { grid-column: 1 / -1; }
   .field-check { justify-content: flex-end; }
   .field label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; }
-  .field-full { grid-column: 1 / -1; }
+  .field input[type="text"], .field input[type="url"] {
+    padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus { border-color: #c87830; outline: none; }
   .field textarea {
     padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
     resize: vertical; width: 100%; box-sizing: border-box;
   }
   .field textarea:focus { border-color: #c87830; outline: none; }
-  .field input[type="text"], .field input[type="url"] {
-    padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
-    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
-  }
-  .field input:focus { border-color: #c87830; outline: none; }
   .check-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #2d1f0e; cursor: pointer; }
   .form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; }
   .form-status { font-size: 0.88rem; font-weight: 700; }
   .form-status.success { color: #3d7a6e; }
   .form-status.error { color: #b44; }
+
+  /* Toggle groups */
+  .toggle-group { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .toggle-btn {
+    padding: 0.3em 0.8em; border: 2px solid #d4b896; border-radius: 6px;
+    background: #f0e6d0; color: #6b4a2a; font-family: inherit; font-size: 0.82rem;
+    font-weight: 700; cursor: pointer; transition: all 0.12s;
+  }
+  .toggle-btn:hover { border-color: #c87830; }
+  .toggle-btn.active { background: #c87830; color: #faf5ea; border-color: #c87830; }
 
   /* Sections */
   .events-section { margin-bottom: 2rem; }
@@ -164,10 +217,13 @@ const past = events.filter(e => !e.isUpcoming);
   .event-row.drag-over { border-color: #c87830; background: rgba(200,120,48,0.08); }
 
   .drag-handle { color: #a08060; font-size: 1.1rem; cursor: grab; flex-shrink: 0; }
-  .event-info { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; min-width: 0; }
+  .event-info { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.6rem; min-width: 0; }
   .event-name { font-weight: 800; font-size: 0.95rem; color: #2d1f0e; }
   .event-meta { font-size: 0.82rem; color: #6b4a2a; }
-  .event-url { color: #5b5b9e; word-break: break-all; }
+  .event-tag {
+    font-size: 0.7rem; font-weight: 800; text-transform: capitalize;
+    padding: 0.1em 0.5em; border-radius: 4px; background: #e4d3b8; color: #6b4a2a;
+  }
 
   .event-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
   .action-btn { padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: 1px solid #d4b896; background: transparent; color: #2d1f0e; white-space: nowrap; }
@@ -179,6 +235,30 @@ const past = events.filter(e => !e.isUpcoming);
 <script>
   const API = '/api/admin/events';
 
+  // ── Toggle groups ────────────────────────────────────────────────────────────
+  function initToggle(groupId: string, hiddenId: string) {
+    const group = document.getElementById(groupId)!;
+    const hidden = document.getElementById(hiddenId) as HTMLInputElement;
+    group.querySelectorAll<HTMLButtonElement>('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        hidden.value = btn.dataset.value ?? '';
+      });
+    });
+  }
+  initToggle('venueToggle', 'formVenue');
+  initToggle('entryToggle', 'formEntry');
+
+  function setToggle(groupId: string, hiddenId: string, value: string) {
+    const group = document.getElementById(groupId)!;
+    const hidden = document.getElementById(hiddenId) as HTMLInputElement;
+    group.querySelectorAll<HTMLButtonElement>('.toggle-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === value);
+    });
+    hidden.value = value;
+  }
+
   // ── Form ────────────────────────────────────────────────────────────────────
   const formWrap = document.getElementById('formWrap')!;
   const form = document.getElementById('eventForm') as HTMLFormElement;
@@ -186,6 +266,7 @@ const past = events.filter(e => !e.isUpcoming);
   const formId = document.getElementById('formId') as HTMLInputElement;
   const formName = document.getElementById('formName') as HTMLInputElement;
   const formDate = document.getElementById('formDate') as HTMLInputElement;
+  const formHours = document.getElementById('formHours') as HTMLInputElement;
   const formLocation = document.getElementById('formLocation') as HTMLInputElement;
   const formUrl = document.getElementById('formUrl') as HTMLInputElement;
   const formDesc = document.getElementById('formDesc') as HTMLTextAreaElement;
@@ -193,14 +274,17 @@ const past = events.filter(e => !e.isUpcoming);
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   const formStatus = document.getElementById('formStatus')!;
 
-  function openForm(data?: { id: string; name: string; date: string; location: string; description: string; url: string; upcoming: string }) {
+  function openForm(data?: { id: string; name: string; date: string; hours: string; location: string; description: string; url: string; venue: string; entry: string; upcoming: string }) {
     formId.value = data?.id ?? '';
     formName.value = data?.name ?? '';
     formDate.value = data?.date ?? '';
+    formHours.value = data?.hours ?? '';
     formLocation.value = data?.location ?? '';
     formDesc.value = data?.description ?? '';
     formUrl.value = data?.url ?? '';
     formUpcoming.checked = data ? data.upcoming === 'true' : true;
+    setToggle('venueToggle', 'formVenue', data?.venue ?? '');
+    setToggle('entryToggle', 'formEntry', data?.entry ?? '');
     formTitle.textContent = data ? 'Edit Event' : 'Add Event';
     formStatus.textContent = '';
     formStatus.className = 'form-status';
@@ -213,6 +297,8 @@ const past = events.filter(e => !e.isUpcoming);
     formWrap.setAttribute('hidden', '');
     form.reset();
     formId.value = '';
+    setToggle('venueToggle', 'formVenue', '');
+    setToggle('entryToggle', 'formEntry', '');
   }
 
   document.getElementById('addBtn')?.addEventListener('click', () => openForm());
@@ -230,9 +316,12 @@ const past = events.filter(e => !e.isUpcoming);
       ...(id ? { id: Number(id) } : {}),
       name: formName.value.trim(),
       dateLabel: formDate.value.trim(),
+      hours: formHours.value.trim(),
       location: formLocation.value.trim(),
       description: formDesc.value.trim(),
       url: formUrl.value.trim() || null,
+      venueType: (document.getElementById('formVenue') as HTMLInputElement).value,
+      entryType: (document.getElementById('formEntry') as HTMLInputElement).value,
       isUpcoming: formUpcoming.checked,
     };
 
@@ -249,7 +338,7 @@ const past = events.filter(e => !e.isUpcoming);
     }
   });
 
-  // ── Edit / Move / Delete buttons ────────────────────────────────────────────
+  // ── Edit / Move / Delete ─────────────────────────────────────────────────────
   document.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
 
@@ -258,9 +347,12 @@ const past = events.filter(e => !e.isUpcoming);
         id: target.dataset.id!,
         name: target.dataset.name!,
         date: target.dataset.date!,
+        hours: target.dataset.hours!,
         location: target.dataset.location!,
         description: target.dataset.description!,
         url: target.dataset.url!,
+        venue: target.dataset.venue!,
+        entry: target.dataset.entry!,
         upcoming: target.dataset.upcoming!,
       });
       return;
@@ -269,7 +361,7 @@ const past = events.filter(e => !e.isUpcoming);
     if (target.classList.contains('move-btn')) {
       const id = Number(target.dataset.id);
       const currentlyUpcoming = target.dataset.upcoming === 'true';
-      target.disabled = true;
+      (target as HTMLButtonElement).disabled = true;
       try {
         const res = await fetch(API, {
           method: 'POST',
@@ -289,7 +381,7 @@ const past = events.filter(e => !e.isUpcoming);
       const row = target.closest('.event-row') as HTMLElement;
       const name = row?.querySelector('.event-name')?.textContent ?? 'this event';
       if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-      target.disabled = true;
+      (target as HTMLButtonElement).disabled = true;
       try {
         const res = await fetch(API, {
           method: 'POST',
@@ -305,7 +397,7 @@ const past = events.filter(e => !e.isUpcoming);
     }
   });
 
-  // ── Drag-to-reorder ────────────────────────────────────────────────────────
+  // ── Drag-to-reorder ──────────────────────────────────────────────────────────
   let dragSrc: HTMLElement | null = null;
 
   document.querySelectorAll('.event-list').forEach(list => {
@@ -333,11 +425,7 @@ const past = events.filter(e => !e.isUpcoming);
       e.preventDefault();
       list.querySelectorAll('.event-row').forEach(r => r.classList.remove('drag-over'));
       const ids = [...list.querySelectorAll('.event-row')].map(r => Number((r as HTMLElement).dataset.id));
-      await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reorder', ids }),
-      });
+      await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', ids }) });
     });
   });
 </script>
