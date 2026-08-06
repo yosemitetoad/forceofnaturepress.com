@@ -2,19 +2,56 @@
 export const prerender = false;
 
 import Base from '../layouts/Base.astro';
+import { getPageContentMulti } from '../lib/db';
+import { mdInline } from '../lib/markdown';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, ['media_header', 'media_subheader', 'media_features']);
+
+const mediaHeader = content.media_header ?? 'Media';
+const mediaSubheader = content.media_subheader ?? 'Press coverage, features, and resources for Force of Nature Press.';
+
+type Feature = { publication: string; year: string; description: string; url: string; quote: string };
+let featuresRaw: Feature[] = [];
+try { featuresRaw = JSON.parse(content.media_features ?? '[]'); } catch {}
+
+const features = await Promise.all(featuresRaw.map(async f => ({
+  ...f,
+  descHtml: f.description ? await mdInline(f.description) : '',
+})));
 ---
 
-<Base title="Media — Force of Nature Press" description="Press coverage, features, and media resources for Force of Nature Press." fullWidth>
+<Base title={`${mediaHeader} — Force of Nature Press`} description={mediaSubheader} fullWidth>
 
   <div class="media-header">
     <div class="container">
-      <h1>Media</h1>
-      <p>Press coverage, features, and resources for Force of Nature Press.</p>
+      <h1>{mediaHeader}</h1>
+      <p>{mediaSubheader}</p>
     </div>
   </div>
 
   <div class="container media-body">
-    <p class="placeholder">Media resources coming soon.</p>
+    {features.length === 0 ? (
+      <p class="empty">Nothing here yet — check back soon!</p>
+    ) : (
+      <ul class="feature-list">
+        {features.map(f => (
+          <li class="feature-card">
+            <div class="feature-top">
+              <div class="feature-pub-row">
+                {f.url
+                  ? <a href={f.url} target="_blank" rel="noopener" class="feature-pub">{f.publication}</a>
+                  : <span class="feature-pub">{f.publication}</span>
+                }
+                {f.year && <span class="feature-year">{f.year}</span>}
+              </div>
+            </div>
+            {f.descHtml && <p class="feature-desc"><Fragment set:html={f.descHtml} /></p>}
+            {f.quote && <blockquote class="feature-quote">{f.quote}</blockquote>}
+          </li>
+        ))}
+      </ul>
+    )}
   </div>
 
 </Base>
@@ -42,9 +79,73 @@ import Base from '../layouts/Base.astro';
     max-width: 720px;
   }
 
-  .placeholder {
+  .empty {
     color: var(--brown-mid);
     font-size: 0.95rem;
     font-style: italic;
+    margin: 0;
+  }
+
+  .feature-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .feature-card {
+    background: var(--cream-light);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+  }
+
+  .feature-top {
+    margin-bottom: 0.4rem;
+  }
+
+  .feature-pub-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .feature-pub {
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--brown);
+    text-decoration: none;
+  }
+  a.feature-pub:hover { color: var(--orange); text-decoration: underline; }
+
+  .feature-year {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--orange);
+  }
+
+  .feature-desc {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    color: var(--brown-mid);
+    line-height: 1.55;
+  }
+  .feature-desc :global(a) { color: var(--teal); text-decoration: underline; }
+  .feature-desc :global(a:hover) { color: var(--teal-dark); }
+  .feature-desc :global(strong) { color: var(--brown); }
+
+  .feature-quote {
+    margin: 0.6rem 0 0;
+    padding: 0.5em 0.9em;
+    border-left: 3px solid var(--orange);
+    background: rgba(200, 120, 48, 0.06);
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--brown-mid);
+    line-height: 1.55;
   }
 </style>

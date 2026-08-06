@@ -1,0 +1,217 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getPageContentMulti } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const content = await getPageContentMulti(db, ['media_header', 'media_subheader', 'media_features']);
+
+const mediaHeader = content.media_header ?? 'Media';
+const mediaSubheader = content.media_subheader ?? 'Press coverage, features, and resources for Force of Nature Press.';
+let features: { publication: string; year: string; description: string; url: string; quote: string }[] = [];
+try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
+---
+
+<Admin title="Media Page">
+  <div class="page-header">
+    <h1>Media Page</h1>
+    <a href="/admin/pages" class="btn btn-outline">&larr; All Pages</a>
+  </div>
+
+  <form id="mediaForm">
+
+    <section class="editor-section">
+      <h2>Page Header</h2>
+      <div class="field">
+        <label>Heading</label>
+        <input type="text" id="mediaHeader" value={mediaHeader} />
+      </div>
+      <div class="field">
+        <label>Subheading</label>
+        <input type="text" id="mediaSubheader" value={mediaSubheader} />
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <h2>Media Features</h2>
+      <p class="help-text">
+        Add each press mention, feature, or publication appearance. Supports <code>**bold**</code> and <code>[link](url)</code> in the description.
+      </p>
+      <div id="featuresContainer">
+        {features.map((f, i) => (
+          <div class="feature-editor" data-index={i}>
+            <div class="feature-header">
+              <span class="feature-label">Feature {i + 1}</span>
+              <button type="button" class="btn-sm btn-delete feature-remove">Remove</button>
+            </div>
+            <div class="feature-fields">
+              <div class="field-row">
+                <div class="field">
+                  <label>Publication</label>
+                  <input type="text" class="f-publication" placeholder="e.g. The Guardian" value={f.publication} />
+                </div>
+                <div class="field field-narrow">
+                  <label>Year</label>
+                  <input type="text" class="f-year" placeholder="e.g. 2024" value={f.year} />
+                </div>
+              </div>
+              <div class="field">
+                <label>Description</label>
+                <textarea class="f-description" rows="2" placeholder="What the feature was about...">{f.description}</textarea>
+              </div>
+              <div class="field">
+                <label>Link URL <span class="optional">(optional)</span></label>
+                <input type="text" class="f-url" placeholder="https://..." value={f.url} />
+              </div>
+              <div class="field">
+                <label>Pull Quote <span class="optional">(optional)</span></label>
+                <textarea class="f-quote" rows="2" placeholder="A quote from the piece to highlight...">{f.quote}</textarea>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" id="addFeature" class="btn btn-outline">+ Add Feature</button>
+    </section>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
+      <span id="saveStatus" class="save-status"></span>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  h2 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.8rem; color: #2d1f0e; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; text-decoration: none; cursor: pointer; border: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 700; }
+  .btn-outline:hover { background: #e4d3b8; }
+  .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none; }
+  .btn-delete { background: #b44; color: #faf5ea; }
+  .btn-delete:hover { background: #833; }
+
+  .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .help-text { font-size: 0.85rem; color: #6b4a2a; margin: -0.4rem 0 1rem; line-height: 1.5; }
+  .help-text code { background: #e4d3b8; padding: 1px 5px; border-radius: 3px; font-size: 0.85em; }
+
+  .field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { font-weight: 700; font-size: 0.88rem; color: #2d1f0e; }
+  .optional { font-weight: 400; color: #8b6a45; font-size: 0.82em; }
+  .field input, .field textarea {
+    padding: 0.5em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field textarea { resize: vertical; }
+  .field input:focus, .field textarea:focus { border-color: #c87830; outline: none; }
+
+  .field-row { display: grid; grid-template-columns: 1fr auto; gap: 0.8rem; }
+  .field-narrow input { width: 90px; }
+
+  .feature-editor { border: 2px solid #d4b896; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #f5ecd8; }
+  .feature-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+  .feature-label { font-weight: 800; font-size: 0.9rem; color: #2d1f0e; }
+
+  .form-actions { display: flex; align-items: center; gap: 1rem; }
+  .save-status { font-size: 0.9rem; font-weight: 700; }
+  .save-status.success { color: #3d7a6e; }
+  .save-status.error { color: #b44; }
+</style>
+
+<script>
+  const form = document.getElementById('mediaForm') as HTMLFormElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const saveStatus = document.getElementById('saveStatus')!;
+  const container = document.getElementById('featuresContainer')!;
+
+  function featureHtml(idx: number) {
+    return `
+      <div class="feature-editor" data-index="${idx}">
+        <div class="feature-header">
+          <span class="feature-label">Feature ${idx + 1}</span>
+          <button type="button" class="btn-sm btn-delete feature-remove">Remove</button>
+        </div>
+        <div class="feature-fields">
+          <div class="field-row">
+            <div class="field">
+              <label>Publication</label>
+              <input type="text" class="f-publication" placeholder="e.g. The Guardian" />
+            </div>
+            <div class="field field-narrow">
+              <label>Year</label>
+              <input type="text" class="f-year" placeholder="e.g. 2024" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea class="f-description" rows="2" placeholder="What the feature was about..."></textarea>
+          </div>
+          <div class="field">
+            <label>Link URL <span class="optional">(optional)</span></label>
+            <input type="text" class="f-url" placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>Pull Quote <span class="optional">(optional)</span></label>
+            <textarea class="f-quote" rows="2" placeholder="A quote from the piece to highlight..."></textarea>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('addFeature')?.addEventListener('click', () => {
+    const idx = container.children.length;
+    const div = document.createElement('div');
+    div.innerHTML = featureHtml(idx);
+    container.appendChild(div.firstElementChild!);
+  });
+
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).classList.contains('feature-remove')) {
+      (e.target as HTMLElement).closest('.feature-editor')?.remove();
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveStatus.textContent = 'Saving...';
+    saveStatus.className = 'save-status';
+
+    const features: object[] = [];
+    container.querySelectorAll('.feature-editor').forEach(el => {
+      features.push({
+        publication: (el.querySelector('.f-publication') as HTMLInputElement).value.trim(),
+        year: (el.querySelector('.f-year') as HTMLInputElement).value.trim(),
+        description: (el.querySelector('.f-description') as HTMLTextAreaElement).value.trim(),
+        url: (el.querySelector('.f-url') as HTMLInputElement).value.trim(),
+        quote: (el.querySelector('.f-quote') as HTMLTextAreaElement).value.trim(),
+      });
+    });
+
+    try {
+      const res = await fetch('/api/admin/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updates: {
+            media_header: (document.getElementById('mediaHeader') as HTMLInputElement).value.trim(),
+            media_subheader: (document.getElementById('mediaSubheader') as HTMLInputElement).value.trim(),
+            media_features: JSON.stringify(features),
+          },
+        }),
+      });
+      if (res.ok) { saveStatus.textContent = 'Saved!'; saveStatus.className = 'save-status success'; }
+      else throw new Error();
+    } catch { saveStatus.textContent = 'Error saving.'; saveStatus.className = 'save-status error'; }
+
+    saveBtn.disabled = false;
+    setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+  });
+</script>
