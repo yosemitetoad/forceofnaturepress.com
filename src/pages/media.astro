@@ -11,7 +11,7 @@ const content = await getPageContentMulti(db, ['media_header', 'media_subheader'
 const mediaHeader = content.media_header ?? 'Media';
 const mediaSubheader = content.media_subheader ?? 'Press coverage, features, and resources for Force of Nature Press.';
 
-type Feature = { publication: string; year: string; description: string; url: string; quote: string };
+type Feature = { publication: string; year: string; title: string; description: string; url: string; quote: string; image: string };
 let featuresRaw: Feature[] = [];
 try { featuresRaw = JSON.parse(content.media_features ?? '[]'); } catch {}
 
@@ -37,7 +37,8 @@ const features = await Promise.all(featuresRaw.map(async f => ({
       <ul class="feature-list">
         {features.map(f => (
           <li class="feature-card">
-            <div class="feature-top">
+            {f.image && <img src={f.image} alt={f.publication} class="feature-img" />}
+            <div class="feature-content">
               <div class="feature-pub-row">
                 {f.url
                   ? <a href={f.url} target="_blank" rel="noopener" class="feature-pub">{f.publication}</a>
@@ -45,9 +46,10 @@ const features = await Promise.all(featuresRaw.map(async f => ({
                 }
                 {f.year && <span class="feature-year">{f.year}</span>}
               </div>
+              {f.title && <p class="feature-title">{f.title}</p>}
+              {f.descHtml && <p class="feature-desc"><Fragment set:html={f.descHtml} /></p>}
+              {f.quote && <blockquote class="feature-quote">{f.quote}</blockquote>}
             </div>
-            {f.descHtml && <p class="feature-desc"><Fragment set:html={f.descHtml} /></p>}
-            {f.quote && <blockquote class="feature-quote">{f.quote}</blockquote>}
           </li>
         ))}
       </ul>
@@ -100,10 +102,23 @@ const features = await Promise.all(featuresRaw.map(async f => ({
     border: 2px solid var(--border);
     border-radius: 12px;
     padding: 1rem 1.2rem;
+    display: flex;
+    gap: 1.1rem;
+    align-items: flex-start;
   }
 
-  .feature-top {
-    margin-bottom: 0.4rem;
+  .feature-img {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .feature-content {
+    flex: 1;
+    min-width: 0;
   }
 
   .feature-pub-row {
@@ -111,6 +126,7 @@ const features = await Promise.all(featuresRaw.map(async f => ({
     align-items: baseline;
     gap: 0.6rem;
     flex-wrap: wrap;
+    margin-bottom: 0.1rem;
   }
 
   .feature-pub {
@@ -127,8 +143,15 @@ const features = await Promise.all(featuresRaw.map(async f => ({
     color: var(--orange);
   }
 
+  .feature-title {
+    margin: 0.15rem 0 0.3rem;
+    font-size: 0.88rem;
+    font-style: italic;
+    color: var(--brown-mid);
+  }
+
   .feature-desc {
-    margin: 0.35rem 0 0;
+    margin: 0.3rem 0 0;
     font-size: 0.9rem;
     color: var(--brown-mid);
     line-height: 1.55;
@@ -147,5 +170,10 @@ const features = await Promise.all(featuresRaw.map(async f => ({
     font-size: 0.9rem;
     color: var(--brown-mid);
     line-height: 1.55;
+  }
+
+  @media (max-width: 480px) {
+    .feature-card { flex-direction: column; }
+    .feature-img { width: 100%; height: 160px; }
   }
 </style>

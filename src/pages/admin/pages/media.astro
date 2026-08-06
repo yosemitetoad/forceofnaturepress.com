@@ -9,7 +9,7 @@ const content = await getPageContentMulti(db, ['media_header', 'media_subheader'
 
 const mediaHeader = content.media_header ?? 'Media';
 const mediaSubheader = content.media_subheader ?? 'Press coverage, features, and resources for Force of Nature Press.';
-let features: { publication: string; year: string; description: string; url: string; quote: string }[] = [];
+let features: { publication: string; year: string; title: string; description: string; url: string; quote: string; image: string }[] = [];
 try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
 ---
 
@@ -46,10 +46,14 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
               <button type="button" class="btn-sm btn-delete feature-remove">Remove</button>
             </div>
             <div class="feature-fields">
-              <div class="field-row">
+              <div class="field-row-three">
                 <div class="field">
                   <label>Publication</label>
                   <input type="text" class="f-publication" placeholder="e.g. The Guardian" value={f.publication} />
+                </div>
+                <div class="field">
+                  <label>Article Title <span class="optional">(optional)</span></label>
+                  <input type="text" class="f-title" placeholder="e.g. The Best Stickers of 2024" value={f.title ?? ''} />
                 </div>
                 <div class="field field-narrow">
                   <label>Year</label>
@@ -67,6 +71,24 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
               <div class="field">
                 <label>Pull Quote <span class="optional">(optional)</span></label>
                 <textarea class="f-quote" rows="2" placeholder="A quote from the piece to highlight...">{f.quote}</textarea>
+              </div>
+              <div class="field">
+                <label>Image <span class="optional">(optional — shown to the left of this feature)</span></label>
+                <div class="image-upload-area">
+                  {f.image && (
+                    <div class="image-preview-wrap">
+                      <img src={f.image} alt="" class="image-preview" />
+                      <button type="button" class="btn-sm btn-delete img-clear">Remove</button>
+                    </div>
+                  )}
+                  {!f.image && <div class="image-preview-wrap" style="display:none"><img alt="" class="image-preview" /><button type="button" class="btn-sm btn-delete img-clear">Remove</button></div>}
+                  <input type="hidden" class="f-image" value={f.image ?? ''} />
+                  <label class="upload-btn-label">
+                    <input type="file" class="img-file-input" accept="image/*" style="display:none" />
+                    <span class="btn btn-outline btn-sm-pad">Upload Image</span>
+                  </label>
+                  <span class="upload-status"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -93,6 +115,7 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
   .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 700; }
   .btn-outline:hover { background: #e4d3b8; }
   .btn-sm { display: inline-block; padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; border: none; }
+  .btn-sm-pad { padding: 0.35em 0.9em; font-size: 0.85rem; }
   .btn-delete { background: #b44; color: #faf5ea; }
   .btn-delete:hover { background: #833; }
 
@@ -104,24 +127,35 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
   .field:last-child { margin-bottom: 0; }
   .field label { font-weight: 700; font-size: 0.88rem; color: #2d1f0e; }
   .optional { font-weight: 400; color: #8b6a45; font-size: 0.82em; }
-  .field input, .field textarea {
+  .field input[type="text"], .field textarea {
     padding: 0.5em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
-    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box; width: 100%;
   }
   .field textarea { resize: vertical; }
-  .field input:focus, .field textarea:focus { border-color: #c87830; outline: none; }
+  .field input[type="text"]:focus, .field textarea:focus { border-color: #c87830; outline: none; }
 
-  .field-row { display: grid; grid-template-columns: 1fr auto; gap: 0.8rem; }
+  .field-row-three { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.8rem; align-items: start; }
   .field-narrow input { width: 90px; }
 
   .feature-editor { border: 2px solid #d4b896; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #f5ecd8; }
   .feature-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
   .feature-label { font-weight: 800; font-size: 0.9rem; color: #2d1f0e; }
 
+  .image-upload-area { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .image-preview-wrap { display: flex; align-items: center; gap: 0.5rem; }
+  .image-preview { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid #d4b896; }
+  .upload-btn-label { cursor: pointer; }
+  .upload-status { font-size: 0.82rem; color: #6b4a2a; font-style: italic; }
+
   .form-actions { display: flex; align-items: center; gap: 1rem; }
   .save-status { font-size: 0.9rem; font-weight: 700; }
   .save-status.success { color: #3d7a6e; }
   .save-status.error { color: #b44; }
+
+  @media (max-width: 600px) {
+    .field-row-three { grid-template-columns: 1fr; }
+    .field-narrow input { width: 100%; }
+  }
 </style>
 
 <script>
@@ -138,10 +172,14 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
           <button type="button" class="btn-sm btn-delete feature-remove">Remove</button>
         </div>
         <div class="feature-fields">
-          <div class="field-row">
+          <div class="field-row-three">
             <div class="field">
               <label>Publication</label>
               <input type="text" class="f-publication" placeholder="e.g. The Guardian" />
+            </div>
+            <div class="field">
+              <label>Article Title <span class="optional">(optional)</span></label>
+              <input type="text" class="f-title" placeholder="e.g. The Best Stickers of 2024" />
             </div>
             <div class="field field-narrow">
               <label>Year</label>
@@ -160,16 +198,71 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
             <label>Pull Quote <span class="optional">(optional)</span></label>
             <textarea class="f-quote" rows="2" placeholder="A quote from the piece to highlight..."></textarea>
           </div>
+          <div class="field">
+            <label>Image <span class="optional">(optional — shown to the left of this feature)</span></label>
+            <div class="image-upload-area">
+              <div class="image-preview-wrap" style="display:none">
+                <img alt="" class="image-preview" />
+                <button type="button" class="btn-sm btn-delete img-clear">Remove</button>
+              </div>
+              <input type="hidden" class="f-image" value="" />
+              <label class="upload-btn-label">
+                <input type="file" class="img-file-input" accept="image/*" style="display:none" />
+                <span class="btn btn-outline btn-sm-pad">Upload Image</span>
+              </label>
+              <span class="upload-status"></span>
+            </div>
+          </div>
         </div>
       </div>
     `;
   }
 
+  function wireImageUpload(featureEl: Element) {
+    const fileInput = featureEl.querySelector('.img-file-input') as HTMLInputElement;
+    const hiddenInput = featureEl.querySelector('.f-image') as HTMLInputElement;
+    const previewWrap = featureEl.querySelector('.image-preview-wrap') as HTMLElement;
+    const previewImg = featureEl.querySelector('.image-preview') as HTMLImageElement;
+    const statusEl = featureEl.querySelector('.upload-status') as HTMLElement;
+    const clearBtn = featureEl.querySelector('.img-clear') as HTMLButtonElement;
+
+    fileInput?.addEventListener('change', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      statusEl.textContent = 'Uploading...';
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        const data = await res.json() as { url?: string; error?: string };
+        if (!res.ok || !data.url) throw new Error(data.error ?? 'Upload failed');
+        hiddenInput.value = data.url;
+        previewImg.src = data.url;
+        previewWrap.style.display = 'flex';
+        statusEl.textContent = '';
+      } catch (err: any) {
+        statusEl.textContent = err.message ?? 'Upload failed';
+      }
+      fileInput.value = '';
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      hiddenInput.value = '';
+      previewImg.src = '';
+      previewWrap.style.display = 'none';
+    });
+  }
+
+  // Wire up existing features on page load
+  container.querySelectorAll('.feature-editor').forEach(wireImageUpload);
+
   document.getElementById('addFeature')?.addEventListener('click', () => {
     const idx = container.children.length;
     const div = document.createElement('div');
     div.innerHTML = featureHtml(idx);
-    container.appendChild(div.firstElementChild!);
+    const el = div.firstElementChild!;
+    container.appendChild(el);
+    wireImageUpload(el);
   });
 
   document.addEventListener('click', (e) => {
@@ -188,10 +281,12 @@ try { features = JSON.parse(content.media_features ?? '[]'); } catch {}
     container.querySelectorAll('.feature-editor').forEach(el => {
       features.push({
         publication: (el.querySelector('.f-publication') as HTMLInputElement).value.trim(),
+        title: (el.querySelector('.f-title') as HTMLInputElement).value.trim(),
         year: (el.querySelector('.f-year') as HTMLInputElement).value.trim(),
         description: (el.querySelector('.f-description') as HTMLTextAreaElement).value.trim(),
         url: (el.querySelector('.f-url') as HTMLInputElement).value.trim(),
         quote: (el.querySelector('.f-quote') as HTMLTextAreaElement).value.trim(),
+        image: (el.querySelector('.f-image') as HTMLInputElement).value.trim(),
       });
     });
 
