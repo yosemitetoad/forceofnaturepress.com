@@ -4,13 +4,22 @@ import { SITE_TITLE } from '../consts';
 const currentPath = Astro.url.pathname;
 const isActive = (path: string) =>
   path === '/' ? currentPath === '/' : currentPath.startsWith(path);
-const infoActive = isActive('/about') || isActive('/events');
+const infoActive = isActive('/about') || isActive('/events') || isActive('/media');
+const shopActive = isActive('/shop') || isActive('/wholesale');
 ---
 
 <header transition:persist>
   <div class="header-inner">
     <nav class="nav-left" aria-label="Main navigation left">
-      <a href="/shop" class:list={['nav-link', { active: isActive('/shop') }]}>Shop</a>
+      <div class:list={['nav-dropdown', { active: shopActive }]}>
+        <button class="dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+          Shop <span class="dropdown-arrow">▾</span>
+        </button>
+        <div class="dropdown-menu" role="menu">
+          <a href="/shop" class:list={['dropdown-item', { active: isActive('/shop') }]} role="menuitem">Shop</a>
+          <a href="/wholesale" class:list={['dropdown-item', { active: isActive('/wholesale') }]} role="menuitem">Wholesale</a>
+        </div>
+      </div>
       <a href="/portfolio" class:list={['nav-link', { active: isActive('/portfolio') }]}>Portfolio</a>
       <a href="/games" class:list={['nav-link', { active: isActive('/games') }]}>Games</a>
     </nav>
@@ -27,6 +36,7 @@ const infoActive = isActive('/about') || isActive('/events');
         <div class="dropdown-menu" role="menu">
           <a href="/about" class:list={['dropdown-item', { active: isActive('/about') }]} role="menuitem">About</a>
           <a href="/events" class:list={['dropdown-item', { active: isActive('/events') }]} role="menuitem">Events</a>
+          <a href="/media" class:list={['dropdown-item', { active: isActive('/media') }]} role="menuitem">Media</a>
         </div>
       </div>
       <a href="/blog" class:list={['nav-link', { active: isActive('/blog') }]}>Blog</a>
@@ -40,10 +50,12 @@ const infoActive = isActive('/about') || isActive('/events');
 
   <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
     <a href="/shop" class:list={['mobile-link', { active: isActive('/shop') }]}>Shop</a>
+    <a href="/wholesale" class:list={['mobile-link', { active: isActive('/wholesale') }]}>Wholesale</a>
     <a href="/portfolio" class:list={['mobile-link', { active: isActive('/portfolio') }]}>Portfolio</a>
     <a href="/games" class:list={['mobile-link', { active: isActive('/games') }]}>Games</a>
     <a href="/about" class:list={['mobile-link', { active: isActive('/about') }]}>About</a>
     <a href="/events" class:list={['mobile-link', { active: isActive('/events') }]}>Events</a>
+    <a href="/media" class:list={['mobile-link', { active: isActive('/media') }]}>Media</a>
     <a href="/blog" class:list={['mobile-link', { active: isActive('/blog') }]}>Blog</a>
     <a href="/contact" class:list={['mobile-link', { active: isActive('/contact') }]}>Contact</a>
   </nav>
@@ -67,10 +79,13 @@ const infoActive = isActive('/about') || isActive('/events');
       const isActive = href === '/' ? path === '/' : path.startsWith(href);
       link.classList.toggle('active', isActive);
     });
-    const dropdown = document.querySelector('.nav-dropdown');
-    if (dropdown) {
-      dropdown.classList.toggle('active', path.startsWith('/about') || path.startsWith('/events'));
-    }
+    document.querySelectorAll('.nav-dropdown').forEach(dropdown => {
+      const anyActive = Array.from(dropdown.querySelectorAll('.dropdown-item')).some(item => {
+        const href = item.getAttribute('href') || '';
+        return href && path.startsWith(href);
+      });
+      dropdown.classList.toggle('active', anyActive);
+    });
   }
   document.addEventListener('astro:after-swap', updateActiveNav);
 </script>

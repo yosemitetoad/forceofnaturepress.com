@@ -1,0 +1,50 @@
+---
+export const prerender = false;
+
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Media — Force of Nature Press" description="Press coverage, features, and media resources for Force of Nature Press." fullWidth>
+
+  <div class="media-header">
+    <div class="container">
+      <h1>Media</h1>
+      <p>Press coverage, features, and resources for Force of Nature Press.</p>
+    </div>
+  </div>
+
+  <div class="container media-body">
+    <p class="placeholder">Media resources coming soon.</p>
+  </div>
+
+</Base>
+
+<style>
+  .media-header {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    border-bottom: 2px solid var(--border);
+    padding: 2.5rem 0 1.5rem;
+    position: relative;
+  }
+  .media-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(250, 245, 234, 0.75);
+  }
+  .media-header .container { position: relative; }
+  .media-header h1 { margin-bottom: 0.3em; }
+  .media-header p { color: var(--brown-mid); margin: 0; }
+
+  .media-body {
+    padding-top: 2.5rem;
+    padding-bottom: 5rem;
+    max-width: 720px;
+  }
+
+  .placeholder {
+    color: var(--brown-mid);
+    font-size: 0.95rem;
+    font-style: italic;
+  }
+</style>
