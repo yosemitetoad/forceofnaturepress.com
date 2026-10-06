@@ -7,7 +7,7 @@ import { SITE_TITLE } from '../../consts';
 
 const db = Astro.locals.runtime.env.DB;
 
-const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro', 'wholesale_under_construction']);
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro', 'wholesale_under_construction', 'wholesale_faire_intro', 'wholesale_faire_cta']);
 
 const [items, wholesaleCategories, formConfig] = await Promise.all([
   getPublishedWholesaleItems(db),
@@ -20,6 +20,8 @@ const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
 const catalogIntro = content.wholesale_catalog_intro ?? '';
 const underConstruction = content.wholesale_under_construction === '1';
+const faireIntro = content.wholesale_faire_intro ?? 'On this page, you can browse the catalog and use the interactive order form below to place your wholesale order directly with me.';
+const faireCta = content.wholesale_faire_cta ?? 'Force of Nature Press is also on Faire! Click the button below to go to our storefront.';
 
 // Flatten visible fields for JS validation logic
 const visibleFieldIds = new Set(
@@ -97,8 +99,8 @@ function formatCat(cat: string) {
       <section class="faire-section container" id="faire">
         <div class="faire-box">
           <h2 class="faire-heading">How to Order</h2>
-          <p class="faire-intro">On this page, you can browse the catalog and use the interactive order form below to place your wholesale order directly with me.</p>
-          <p class="faire-intro">Force of Nature Press is also on Faire! Click the button below to go to our storefront.</p>
+          <p class="faire-intro">{faireIntro}</p>
+          <p class="faire-intro">{faireCta}</p>
           <div class="faire-embed-wrap">
             <iframe
               src="https://www.faire.com/embed/bw_tur5b4r8q5"

@@ -5,7 +5,7 @@ import Admin from '../../../layouts/Admin.astro';
 import { getPageContentMulti } from '../../../lib/db';
 
 const db = Astro.locals.runtime.env.DB;
-const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro', 'wholesale_under_construction']);
+const content = await getPageContentMulti(db, ['wholesale_terms', 'wholesale_contact_intro', 'wholesale_contact_email', 'wholesale_form_url', 'wholesale_catalog_intro', 'wholesale_under_construction', 'wholesale_faire_intro', 'wholesale_faire_cta']);
 
 const terms = content.wholesale_terms ?? '';
 const catalogIntro = content.wholesale_catalog_intro ?? '';
@@ -13,6 +13,8 @@ const contactIntro = content.wholesale_contact_intro ?? '';
 const contactEmail = content.wholesale_contact_email ?? '';
 const formUrl = content.wholesale_form_url ?? '';
 const underConstruction = content.wholesale_under_construction === '1';
+const faireIntro = content.wholesale_faire_intro ?? 'On this page, you can browse the catalog and use the interactive order form below to place your wholesale order directly with me.';
+const faireCta = content.wholesale_faire_cta ?? 'Force of Nature Press is also on Faire! Click the button below to go to our storefront.';
 ---
 
 <Admin title="Wholesale Page Content">
@@ -38,6 +40,19 @@ const underConstruction = content.wholesale_under_construction === '1';
   </div>
 
   <form id="contentForm">
+    <section class="editor-section">
+      <h2>Faire Banner</h2>
+      <p class="help-text">The "How to Order" card at the top of the page, above Terms &amp; Conditions. The heading and Faire button are fixed; only the two lines of text below are editable.</p>
+      <div class="field">
+        <label>Intro line</label>
+        <textarea name="wholesale_faire_intro" rows="2">{faireIntro}</textarea>
+      </div>
+      <div class="field">
+        <label>Faire callout line (appears above the button)</label>
+        <textarea name="wholesale_faire_cta" rows="2">{faireCta}</textarea>
+      </div>
+    </section>
+
     <section class="editor-section">
       <h2>Terms &amp; Conditions</h2>
       <p class="help-text">Shown at the top of the wholesale page. Supports markdown: <code>**bold**</code>, <code>*italic*</code>, <code>[link](url)</code>. Leave a blank line between paragraphs to create a paragraph break.</p>
