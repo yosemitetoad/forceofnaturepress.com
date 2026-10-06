@@ -878,8 +878,10 @@ export interface WholesaleFormField {
   placeholder?: string;
   helpText?: string;
   rows?: number;
+  options?: string[];
   required: boolean;
   visible: boolean;
+  custom?: boolean;
 }
 
 export interface WholesaleFormSection {

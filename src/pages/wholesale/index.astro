@@ -312,14 +312,21 @@ function formatCat(cat: string) {
                         <div class="field">
                           <label for={f.id}>{f.label}{f.required && <span class="req"> *</span>}</label>
                           {f.helpText && <p class="field-help">{f.helpText}</p>}
-                          <select id={f.id} name={f.id} required={f.required}>
-                            <option value="">Select...</option>
-                            <option value="brick-and-mortar">Brick-and-mortar store</option>
-                            <option value="online-retailer">Online retailer</option>
-                            <option value="museum-institution">Museum or institution</option>
-                            <option value="nature-center">Nature center</option>
-                            <option value="other">Other</option>
-                          </select>
+                          {f.id === 'business_type' ? (
+                            <select id={f.id} name={f.id} required={f.required}>
+                              <option value="">Select...</option>
+                              <option value="brick-and-mortar">Brick-and-mortar store</option>
+                              <option value="online-retailer">Online retailer</option>
+                              <option value="museum-institution">Museum or institution</option>
+                              <option value="nature-center">Nature center</option>
+                              <option value="other">Other</option>
+                            </select>
+                          ) : (
+                            <select id={f.id} name={f.id} required={f.required}>
+                              <option value="">Select...</option>
+                              {(f.options ?? []).map(opt => <option value={opt}>{opt}</option>)}
+                            </select>
+                          )}
                           {f.id === 'business_type' && (
                             <div id="businessTypeOtherWrap" hidden style="margin-top:0.6rem">
                               <label for="business_type_other" class="sub-label">Please describe your business: <span class="req">*</span></label>

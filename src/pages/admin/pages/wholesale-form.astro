@@ -62,6 +62,9 @@ const configJson = JSON.stringify(config);
                     <span class="toggle-text">Show</span>
                   </label>
                   <button class="expand-field-btn" data-section={si} data-field={fi} aria-expanded="false">&#8964;</button>
+                  {field.custom && (
+                    <button type="button" class="delete-field-btn" title="Delete field">&times;</button>
+                  )}
                 </div>
                 <div class="field-detail" hidden>
                   <div class="detail-grid">
@@ -83,10 +86,31 @@ const configJson = JSON.stringify(config);
                         <input type="number" class="field-rows-input" data-section={si} data-field={fi} value={field.rows ?? 4} min="2" max="20" style="width:80px" />
                       </label>
                     )}
+                    {field.type === 'select' && field.id !== 'business_type' && (
+                      <label class="full-width">Options (one per line)
+                        <textarea class="field-options-input" data-section={si} data-field={fi} rows="3">{(field.options ?? []).join('\n')}</textarea>
+                      </label>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+          <div class="add-field-row">
+            <input type="text" class="new-field-label" placeholder="New field label" />
+            <select class="new-field-type">
+              <option value="text">Text</option>
+              <option value="email">Email</option>
+              <option value="tel">Phone</option>
+              <option value="url">URL</option>
+              <option value="textarea">Paragraph</option>
+              <option value="select">Dropdown</option>
+              <option value="checkbox">Checkbox</option>
+            </select>
+            <button type="button" class="add-field-btn">+ Add Field</button>
+          </div>
+          <div class="new-field-options-wrap" hidden>
+            <textarea class="new-field-options" rows="2" placeholder={"One dropdown option per line"}></textarea>
           </div>
         </div>
       ))}
@@ -164,15 +188,35 @@ const configJson = JSON.stringify(config);
   .expand-field-btn { background: none; border: none; cursor: pointer; font-size: 1rem; color: #a08060; padding: 0.1rem 0.3rem; line-height: 1; transition: transform 0.18s; }
   .expand-field-btn[aria-expanded="true"] { transform: rotate(180deg); }
 
+  .delete-field-btn {
+    background: none; border: none; cursor: pointer; font-size: 1.1rem; line-height: 1;
+    color: #b44; padding: 0.1rem 0.35rem; border-radius: 5px; transition: background 0.15s;
+  }
+  .delete-field-btn:hover { background: #f5e0e0; }
+
   .field-detail { padding: 0.8rem 0 0.4rem 1.8rem; }
   .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
   .detail-grid label { display: flex; flex-direction: column; font-size: 0.8rem; font-weight: 700; color: #6b4a2a; gap: 0.25rem; }
   .detail-grid label.full-width { grid-column: 1 / -1; }
-  .detail-grid input[type="text"], .detail-grid input[type="url"], .detail-grid input[type="number"] {
+  .detail-grid input[type="text"], .detail-grid input[type="url"], .detail-grid input[type="number"], .detail-grid textarea {
     padding: 0.4em 0.7em; border: 2px solid #d4b896; border-radius: 7px;
-    font-family: inherit; font-size: 0.88rem; background: #f0e6d0; color: #2d1f0e;
+    font-family: inherit; font-size: 0.88rem; background: #f0e6d0; color: #2d1f0e; resize: vertical;
   }
-  .detail-grid input:focus { border-color: #c87830; outline: none; }
+  .detail-grid input:focus, .detail-grid textarea:focus { border-color: #c87830; outline: none; }
+
+  /* Add field row */
+  .add-field-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1.2rem; border-top: 1px solid #ede3cf; }
+  .add-field-row .new-field-label { flex: 1; padding: 0.4em 0.7em; border: 2px solid #d4b896; border-radius: 7px; font-family: inherit; font-size: 0.85rem; background: #f0e6d0; color: #2d1f0e; }
+  .add-field-row .new-field-type { padding: 0.4em 0.6em; border: 2px solid #d4b896; border-radius: 7px; font-family: inherit; font-size: 0.85rem; background: #f0e6d0; color: #2d1f0e; }
+  .add-field-row .new-field-label:focus, .add-field-row .new-field-type:focus { border-color: #c87830; outline: none; }
+  .add-field-btn { padding: 0.45em 1em; border: none; border-radius: 7px; background: #5b7b6d; color: #faf5ea; font-family: inherit; font-weight: 700; font-size: 0.82rem; cursor: pointer; white-space: nowrap; }
+  .add-field-btn:hover { background: #3d5a4e; }
+  .new-field-options-wrap { padding: 0 1.2rem 0.9rem; }
+  .new-field-options-wrap textarea {
+    width: 100%; box-sizing: border-box; padding: 0.4em 0.7em; border: 2px solid #d4b896; border-radius: 7px;
+    font-family: inherit; font-size: 0.85rem; background: #f0e6d0; color: #2d1f0e; resize: vertical;
+  }
+  .new-field-options-wrap textarea:focus { border-color: #c87830; outline: none; }
 
   /* Toggle */
   .toggle-label { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; user-select: none; }
@@ -244,10 +288,12 @@ const configJson = JSON.stringify(config);
         const placeholderInput = row.querySelector('.field-placeholder-input');
         const helptextInput = row.querySelector('.field-helptext-input');
         const rowsInput = row.querySelector('.field-rows-input');
+        const optionsInput = row.querySelector('.field-options-input');
         if (labelInput) { f.label = labelInput.value; row.querySelector('.field-label-display').textContent = labelInput.value; }
         if (placeholderInput) f.placeholder = placeholderInput.value;
         if (helptextInput) f.helpText = helptextInput.value;
         if (rowsInput) f.rows = parseInt(rowsInput.value) || 4;
+        if (optionsInput) f.options = optionsInput.value.split('\n').map(s => s.trim()).filter(Boolean);
         f.required = row.querySelector('.field-required').checked;
         f.visible = row.querySelector('.field-visible').checked;
       });
@@ -286,17 +332,6 @@ const configJson = JSON.stringify(config);
     });
   });
 
-  // ── Expand field detail ────────────────────────────────────────────────────
-  document.querySelectorAll('.expand-field-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const row = btn.closest('.field-row');
-      const detail = row.querySelector('.field-detail');
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      detail.hidden = expanded;
-      btn.setAttribute('aria-expanded', String(!expanded));
-    });
-  });
-
   // ── Drag-to-reorder sections ───────────────────────────────────────────────
   let dragSrc = null;
   document.querySelectorAll('.section-card').forEach(card => {
@@ -328,9 +363,14 @@ const configJson = JSON.stringify(config);
     });
   });
 
-  // ── Drag-to-reorder fields within sections ─────────────────────────────────
+  // ── Field rows: drag-to-reorder, expand, delete ────────────────────────────
   let dragFieldSrc = null;
-  document.querySelectorAll('.field-row').forEach(row => {
+
+  function sectionIndexOf(el) {
+    return [...document.querySelectorAll('.section-card')].indexOf(el.closest('.section-card'));
+  }
+
+  function wireFieldRow(row) {
     row.querySelector('.field-drag').addEventListener('mousedown', () => { row.draggable = true; });
     row.addEventListener('dragstart', e => { dragFieldSrc = row; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); });
     row.addEventListener('dragend', () => { row.classList.remove('dragging'); row.draggable = false; dragFieldSrc = null; document.querySelectorAll('.field-row').forEach(r => r.classList.remove('drag-over')); });
@@ -339,8 +379,8 @@ const configJson = JSON.stringify(config);
     row.addEventListener('drop', e => {
       e.preventDefault(); e.stopPropagation(); row.classList.remove('drag-over');
       if (!dragFieldSrc || dragFieldSrc === row) return;
-      const fromSi = parseInt(dragFieldSrc.dataset.section);
-      const toSi = parseInt(row.dataset.section);
+      const fromSi = sectionIndexOf(dragFieldSrc);
+      const toSi = sectionIndexOf(row);
       if (fromSi !== toSi) return; // Only allow within same section
       const list = row.closest('.field-list');
       const rows = [...list.querySelectorAll(':scope > .field-row')];
@@ -349,6 +389,117 @@ const configJson = JSON.stringify(config);
       if (fromFi < toFi) row.after(dragFieldSrc); else row.before(dragFieldSrc);
       const [moved] = config.sections[fromSi].fields.splice(fromFi, 1);
       config.sections[toSi].fields.splice(toFi, 0, moved);
+    });
+
+    row.querySelector('.expand-field-btn').addEventListener('click', () => {
+      const btn = row.querySelector('.expand-field-btn');
+      const detail = row.querySelector('.field-detail');
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      detail.hidden = expanded;
+      btn.setAttribute('aria-expanded', String(!expanded));
+    });
+
+    const deleteBtn = row.querySelector('.delete-field-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        const si = sectionIndexOf(row);
+        const list = row.closest('.field-list');
+        const fi = [...list.querySelectorAll(':scope > .field-row')].indexOf(row);
+        config.sections[si].fields.splice(fi, 1);
+        row.remove();
+      });
+    }
+  }
+
+  document.querySelectorAll('.field-row').forEach(row => wireFieldRow(row));
+
+  // ── Add field ───────────────────────────────────────────────────────────────
+  function slugifyFieldId(label) {
+    const existing = new Set(config.sections.flatMap(s => s.fields.map(f => f.id)));
+    const base = label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'field';
+    let id = `custom_${base}`;
+    let n = 2;
+    while (existing.has(id)) { id = `custom_${base}_${n}`; n++; }
+    return id;
+  }
+
+  function fieldRowHTML(field, fi) {
+    const showPlaceholder = !['checkbox', 'address', 'address-billing', 'select'].includes(field.type);
+    const showHelp = !['checkbox', 'address', 'address-billing'].includes(field.type);
+    const showRows = field.type === 'textarea';
+    const showOptions = field.type === 'select';
+    return `
+      <div class="field-row" data-field-index="${fi}">
+        <span class="drag-handle field-drag" title="Drag to reorder">&#8597;</span>
+        <span class="type-badge type-${field.type}">${field.type}</span>
+        <span class="field-label-display">${esc(field.label)}</span>
+        <div class="field-row-controls">
+          <label class="toggle-label req-toggle" title="Required">
+            <input type="checkbox" class="field-required" ${field.required ? 'checked' : ''} />
+            <span class="toggle-track sm"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">Req</span>
+          </label>
+          <label class="toggle-label" title="Visible">
+            <input type="checkbox" class="field-visible" ${field.visible !== false ? 'checked' : ''} />
+            <span class="toggle-track sm"><span class="toggle-thumb"></span></span>
+            <span class="toggle-text">Show</span>
+          </label>
+          <button type="button" class="expand-field-btn" aria-expanded="false">&#8964;</button>
+          <button type="button" class="delete-field-btn" title="Delete field">&times;</button>
+        </div>
+        <div class="field-detail" hidden>
+          <div class="detail-grid">
+            <label>Label<input type="text" class="field-label-input" value="${esc(field.label)}" /></label>
+            ${showPlaceholder ? `<label>Placeholder<input type="text" class="field-placeholder-input" value="${esc(field.placeholder ?? '')}" /></label>` : ''}
+            ${showHelp ? `<label class="full-width">Help text<input type="text" class="field-helptext-input" value="${esc(field.helpText ?? '')}" /></label>` : ''}
+            ${showRows ? `<label>Rows<input type="number" class="field-rows-input" value="${field.rows ?? 4}" min="2" max="20" style="width:80px" /></label>` : ''}
+            ${showOptions ? `<label class="full-width">Options (one per line)<textarea class="field-options-input" rows="3">${esc((field.options ?? []).join('\n'))}</textarea></label>` : ''}
+          </div>
+        </div>
+      </div>
+    `.trim();
+  }
+
+  function createFieldRow(field, fi) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = fieldRowHTML(field, fi);
+    return wrap.firstElementChild;
+  }
+
+  document.querySelectorAll('.new-field-type').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const sectionCard = sel.closest('.section-card');
+      sectionCard.querySelector('.new-field-options-wrap').hidden = sel.value !== 'select';
+    });
+  });
+
+  document.querySelectorAll('.add-field-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sectionCard = btn.closest('.section-card');
+      const si = sectionIndexOf(btn);
+      const labelInput = sectionCard.querySelector('.new-field-label');
+      const typeSelect = sectionCard.querySelector('.new-field-type');
+      const label = labelInput.value.trim();
+      if (!label) { labelInput.focus(); return; }
+      const type = typeSelect.value;
+      const field = { id: slugifyFieldId(label), type, label, placeholder: '', helpText: '', required: false, visible: true, custom: true };
+      if (type === 'textarea') field.rows = 4;
+      if (type === 'select') {
+        const optsText = sectionCard.querySelector('.new-field-options').value;
+        field.options = optsText.split('\n').map(s => s.trim()).filter(Boolean);
+      }
+
+      const fieldList = sectionCard.querySelector('.field-list');
+      const fi = fieldList.querySelectorAll(':scope > .field-row').length;
+      config.sections[si].fields.push(field);
+      const row = createFieldRow(field, fi);
+      fieldList.appendChild(row);
+      wireFieldRow(row);
+
+      labelInput.value = '';
+      typeSelect.value = 'text';
+      sectionCard.querySelector('.new-field-options-wrap').hidden = true;
+      sectionCard.querySelector('.new-field-options').value = '';
     });
   });
 
@@ -391,7 +542,10 @@ const configJson = JSON.stringify(config);
           i++; continue;
         }
         if (f.type === 'select') {
-          html += `<div class="p-field"><label class="p-label">${esc(f.label)}${req}</label>${help}<select class="p-input"><option>Select...</option><option>Brick-and-mortar store</option><option>Online retailer</option><option>Museum or institution</option><option>Nature center</option><option>Other</option></select></div>`;
+          const opts = f.id === 'business_type'
+            ? ['Brick-and-mortar store', 'Online retailer', 'Museum or institution', 'Nature center', 'Other']
+            : (f.options ?? []);
+          html += `<div class="p-field"><label class="p-label">${esc(f.label)}${req}</label>${help}<select class="p-input"><option>Select...</option>${opts.map(o => `<option>${esc(o)}</option>`).join('')}</select></div>`;
           i++; continue;
         }
         if (f.type === 'checkbox') {
