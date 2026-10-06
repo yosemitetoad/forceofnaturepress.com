@@ -98,7 +98,16 @@ function formatCat(cat: string) {
         <div class="faire-box">
           <h2 class="faire-heading">How to Order</h2>
           <p class="faire-intro">On this page, you can browse the catalog and use the interactive order form below to place your wholesale order directly with me.</p>
-          <p class="faire-intro">Prefer ordering through Faire? <a href="https://www.faire.com/direct/forceofnaturepress?utm_source=widgetv2&widgetToken=bw_tur5b4r8q5" class="faire-link" target="_blank" rel="noopener"><strong>Click here</strong></a> to view our storefront on Faire!</p>
+          <p class="faire-intro">Force of Nature Press is also on Faire! Click the button below to go to our storefront.</p>
+          <div class="faire-embed-wrap">
+            <iframe
+              src="https://www.faire.com/embed/bw_tur5b4r8q5"
+              width="360" height="64" scrolling="no"
+              style="margin: 0 auto; border: none; display: block; max-width: 100%; width: 360px; height: 64px;"
+              title="Shop Force of Nature Press on Faire"
+              loading="lazy"
+            ></iframe>
+          </div>
         </div>
       </section>
 
@@ -518,9 +527,8 @@ function formatCat(cat: string) {
   .faire-box { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.4rem 1.8rem; }
   .faire-heading { font-size: 1.05rem; font-weight: 800; margin: 0 0 0.6rem; color: #2d1f0e; }
   .faire-intro { color: #5a3e1e; font-size: 0.9rem; margin: 0 0 0.6rem; line-height: 1.7; }
-  .faire-intro:last-child { margin-bottom: 0; }
-  .faire-link { color: #c87830; }
-  .faire-link:hover { color: #a05e18; }
+  .faire-embed-wrap { margin-top: 0.4rem; }
+  .faire-embed-wrap iframe { border-radius: 8px; }
 
   /* Sections */
   .terms-section { padding: 3rem 1.5rem 2rem; }
