@@ -93,6 +93,23 @@ function formatCat(cat: string) {
     </header>
 
     <main>
+      <!-- Faire -->
+      <section class="faire-section container" id="faire">
+        <div class="faire-box">
+          <h2 class="faire-heading">Shop Our Faire Storefront</h2>
+          <p class="faire-intro">Prefer to order through Faire? Browse our catalog and place your order directly on our Faire shop.</p>
+          <div class="faire-embed-wrap">
+            <iframe
+              src="https://www.faire.com/embed/bw_w53tv3ar4p"
+              width="500" height="600" scrolling="no"
+              style="margin: 0 auto; border: none; display: block; max-width: 100%; width: 500px; height: 600px;"
+              title="Force of Nature Press on Faire"
+              loading="lazy"
+            ></iframe>
+          </div>
+        </div>
+      </section>
+
       <!-- Terms -->
       {termsHtml && (
         <section class="terms-section container" id="terms">
@@ -503,6 +520,14 @@ function formatCat(cat: string) {
     .header-nav { display: none; }
     .header-back { display: none; }
   }
+
+  /* Faire */
+  .faire-section { padding: 3rem 1.5rem 0; }
+  .faire-box { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.8rem 2rem; text-align: center; }
+  .faire-heading { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.6rem; color: #2d1f0e; }
+  .faire-intro { color: #5a3e1e; font-size: 0.95rem; margin: 0 0 1.4rem; line-height: 1.7; }
+  .faire-embed-wrap { display: flex; justify-content: center; }
+  .faire-embed-wrap iframe { border-radius: 8px; }
 
   /* Sections */
   .terms-section { padding: 3rem 1.5rem 2rem; }
