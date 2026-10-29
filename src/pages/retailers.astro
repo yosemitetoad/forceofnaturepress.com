@@ -3,15 +3,18 @@ export const prerender = false;
 
 import Base from '../layouts/Base.astro';
 import { getAllRetailers, groupRetailersByState, getPageContentMulti } from '../lib/db';
+import { mdInline } from '../lib/markdown';
 
 const db = Astro.locals.runtime.env.DB;
 const [retailers, content] = await Promise.all([
   getAllRetailers(db),
-  getPageContentMulti(db, ['retailers_header', 'retailers_subheader']),
+  getPageContentMulti(db, ['retailers_header', 'retailers_subheader', 'retailers_subheader2']),
 ]);
 const groups = groupRetailersByState(retailers.filter(r => r.active));
 const header = content.retailers_header || 'Retailers';
 const subheader = content.retailers_subheader || 'Find Force of Nature Press products at these shops.';
+const subheader2 = content.retailers_subheader2 ?? 'Are you a retailer interested in stocking Force of Nature Press? Check out our [wholesale page](/wholesale) or [find us on Faire](/wholesale#faire)!';
+const subheader2Html = subheader2.trim() ? await mdInline(subheader2) : '';
 ---
 
 <Base title={`${header} — Force of Nature Press`} description="Shops that carry Force of Nature Press products." fullWidth>
@@ -20,6 +23,7 @@ const subheader = content.retailers_subheader || 'Find Force of Nature Press pro
     <div class="container">
       <h1>{header}</h1>
       {subheader && <p>{subheader}</p>}
+      {subheader2Html && <p class="subheader2"><Fragment set:html={subheader2Html} /></p>}
     </div>
   </div>
 
@@ -77,6 +81,9 @@ const subheader = content.retailers_subheader || 'Find Force of Nature Press pro
   .retailers-header .container { position: relative; }
   .retailers-header h1 { margin-bottom: 0.3em; }
   .retailers-header p { color: var(--brown-mid); margin: 0; }
+  .retailers-header .subheader2 { font-size: 0.9rem; margin-top: 0.5rem; }
+  .subheader2 :global(a) { color: var(--teal); text-decoration: underline; font-weight: 700; }
+  .subheader2 :global(a:hover) { color: var(--teal-dark); }
 
   .retailers-body {
     padding-top: 2.5rem;

@@ -9,7 +9,7 @@ const content = await getPageContentMulti(db, [
   'shop_header', 'shop_subheader',
   'portfolio_header', 'portfolio_subheader',
   'blog_header', 'blog_subheader',
-  'retailers_header', 'retailers_subheader',
+  'retailers_header', 'retailers_subheader', 'retailers_subheader2',
 ]);
 ---
 
@@ -74,6 +74,11 @@ const content = await getPageContentMulti(db, [
           <input type="text" name="retailers_subheader" value={content.retailers_subheader ?? 'Find Force of Nature Press products at these shops.'} />
         </div>
       </div>
+      <div class="field">
+        <label>Second subtitle</label>
+        <textarea name="retailers_subheader2" rows="2">{content.retailers_subheader2 ?? 'Are you a retailer interested in stocking Force of Nature Press? Check out our [wholesale page](/wholesale) or [find us on Faire](/wholesale#faire)!'}</textarea>
+        <span class="field-hint">Smaller line under the subtitle. Make a link like this: [link text](https://example.com)</span>
+      </div>
     </section>
 
     <div class="form-actions">
@@ -104,6 +109,12 @@ const content = await getPageContentMulti(db, [
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
   }
   .field input:focus { border-color: #c87830; outline: none; }
+  .field textarea {
+    width: 100%; padding: 0.55em 0.8em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box; resize: vertical;
+  }
+  .field textarea:focus { border-color: #c87830; outline: none; }
+  .field-hint { display: block; font-size: 0.78rem; color: #6b4a2a; margin-top: 0.25rem; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
   .form-actions { display: flex; align-items: center; gap: 1rem; }

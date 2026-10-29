@@ -7,7 +7,7 @@ import { getAllRetailers, groupRetailersByState, getPageContentMulti } from '../
 const db = Astro.locals.runtime.env.DB;
 const [retailers, content] = await Promise.all([
   getAllRetailers(db),
-  getPageContentMulti(db, ['retailers_header', 'retailers_subheader', 'retailers_password_protected']),
+  getPageContentMulti(db, ['retailers_header', 'retailers_subheader', 'retailers_subheader2', 'retailers_password_protected']),
 ]);
 const isProtected = content.retailers_password_protected !== '0';
 const groups = groupRetailersByState(retailers);
@@ -51,6 +51,11 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
       <div class="field">
         <label for="hdrSub">Subtitle</label>
         <input type="text" id="hdrSub" name="retailers_subheader" value={content.retailers_subheader ?? 'Find Force of Nature Press products at these shops.'} />
+      </div>
+      <div class="field field-full">
+        <label for="hdrSub2">Second subtitle</label>
+        <textarea id="hdrSub2" name="retailers_subheader2" rows="2">{content.retailers_subheader2 ?? 'Are you a retailer interested in stocking Force of Nature Press? Check out our [wholesale page](/wholesale) or [find us on Faire](/wholesale#faire)!'}</textarea>
+        <span class="field-hint">Smaller line under the subtitle. Make a link like this: [link text](https://example.com)</span>
       </div>
     </div>
     <div class="form-actions">
@@ -164,6 +169,13 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
     font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
   }
   .field input:focus { border-color: #c87830; outline: none; }
+  .field textarea {
+    padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e;
+    resize: vertical; width: 100%; box-sizing: border-box;
+  }
+  .field textarea:focus { border-color: #c87830; outline: none; }
+  .field-hint { font-size: 0.78rem; color: #6b4a2a; }
   .form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; }
   .form-status { font-size: 0.88rem; font-weight: 700; }
   .form-status.success { color: #3d7a6e; }
