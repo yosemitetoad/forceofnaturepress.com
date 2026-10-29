@@ -9,7 +9,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isLoginApi = pathname === '/api/admin/login' || pathname === '/api/admin/login/';
   const isUnderConstruction = pathname === '/under-construction' || pathname === '/under-construction/';
   const isApiRoute = pathname.startsWith('/api/');
-  // Public pages that require the admin password (for now)
+  // Public pages hidden behind the Under Construction page unless logged in to admin
   const isProtectedPage = pathname === '/retailers' || pathname === '/retailers/';
 
   // Admin session gate
@@ -20,7 +20,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (protectedSetting !== '0') {
       const sessionToken = context.cookies.get('admin_session')?.value;
       if (!sessionToken || !(await validateSession(db, sessionToken))) {
-        return context.redirect(`/admin/login?next=${encodeURIComponent('/retailers')}`);
+        return context.redirect('/under-construction');
       }
       return next();
     }

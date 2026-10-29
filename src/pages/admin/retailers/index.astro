@@ -30,7 +30,7 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
       <h2>Password Protection</h2>
       <p class="protect-desc" id="protectDesc">
         {isProtected
-          ? 'On: visitors must enter the admin password to see /retailers.'
+          ? 'On: visitors see the Under Construction page instead of /retailers. You can still view it while logged in to admin.'
           : 'Off: anyone can see /retailers.'}
       </p>
     </div>
@@ -227,7 +227,7 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
       });
       if (!res.ok) throw new Error();
       protectDesc.textContent = on
-        ? 'On: visitors must enter the admin password to see /retailers.'
+        ? 'On: visitors see the Under Construction page instead of /retailers. You can still view it while logged in to admin.'
         : 'Off: anyone can see /retailers.';
     } catch {
       protectToggle.checked = !on;
