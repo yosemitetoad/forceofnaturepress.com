@@ -15,11 +15,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Admin session gate
   if (isProtectedPage) {
     const db = context.locals.runtime.env.DB;
-    const sessionToken = context.cookies.get('admin_session')?.value;
-    if (!sessionToken || !(await validateSession(db, sessionToken))) {
-      return context.redirect(`/admin/login?next=${encodeURIComponent('/retailers')}`);
+    // Protection is on unless explicitly turned off in admin
+    const protectedSetting = await getPageContent(db, 'retailers_password_protected');
+    if (protectedSetting !== '0') {
+      const sessionToken = context.cookies.get('admin_session')?.value;
+      if (!sessionToken || !(await validateSession(db, sessionToken))) {
+        return context.redirect(`/admin/login?next=${encodeURIComponent('/retailers')}`);
+      }
+      return next();
     }
-    return next();
   }
 
   if (isAdminRoute && !isLoginPage && !isLoginApi) {
