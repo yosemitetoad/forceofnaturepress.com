@@ -5,7 +5,7 @@ const currentPath = Astro.url.pathname;
 const isActive = (path: string) =>
   path === '/' ? currentPath === '/' : currentPath.startsWith(path);
 const infoActive = isActive('/about') || isActive('/events') || isActive('/media');
-const shopActive = isActive('/shop') || isActive('/wholesale');
+const shopActive = isActive('/shop') || isActive('/retailers') || isActive('/wholesale');
 ---
 
 <header transition:persist>
@@ -17,6 +17,7 @@ const shopActive = isActive('/shop') || isActive('/wholesale');
         </button>
         <div class="dropdown-menu" role="menu">
           <a href="/shop" class:list={['dropdown-item', { active: isActive('/shop') }]} role="menuitem">Shop</a>
+          <a href="/retailers" class:list={['dropdown-item', { active: isActive('/retailers') }]} role="menuitem">Find a Retailer</a>
           <a href="/wholesale" class:list={['dropdown-item', { active: isActive('/wholesale') }]} role="menuitem">Wholesale</a>
         </div>
       </div>
@@ -50,6 +51,7 @@ const shopActive = isActive('/shop') || isActive('/wholesale');
 
   <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
     <a href="/shop" class:list={['mobile-link', { active: isActive('/shop') }]}>Shop</a>
+    <a href="/retailers" class:list={['mobile-link', { active: isActive('/retailers') }]}>Find a Retailer</a>
     <a href="/wholesale" class:list={['mobile-link', { active: isActive('/wholesale') }]}>Wholesale</a>
     <a href="/portfolio" class:list={['mobile-link', { active: isActive('/portfolio') }]}>Portfolio</a>
     <a href="/games" class:list={['mobile-link', { active: isActive('/games') }]}>Games</a>
