@@ -33,6 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (body.city !== undefined) fields.city = String(body.city).trim();
     if (body.state !== undefined) fields.state = String(body.state).trim();
     if (body.url !== undefined) fields.url = String(body.url ?? '').trim() || null;
+    if (body.active !== undefined) fields.active = Boolean(body.active);
     await updateRetailer(db, id, fields);
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }

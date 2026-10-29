@@ -9,7 +9,7 @@ const [retailers, content] = await Promise.all([
   getAllRetailers(db),
   getPageContentMulti(db, ['retailers_header', 'retailers_subheader']),
 ]);
-const groups = groupRetailersByState(retailers);
+const groups = groupRetailersByState(retailers.filter(r => r.active));
 const header = content.retailers_header || 'Retailers';
 const subheader = content.retailers_subheader || 'Find Force of Nature Press products at these shops.';
 ---

@@ -1593,6 +1593,7 @@ export interface Retailer {
   city: string;
   state: string;
   url: string | null;
+  active: boolean;
 }
 
 interface RetailerRow {
@@ -1602,6 +1603,7 @@ interface RetailerRow {
   city: string;
   state: string;
   url: string | null;
+  active: number;
   created_at: string;
 }
 
@@ -1613,6 +1615,7 @@ function rowToRetailer(row: RetailerRow): Retailer {
     city: row.city ?? '',
     state: row.state ?? '',
     url: row.url,
+    active: (row.active ?? 1) === 1,
   };
 }
 
@@ -1639,7 +1642,7 @@ export async function createRetailer(db: D1Database, data: RetailerInput): Promi
   return result.meta.last_row_id as number;
 }
 
-export async function updateRetailer(db: D1Database, id: number, data: Partial<RetailerInput>): Promise<void> {
+export async function updateRetailer(db: D1Database, id: number, data: Partial<RetailerInput & { active: boolean }>): Promise<void> {
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (data.name !== undefined) { sets.push('name = ?'); vals.push(data.name); }
@@ -1647,6 +1650,7 @@ export async function updateRetailer(db: D1Database, id: number, data: Partial<R
   if (data.city !== undefined) { sets.push('city = ?'); vals.push(data.city); }
   if (data.state !== undefined) { sets.push('state = ?'); vals.push(data.state); }
   if (data.url !== undefined) { sets.push('url = ?'); vals.push(data.url || null); }
+  if (data.active !== undefined) { sets.push('active = ?'); vals.push(data.active ? 1 : 0); }
   if (sets.length === 0) return;
   vals.push(id);
   await db.prepare(`UPDATE retailers SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();

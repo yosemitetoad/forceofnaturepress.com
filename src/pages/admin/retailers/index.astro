@@ -106,12 +106,18 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
       <div class="table-wrap">
         <table class="retailer-table">
           <thead>
-            <tr><th>Store</th><th>Type</th><th>City</th><th>State</th><th>Website</th><th></th></tr>
+            <tr><th>Active</th><th>Store</th><th>Type</th><th>City</th><th>State</th><th>Website</th><th></th></tr>
           </thead>
           <tbody>
             {g.retailers.map(r => (
-              <tr>
-                <td class="col-name">{r.name}</td>
+              <tr class:list={[{ inactive: !r.active }]}>
+                <td class="col-active">
+                  <label class="switch switch-sm" title={r.active ? 'Shown on public page' : 'Hidden from public page'}>
+                    <input type="checkbox" class="active-toggle" data-id={r.id} checked={r.active} aria-label={`Show ${r.name} on public page`} />
+                    <span class="slider"></span>
+                  </label>
+                </td>
+                <td class="col-name">{r.name}{!r.active && <span class="hidden-tag">Hidden</span>}</td>
                 <td>{r.storeType}</td>
                 <td>{r.city}</td>
                 <td>{r.state}</td>
@@ -190,6 +196,12 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
   .col-url a { color: #3d7a6e; word-break: break-all; }
   .muted { color: #a08060; }
   .col-actions { white-space: nowrap; text-align: right; }
+  .col-active { width: 1%; }
+  .switch-sm { width: 38px; height: 22px; }
+  .switch-sm .slider::before { width: 16px; height: 16px; }
+  .switch-sm input:checked + .slider::before { transform: translateX(16px); }
+  tr.inactive td:not(.col-active):not(.col-actions) { opacity: 0.5; }
+  .hidden-tag { margin-left: 0.5rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.1em 0.5em; border-radius: 4px; background: #e4d3b8; color: #6b4a2a; }
 
   .action-btn { padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: 1px solid #d4b896; background: transparent; color: #2d1f0e; white-space: nowrap; }
   .action-btn:hover { background: #e4d3b8; }
@@ -314,6 +326,37 @@ const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort
       formStatus.className = 'form-status error';
       saveBtn.disabled = false;
     }
+  });
+
+  // ── Active / inactive toggle (saves immediately) ────────────────────────────
+  document.querySelectorAll<HTMLInputElement>('.active-toggle').forEach(toggle => {
+    toggle.addEventListener('change', async () => {
+      const on = toggle.checked;
+      const row = toggle.closest('tr')!;
+      const nameCell = row.querySelector('.col-name')!;
+      toggle.disabled = true;
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update', id: Number(toggle.dataset.id), active: on }),
+        });
+        if (!res.ok) throw new Error();
+        row.classList.toggle('inactive', !on);
+        nameCell.querySelector('.hidden-tag')?.remove();
+        if (!on) {
+          const tag = document.createElement('span');
+          tag.className = 'hidden-tag';
+          tag.textContent = 'Hidden';
+          nameCell.append(tag);
+        }
+        (toggle.closest('.switch') as HTMLElement).title = on ? 'Shown on public page' : 'Hidden from public page';
+      } catch {
+        toggle.checked = !on;
+        alert('Error saving. Please try again.');
+      }
+      toggle.disabled = false;
+    });
   });
 
   // ── Edit / Delete ───────────────────────────────────────────────────────────
