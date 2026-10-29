@@ -1,0 +1,163 @@
+---
+export const prerender = false;
+
+import Base from '../layouts/Base.astro';
+import { getAllRetailers, groupRetailersByState, getPageContentMulti } from '../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const [retailers, content] = await Promise.all([
+  getAllRetailers(db),
+  getPageContentMulti(db, ['retailers_header', 'retailers_subheader']),
+]);
+const groups = groupRetailersByState(retailers);
+const header = content.retailers_header || 'Retailers';
+const subheader = content.retailers_subheader || 'Find Force of Nature Press products at these shops.';
+---
+
+<Base title={`${header} — Force of Nature Press`} description="Shops that carry Force of Nature Press products." fullWidth>
+
+  <div class="retailers-header">
+    <div class="container">
+      <h1>{header}</h1>
+      {subheader && <p>{subheader}</p>}
+    </div>
+  </div>
+
+  <div class="container retailers-body">
+    {groups.length === 0 ? (
+      <p class="empty">No retailers listed yet. Check back soon!</p>
+    ) : (
+      groups.map(g => (
+        <section class="state-section">
+          <h2>{g.state}</h2>
+          <div class="table-wrap">
+            <table class="retailer-table">
+              <thead>
+                <tr>
+                  <th scope="col">Store</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">City</th>
+                  <th scope="col">State</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.retailers.map(r => (
+                  <tr>
+                    <td class="col-name" data-label="Store">
+                      {r.url
+                        ? <a href={r.url} target="_blank" rel="noopener">{r.name}</a>
+                        : r.name}
+                    </td>
+                    <td data-label="Type">{r.storeType}</td>
+                    <td data-label="City">{r.city}</td>
+                    <td data-label="State">{r.state}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))
+    )}
+  </div>
+
+</Base>
+
+<style>
+  .retailers-header {
+    background: url('/plainstarbanner.webp') center / cover no-repeat;
+    border-bottom: 2px solid var(--border);
+    padding: 2.5rem 0 1.5rem;
+    position: relative;
+  }
+  .retailers-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(250, 245, 234, 0.75);
+  }
+  .retailers-header .container { position: relative; }
+  .retailers-header h1 { margin-bottom: 0.3em; }
+  .retailers-header p { color: var(--brown-mid); margin: 0; }
+
+  .retailers-body {
+    padding-top: 2.5rem;
+    padding-bottom: 5rem;
+    max-width: 860px;
+  }
+
+  .state-section { margin-bottom: 2.5rem; }
+
+  h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--brown-mid);
+    margin: 0 0 0.9rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .empty {
+    color: var(--brown-mid);
+    font-size: 0.95rem;
+    font-style: italic;
+    margin: 0;
+  }
+
+  .table-wrap {
+    background: var(--cream-light);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .retailer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+
+  .retailer-table th {
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brown-mid);
+    background: var(--cream-dark);
+    padding: 0.65rem 1.1rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .retailer-table td {
+    padding: 0.7rem 1.1rem;
+    color: var(--brown-mid);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .retailer-table tbody tr:last-child td { border-bottom: none; }
+  .retailer-table tbody tr:hover { background: rgba(200, 120, 48, 0.06); }
+
+  .col-name { font-weight: 800; color: var(--brown); }
+  .col-name a { color: var(--brown); text-decoration: none; }
+  .col-name a:hover { color: var(--orange); text-decoration: underline; }
+
+  /* Stack rows into cards on narrow screens */
+  @media (max-width: 600px) {
+    .retailer-table thead { display: none; }
+    .retailer-table, .retailer-table tbody, .retailer-table tr, .retailer-table td { display: block; width: 100%; }
+    .retailer-table tr { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); }
+    .retailer-table tbody tr:last-child { border-bottom: none; }
+    .retailer-table td { padding: 0.1rem 0; border: none; }
+    .retailer-table td:not(.col-name):empty { display: none; }
+    .retailer-table td:not(.col-name)::before {
+      content: attr(data-label) ': ';
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--brown-mid);
+    }
+    .col-name { font-size: 1rem; margin-bottom: 0.15rem; }
+  }
+</style>

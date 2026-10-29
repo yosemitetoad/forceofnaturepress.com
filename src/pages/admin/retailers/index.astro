@@ -1,0 +1,295 @@
+---
+export const prerender = false;
+
+import Admin from '../../../layouts/Admin.astro';
+import { getAllRetailers, groupRetailersByState, getPageContentMulti } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const [retailers, content] = await Promise.all([
+  getAllRetailers(db),
+  getPageContentMulti(db, ['retailers_header', 'retailers_subheader']),
+]);
+const groups = groupRetailersByState(retailers);
+const states = [...new Set(retailers.map(r => r.state).filter(Boolean))].sort();
+const types = [...new Set(retailers.map(r => r.storeType).filter(Boolean))].sort();
+---
+
+<Admin title="Retailers">
+  <div class="page-header">
+    <h1>Retailers</h1>
+    <div class="header-actions">
+      <a href="/retailers" target="_blank" class="btn btn-outline">View Page &nearr;</a>
+      <button class="btn btn-primary" id="addBtn">+ Add Retailer</button>
+    </div>
+  </div>
+
+  <!-- Page header text -->
+  <form class="editor-section" id="headerForm">
+    <h2>Page Header</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="hdrTitle">Title</label>
+        <input type="text" id="hdrTitle" name="retailers_header" value={content.retailers_header ?? 'Retailers'} />
+      </div>
+      <div class="field">
+        <label for="hdrSub">Subtitle</label>
+        <input type="text" id="hdrSub" name="retailers_subheader" value={content.retailers_subheader ?? 'Find Force of Nature Press products at these shops.'} />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="hdrSave">Save Header</button>
+      <span class="form-status" id="hdrStatus"></span>
+    </div>
+  </form>
+
+  <!-- Add / Edit form -->
+  <div class="retailer-form-wrap" id="formWrap" hidden>
+    <form id="retailerForm">
+      <input type="hidden" id="formId" />
+      <h2 id="formTitle">Add Retailer</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="formName">Store name *</label>
+          <input type="text" id="formName" required placeholder="e.g. Green Leaf Gifts" />
+        </div>
+        <div class="field">
+          <label for="formType">Type of store</label>
+          <input type="text" id="formType" list="typeOptions" placeholder="e.g. Gift Shop, Bookstore" />
+          <datalist id="typeOptions">{types.map(t => <option value={t} />)}</datalist>
+        </div>
+        <div class="field">
+          <label for="formCity">City</label>
+          <input type="text" id="formCity" placeholder="e.g. Portland" />
+        </div>
+        <div class="field">
+          <label for="formState">State / location</label>
+          <input type="text" id="formState" list="stateOptions" placeholder="e.g. Oregon" />
+          <datalist id="stateOptions">{states.map(s => <option value={s} />)}</datalist>
+        </div>
+        <div class="field field-full">
+          <label for="formUrl">Store website (optional — makes the store name a link)</label>
+          <input type="url" id="formUrl" placeholder="https://..." />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveBtn">Save Retailer</button>
+        <span class="form-status" id="formStatus"></span>
+      </div>
+    </form>
+  </div>
+
+  <p class="hint">Retailers are sorted automatically: grouped by state, then alphabetically by store name. Use the same spelling for a state each time so stores land in the same group.</p>
+
+  {groups.length === 0 && <p class="empty">No retailers yet. Click "+ Add Retailer" to get started.</p>}
+
+  {groups.map(g => (
+    <section class="state-section">
+      <h2>{g.state} <span class="count">{g.retailers.length}</span></h2>
+      <div class="table-wrap">
+        <table class="retailer-table">
+          <thead>
+            <tr><th>Store</th><th>Type</th><th>City</th><th>State</th><th>Website</th><th></th></tr>
+          </thead>
+          <tbody>
+            {g.retailers.map(r => (
+              <tr>
+                <td class="col-name">{r.name}</td>
+                <td>{r.storeType}</td>
+                <td>{r.city}</td>
+                <td>{r.state}</td>
+                <td class="col-url">{r.url ? <a href={r.url} target="_blank" rel="noopener">{r.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}</a> : <span class="muted">—</span>}</td>
+                <td class="col-actions">
+                  <button class="action-btn edit-btn"
+                    data-id={r.id} data-name={r.name} data-type={r.storeType}
+                    data-city={r.city} data-state={r.state} data-url={r.url ?? ''}>Edit</button>
+                  <button class="action-btn delete-btn" data-id={r.id} data-name={r.name}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ))}
+</Admin>
+
+<style>
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+  h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+  .header-actions { display: flex; gap: 0.6rem; }
+
+  .btn { display: inline-block; padding: 0.55em 1.2em; border-radius: 8px; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; border: none; text-decoration: none; }
+  .btn-primary { background: #c87830; color: #faf5ea; }
+  .btn-primary:hover { background: #a05e18; }
+  .btn-outline { background: transparent; color: #2d1f0e; border: 2px solid #d4b896; }
+  .btn-outline:hover { background: #e4d3b8; }
+
+  h2 { font-size: 1.2rem; font-weight: 800; margin: 0 0 1rem; color: #2d1f0e; }
+
+  .editor-section { background: #faf5ea; border: 2px solid #d4b896; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .retailer-form-wrap { background: #faf5ea; border: 2px solid #c87830; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .retailer-form-wrap[hidden] { display: none; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .field-full { grid-column: 1 / -1; }
+  .field label { font-size: 0.82rem; font-weight: 700; color: #6b4a2a; }
+  .field input {
+    padding: 0.5em 0.7em; border: 2px solid #d4b896; border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; background: #f0e6d0; color: #2d1f0e; box-sizing: border-box;
+  }
+  .field input:focus { border-color: #c87830; outline: none; }
+  .form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; }
+  .form-status { font-size: 0.88rem; font-weight: 700; }
+  .form-status.success { color: #3d7a6e; }
+  .form-status.error { color: #b44; }
+
+  .hint { font-size: 0.85rem; color: #6b4a2a; margin: 0 0 1.5rem; }
+  .empty { color: #6b4a2a; font-size: 0.9rem; font-style: italic; margin: 0; }
+
+  .state-section { margin-bottom: 2rem; }
+  .state-section h2 { display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; margin: 0 0 0.8rem; }
+  .count { background: #d4b896; color: #2d1f0e; font-size: 0.75rem; font-weight: 800; border-radius: 20px; padding: 0.1em 0.6em; }
+
+  .table-wrap { background: #faf5ea; border: 2px solid #d4b896; border-radius: 8px; overflow-x: auto; }
+  .retailer-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .retailer-table th { text-align: left; font-size: 0.75rem; font-weight: 800; color: #6b4a2a; background: #e4d3b8; padding: 0.5rem 0.8rem; white-space: nowrap; }
+  .retailer-table td { padding: 0.55rem 0.8rem; border-top: 1px solid #e4d3b8; color: #2d1f0e; vertical-align: middle; }
+  .col-name { font-weight: 800; }
+  .col-url a { color: #3d7a6e; word-break: break-all; }
+  .muted { color: #a08060; }
+  .col-actions { white-space: nowrap; text-align: right; }
+
+  .action-btn { padding: 0.3em 0.7em; border-radius: 6px; font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: 1px solid #d4b896; background: transparent; color: #2d1f0e; white-space: nowrap; }
+  .action-btn:hover { background: #e4d3b8; }
+  .delete-btn { border-color: #c9a0a0; color: #b44; }
+  .delete-btn:hover { background: #f8e8e8; }
+</style>
+
+<script>
+  const API = '/api/admin/retailers';
+
+  // ── Page header ─────────────────────────────────────────────────────────────
+  const headerForm = document.getElementById('headerForm') as HTMLFormElement;
+  const hdrSave = document.getElementById('hdrSave') as HTMLButtonElement;
+  const hdrStatus = document.getElementById('hdrStatus')!;
+
+  headerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hdrSave.disabled = true;
+    hdrStatus.textContent = 'Saving...';
+    hdrStatus.className = 'form-status';
+    const updates: Record<string, string> = {};
+    for (const [key, value] of new FormData(headerForm).entries()) updates[key] = String(value);
+    try {
+      const res = await fetch('/api/admin/pages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates }) });
+      if (!res.ok) throw new Error();
+      hdrStatus.textContent = 'Saved!';
+      hdrStatus.className = 'form-status success';
+    } catch {
+      hdrStatus.textContent = 'Error saving.';
+      hdrStatus.className = 'form-status error';
+    }
+    hdrSave.disabled = false;
+    setTimeout(() => { hdrStatus.textContent = ''; }, 3000);
+  });
+
+  // ── Add / Edit form ─────────────────────────────────────────────────────────
+  const formWrap = document.getElementById('formWrap')!;
+  const form = document.getElementById('retailerForm') as HTMLFormElement;
+  const formTitle = document.getElementById('formTitle')!;
+  const formId = document.getElementById('formId') as HTMLInputElement;
+  const formName = document.getElementById('formName') as HTMLInputElement;
+  const formType = document.getElementById('formType') as HTMLInputElement;
+  const formCity = document.getElementById('formCity') as HTMLInputElement;
+  const formState = document.getElementById('formState') as HTMLInputElement;
+  const formUrl = document.getElementById('formUrl') as HTMLInputElement;
+  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
+  const formStatus = document.getElementById('formStatus')!;
+
+  function openForm(data?: { id: string; name: string; type: string; city: string; state: string; url: string }) {
+    formId.value = data?.id ?? '';
+    formName.value = data?.name ?? '';
+    formType.value = data?.type ?? '';
+    formCity.value = data?.city ?? '';
+    formState.value = data?.state ?? '';
+    formUrl.value = data?.url ?? '';
+    formTitle.textContent = data ? 'Edit Retailer' : 'Add Retailer';
+    formStatus.textContent = '';
+    formStatus.className = 'form-status';
+    formWrap.removeAttribute('hidden');
+    formName.focus();
+    formWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeForm() {
+    formWrap.setAttribute('hidden', '');
+    form.reset();
+    formId.value = '';
+  }
+
+  document.getElementById('addBtn')?.addEventListener('click', () => openForm());
+  document.getElementById('cancelBtn')?.addEventListener('click', closeForm);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    formStatus.textContent = 'Saving...';
+    formStatus.className = 'form-status';
+
+    const id = formId.value;
+    const body = {
+      action: id ? 'update' : 'create',
+      ...(id ? { id: Number(id) } : {}),
+      name: formName.value.trim(),
+      storeType: formType.value.trim(),
+      city: formCity.value.trim(),
+      state: formState.value.trim(),
+      url: formUrl.value.trim() || null,
+    };
+
+    try {
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error();
+      formStatus.textContent = 'Saved!';
+      formStatus.className = 'form-status success';
+      setTimeout(() => location.reload(), 600);
+    } catch {
+      formStatus.textContent = 'Error saving.';
+      formStatus.className = 'form-status error';
+      saveBtn.disabled = false;
+    }
+  });
+
+  // ── Edit / Delete ───────────────────────────────────────────────────────────
+  document.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+
+    if (target.classList.contains('edit-btn')) {
+      openForm({
+        id: target.dataset.id!,
+        name: target.dataset.name!,
+        type: target.dataset.type!,
+        city: target.dataset.city!,
+        state: target.dataset.state!,
+        url: target.dataset.url!,
+      });
+      return;
+    }
+
+    if (target.classList.contains('delete-btn')) {
+      if (!confirm(`Delete "${target.dataset.name}"? This cannot be undone.`)) return;
+      (target as HTMLButtonElement).disabled = true;
+      try {
+        const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: Number(target.dataset.id) }) });
+        if (!res.ok) throw new Error();
+        location.reload();
+      } catch {
+        alert('Error deleting. Please try again.');
+        (target as HTMLButtonElement).disabled = false;
+      }
+    }
+  });
+</script>

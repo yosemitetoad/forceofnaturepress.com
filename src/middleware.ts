@@ -9,8 +9,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isLoginApi = pathname === '/api/admin/login' || pathname === '/api/admin/login/';
   const isUnderConstruction = pathname === '/under-construction' || pathname === '/under-construction/';
   const isApiRoute = pathname.startsWith('/api/');
+  // Public pages that require the admin password (for now)
+  const isProtectedPage = pathname === '/retailers' || pathname === '/retailers/';
 
   // Admin session gate
+  if (isProtectedPage) {
+    const db = context.locals.runtime.env.DB;
+    const sessionToken = context.cookies.get('admin_session')?.value;
+    if (!sessionToken || !(await validateSession(db, sessionToken))) {
+      return context.redirect(`/admin/login?next=${encodeURIComponent('/retailers')}`);
+    }
+    return next();
+  }
+
   if (isAdminRoute && !isLoginPage && !isLoginApi) {
     const db = context.locals.runtime.env.DB;
     const sessionToken = context.cookies.get('admin_session')?.value;

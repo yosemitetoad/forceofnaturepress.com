@@ -9,6 +9,7 @@ const content = await getPageContentMulti(db, [
   'shop_header', 'shop_subheader',
   'portfolio_header', 'portfolio_subheader',
   'blog_header', 'blog_subheader',
+  'retailers_header', 'retailers_subheader',
 ]);
 ---
 
@@ -57,6 +58,20 @@ const content = await getPageContentMulti(db, [
         <div class="field">
           <label>Subtitle</label>
           <input type="text" name="blog_subheader" value={content.blog_subheader ?? ''} />
+        </div>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <h2>Retailers</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" name="retailers_header" value={content.retailers_header ?? 'Retailers'} />
+        </div>
+        <div class="field">
+          <label>Subtitle</label>
+          <input type="text" name="retailers_subheader" value={content.retailers_subheader ?? 'Find Force of Nature Press products at these shops.'} />
         </div>
       </div>
     </section>

@@ -1583,3 +1583,89 @@ export async function reorderEvents(db: D1Database, ids: number[]): Promise<void
   );
   await db.batch(stmts);
 }
+
+// ── Retailers ─────────────────────────────────────────────────────────────────
+
+export interface Retailer {
+  id: number;
+  name: string;
+  storeType: string;
+  city: string;
+  state: string;
+  url: string | null;
+}
+
+interface RetailerRow {
+  id: number;
+  name: string;
+  store_type: string;
+  city: string;
+  state: string;
+  url: string | null;
+  created_at: string;
+}
+
+function rowToRetailer(row: RetailerRow): Retailer {
+  return {
+    id: row.id,
+    name: row.name,
+    storeType: row.store_type ?? '',
+    city: row.city ?? '',
+    state: row.state ?? '',
+    url: row.url,
+  };
+}
+
+export async function getAllRetailers(db: D1Database): Promise<Retailer[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM retailers ORDER BY state COLLATE NOCASE ASC, name COLLATE NOCASE ASC')
+    .all<RetailerRow>();
+  return (results ?? []).map(rowToRetailer);
+}
+
+export interface RetailerInput {
+  name: string;
+  storeType: string;
+  city: string;
+  state: string;
+  url: string | null;
+}
+
+export async function createRetailer(db: D1Database, data: RetailerInput): Promise<number> {
+  const result = await db
+    .prepare('INSERT INTO retailers (name, store_type, city, state, url) VALUES (?, ?, ?, ?, ?)')
+    .bind(data.name, data.storeType, data.city, data.state, data.url)
+    .run();
+  return result.meta.last_row_id as number;
+}
+
+export async function updateRetailer(db: D1Database, id: number, data: Partial<RetailerInput>): Promise<void> {
+  const sets: string[] = [];
+  const vals: unknown[] = [];
+  if (data.name !== undefined) { sets.push('name = ?'); vals.push(data.name); }
+  if (data.storeType !== undefined) { sets.push('store_type = ?'); vals.push(data.storeType); }
+  if (data.city !== undefined) { sets.push('city = ?'); vals.push(data.city); }
+  if (data.state !== undefined) { sets.push('state = ?'); vals.push(data.state); }
+  if (data.url !== undefined) { sets.push('url = ?'); vals.push(data.url || null); }
+  if (sets.length === 0) return;
+  vals.push(id);
+  await db.prepare(`UPDATE retailers SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run();
+}
+
+export async function deleteRetailer(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM retailers WHERE id = ?').bind(id).run();
+}
+
+/** Group retailers by state (alphabetical), each group sorted by store name. */
+export function groupRetailersByState(retailers: Retailer[]): { state: string; retailers: Retailer[] }[] {
+  const groups = new Map<string, Retailer[]>();
+  for (const r of retailers) {
+    const key = r.state.trim() || 'Other';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+  const cmp = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+  return [...groups.entries()]
+    .sort(([a], [b]) => cmp(a, b))
+    .map(([state, list]) => ({ state, retailers: list.sort((a, b) => cmp(a.name, b.name)) }));
+}
